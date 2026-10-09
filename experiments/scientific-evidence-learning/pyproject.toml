@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scientific-evidence-learning"
+version = "0.1.0"
+description = "Reproducible experiments on conditional evidence use, learning and interventions"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+design = ["scipy>=1.11,<2", "numpy>=1.26,<3"]
+models = ["torch>=2.6", "transformers==4.57.1", "peft==0.17.1", "accelerate==1.10.1"]
+
+[project.scripts]
+evidence-lab = "evidence_lab.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

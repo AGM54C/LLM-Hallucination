@@ -1,0 +1,16 @@
+{
+  "schema": "evidence-lab-pilot-v1",
+  "data_path": "../../chemical-materials-pilot-20261004/sources/chemistry/buchwald_hartwig_annotated.csv",
+  "expected_sha256": "7ee9e3cbe434c1b3200e3c1654adc92ea644f226c4615b49ccd33e154e3bec83",
+  "split_seed": 20261006,
+  "validation_fraction": 0.2,
+  "test_fraction": 0.2,
+  "selection_seed": 41,
+  "selection_method": "balanced_marginals",
+  "training_cases_per_arm": 128,
+  "blind_budgets": [0, 1, 2, 3],
+  "blind_policies": ["random", "round_robin", "information_gain", "myopic_bayes_risk"],
+  "blind_contexts_per_table": 1,
+  "stage": "development_infrastructure",
+  "scientific_claims_enabled": false
+}

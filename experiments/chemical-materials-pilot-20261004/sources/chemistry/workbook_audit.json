@@ -1,0 +1,407 @@
+{
+  "source_filename": "Dreher_and_Doyle_input_data.xlsx",
+  "sha256": "d7f318abfbb42eaadca482b1e9aa54540eeed60e0089b6a0eb4e75366c31ee2e",
+  "canonical_sheet": "FullCV_01",
+  "sheets": {
+    "FullCV_01": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "FullCV_02": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "FullCV_03": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "FullCV_04": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "FullCV_05": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "FullCV_06": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "FullCV_07": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "FullCV_08": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "FullCV_09": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "FullCV_10": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "Test1": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "Test2": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "Test3": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "Test4": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "Plates1-3": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    },
+    "Plate2_new": {
+      "rows": 3955,
+      "columns": [
+        "Ligand",
+        "Additive",
+        "Base",
+        "Aryl halide",
+        "Output"
+      ],
+      "blank_cells": {
+        "Ligand": 0,
+        "Additive": 0,
+        "Base": 0,
+        "Aryl halide": 0,
+        "Output": 0
+      },
+      "duplicate_full_rows": 0,
+      "duplicate_condition_rows": 0,
+      "same_row_multiset_as_canonical": true
+    }
+  },
+  "factor_unique_counts": {
+    "Ligand": 4,
+    "Additive": 22,
+    "Base": 3,
+    "Aryl halide": 15
+  },
+  "factor_values": {
+    "Ligand": [
+      "CC(C)C(C=C(C(C)C)C=C1C(C)C)=C1C2=C(P(C(C)(C)C)C(C)(C)C)C(OC)=CC=C2OC",
+      "CC(C)C(C=C(C(C)C)C=C1C(C)C)=C1C2=C(P(C(C)(C)C)C(C)(C)C)C=CC=C2",
+      "CC(C)C(C=C(C(C)C)C=C1C(C)C)=C1C2=C(P(C3CCCCC3)C4CCCCC4)C=CC=C2",
+      "CC(C)C(C=C(C(C)C)C=C1C(C)C)=C1C2=C(P([C@@]3(C[C@@H]4C5)C[C@H](C4)C[C@H]5C3)[C@]6(C7)C[C@@H](C[C@@H]7C8)C[C@@H]8C6)C(OC)=CC=C2OC"
+    ],
+    "Additive": [
+      "C1(C2=CC=CC=C2)=CC=NO1",
+      "C1(C2=CC=CC=C2)=CON=C1",
+      "C1(C2=CC=CC=C2)=NOC=C1",
+      "C1(N(CC2=CC=CC=C2)CC3=CC=CC=C3)=CC=NO1",
+      "C1(N(CC2=CC=CC=C2)CC3=CC=CC=C3)=NOC=C1",
+      "C12=C(C=CC=C2)ON=C1",
+      "C12=CON=C1C=CC=C2",
+      "CC1=C(C(OCC)=O)C=NO1",
+      "CC1=CC(C(OCC)=O)=NO1",
+      "CC1=CC(C)=NO1",
+      "CC1=CC(N2C=CC=C2)=NO1",
+      "CC1=CC=NO1",
+      "CC1=NOC(C(OCC)=O)=C1",
+      "CC1=NOC(C2=CC=CC=C2)=C1",
+      "CC1=NOC=C1",
+      "CCOC(C1=CON=C1)=O",
+      "CCOC(C1=NOC=C1)=O",
+      "COC1=NOC(C(OCC)=O)=C1",
+      "FC(C=CC=C1F)=C1C2=CC=NO2",
+      "O=C(OC)C1=CC=NO1",
+      "O=C(OC)C1=NOC(C2=CC=CO2)=C1",
+      "O=C(OC)C1=NOC(C2=CC=CS2)=C1"
+    ],
+    "Base": [
+      "CC(C)(C)/N=C(N(C)C)/N(C)C",
+      "CN(C)P(N(C)C)(N(C)C)=NP(N(C)C)(N(C)C)=NCC",
+      "CN1CCCN2C1=NCCC2"
+    ],
+    "Aryl halide": [
+      "BrC1=CC=C(C(F)(F)F)C=C1",
+      "BrC1=CC=C(CC)C=C1",
+      "BrC1=CC=C(OC)C=C1",
+      "BrC1=CN=CC=C1",
+      "BrC1=NC=CC=C1",
+      "ClC1=CC=C(C(F)(F)F)C=C1",
+      "ClC1=CC=C(CC)C=C1",
+      "ClC1=CC=C(OC)C=C1",
+      "ClC1=CN=CC=C1",
+      "ClC1=NC=CC=C1",
+      "IC1=CC=C(C(F)(F)F)C=C1",
+      "IC1=CC=C(CC)C=C1",
+      "IC1=CC=C(OC)C=C1",
+      "IC1=CN=CC=C1",
+      "IC1=NC=CC=C1"
+    ]
+  },
+  "observed_unique_condition_count": 3955,
+  "cartesian_grid_size": 3960,
+  "unobserved_grid_conditions": 5,
+  "output": {
+    "numeric_count": 3955,
+    "nonnumeric_count": 0,
+    "minimum": 0.0,
+    "maximum": 99.99999,
+    "zero_count": 236,
+    "negative_count": 0,
+    "above_100_count": 0,
+    "quantiles": {
+      "0.0": 0.0,
+      "0.25": 7.8775600699999995,
+      "0.5": 28.7617291,
+      "0.75": 53.278687094999995,
+      "1.0": 99.99999
+    }
+  },
+  "replicates": "No independent replicate ID exists in this workbook. Identical rows across sheets are not replicate experiments."
+}

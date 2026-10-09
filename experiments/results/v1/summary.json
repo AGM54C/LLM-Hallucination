@@ -1,0 +1,2147 @@
+{
+  "qwen3-14b-e1-validation-v1": {
+    "kind": "local_model_behavior",
+    "split": "validation",
+    "cases": 330,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8484848484848485,
+        "all_attempt_accuracy": 0.8484848484848485,
+        "mean_regret_pp_valid": 0.6632845830909091
+      },
+      "conditional_max/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8363636363636363,
+        "all_attempt_accuracy": 0.8363636363636363,
+        "mean_regret_pp_valid": 1.0619475071151516
+      },
+      "conditional_max/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.6545454545454545,
+        "all_attempt_accuracy": 0.6545454545454545,
+        "mean_regret_pp_valid": 1.8034795248969695
+      },
+      "conditional_max/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8242424242424242,
+        "all_attempt_accuracy": 0.8242424242424242,
+        "mean_regret_pp_valid": 0.6568593483636365
+      },
+      "conditional_max/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8363636363636363,
+        "all_attempt_accuracy": 0.8363636363636363,
+        "mean_regret_pp_valid": 0.686154159939394
+      },
+      "conditional_min/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8363636363636363,
+        "all_attempt_accuracy": 0.8363636363636363,
+        "mean_regret_pp_valid": 1.0488123477636364
+      },
+      "conditional_min/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.7757575757575758,
+        "all_attempt_accuracy": 0.7757575757575758,
+        "mean_regret_pp_valid": 1.804280305521212
+      },
+      "conditional_min/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.6363636363636364,
+        "all_attempt_accuracy": 0.6363636363636364,
+        "mean_regret_pp_valid": 3.224975616969697
+      },
+      "conditional_min/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8363636363636363,
+        "all_attempt_accuracy": 0.8363636363636363,
+        "mean_regret_pp_valid": 2.079428806193939
+      },
+      "conditional_min/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8303030303030303,
+        "all_attempt_accuracy": 0.8303030303030303,
+        "mean_regret_pp_valid": 1.217958154139394
+      }
+    },
+    "paired": {
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.06666666666666667,
+        "within_study_group_bootstrap_95": [
+          -0.11666666666666667,
+          -0.005555555555555556
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.21666666666666667,
+        "within_study_group_bootstrap_95": [
+          -0.33333333333333337,
+          -0.1
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.0027777777777777775,
+        "within_study_group_bootstrap_95": [
+          -0.027777777777777776,
+          0.02777777777777778
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.03333333333333333,
+          0.016666666666666666
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.01388888888888889,
+        "within_study_group_bootstrap_95": [
+          -0.06666666666666667,
+          0.06666666666666667
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.17777777777777776,
+        "within_study_group_bootstrap_95": [
+          -0.26666666666666666,
+          -0.06111111111111111
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.022222222222222223,
+        "within_study_group_bootstrap_95": [
+          -0.05,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.013888888888888888,
+        "within_study_group_bootstrap_95": [
+          -0.027777777777777776,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "cc8e7c244aa62569f67cedcfcc71c1986d691c74bed55aa57bdef0b34f05b9bb",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-hard_examples-test-s41": {
+    "kind": "local_model_behavior",
+    "split": "test",
+    "cases": 360,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9611111111111111,
+        "all_attempt_accuracy": 0.9611111111111111,
+        "mean_regret_pp_valid": 0.08983382261111106
+      },
+      "conditional_max/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9111111111111111,
+        "all_attempt_accuracy": 0.9111111111111111,
+        "mean_regret_pp_valid": 0.30400916348333323
+      },
+      "conditional_max/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.65,
+        "all_attempt_accuracy": 0.65,
+        "mean_regret_pp_valid": 1.967875044972222
+      },
+      "conditional_max/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.95,
+        "all_attempt_accuracy": 0.95,
+        "mean_regret_pp_valid": 0.09311859822222214
+      },
+      "conditional_max/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9555555555555556,
+        "all_attempt_accuracy": 0.9555555555555556,
+        "mean_regret_pp_valid": 0.0988022009444444
+      },
+      "conditional_min/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9722222222222222,
+        "all_attempt_accuracy": 0.9722222222222222,
+        "mean_regret_pp_valid": 0.4849351595
+      },
+      "conditional_min/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8777777777777778,
+        "all_attempt_accuracy": 0.8777777777777778,
+        "mean_regret_pp_valid": 0.3336620498333333
+      },
+      "conditional_min/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8055555555555556,
+        "all_attempt_accuracy": 0.8055555555555556,
+        "mean_regret_pp_valid": 1.4998029571166667
+      },
+      "conditional_min/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9388888888888889,
+        "all_attempt_accuracy": 0.9388888888888889,
+        "mean_regret_pp_valid": 1.0629401706666666
+      },
+      "conditional_min/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9555555555555556,
+        "all_attempt_accuracy": 0.9555555555555556,
+        "mean_regret_pp_valid": 0.6483457990944445
+      }
+    },
+    "paired": {
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.05,
+        "within_study_group_bootstrap_95": [
+          -0.10555555555555556,
+          8.673617379884035e-19
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.3111111111111111,
+        "within_study_group_bootstrap_95": [
+          -0.4166666666666667,
+          -0.23888888888888887
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.011111111111111112,
+        "within_study_group_bootstrap_95": [
+          -0.03333333333333333,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.09444444444444444,
+        "within_study_group_bootstrap_95": [
+          -0.12222222222222222,
+          -0.06111111111111111
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.16666666666666666,
+        "within_study_group_bootstrap_95": [
+          -0.2111111111111111,
+          -0.12222222222222222
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.03333333333333333,
+        "within_study_group_bootstrap_95": [
+          -0.07222222222222223,
+          0.005555555555555556
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.016666666666666666,
+        "within_study_group_bootstrap_95": [
+          -0.03333333333333333,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-hard_examples-validation-s41": {
+    "kind": "local_model_behavior",
+    "split": "validation",
+    "cases": 330,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9757575757575757,
+        "all_attempt_accuracy": 0.9757575757575757,
+        "mean_regret_pp_valid": 0.03412785448484856
+      },
+      "conditional_max/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9272727272727272,
+        "all_attempt_accuracy": 0.9272727272727272,
+        "mean_regret_pp_valid": 0.4854445688969698
+      },
+      "conditional_max/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.703030303030303,
+        "all_attempt_accuracy": 0.703030303030303,
+        "mean_regret_pp_valid": 1.368619458769697
+      },
+      "conditional_max/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9696969696969697,
+        "all_attempt_accuracy": 0.9696969696969697,
+        "mean_regret_pp_valid": 0.041334351818181944
+      },
+      "conditional_max/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9757575757575757,
+        "all_attempt_accuracy": 0.9757575757575757,
+        "mean_regret_pp_valid": 0.04867358421818185
+      },
+      "conditional_min/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8727272727272727,
+        "all_attempt_accuracy": 0.8727272727272727,
+        "mean_regret_pp_valid": 1.5040620156727273
+      },
+      "conditional_min/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8,
+        "all_attempt_accuracy": 0.8,
+        "mean_regret_pp_valid": 1.115652420490909
+      },
+      "conditional_min/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.6545454545454545,
+        "all_attempt_accuracy": 0.6545454545454545,
+        "mean_regret_pp_valid": 3.2767722855878785
+      },
+      "conditional_min/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8424242424242424,
+        "all_attempt_accuracy": 0.8424242424242424,
+        "mean_regret_pp_valid": 2.2795332212242427
+      },
+      "conditional_min/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8848484848484849,
+        "all_attempt_accuracy": 0.8848484848484849,
+        "mean_regret_pp_valid": 0.8793849805515151
+      }
+    },
+    "paired": {
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.06944444444444445,
+        "within_study_group_bootstrap_95": [
+          -0.125,
+          -0.027777777777777776
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.23055555555555554,
+        "within_study_group_bootstrap_95": [
+          -0.3138888888888889,
+          -0.15555555555555556
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.030555555555555555,
+        "within_study_group_bootstrap_95": [
+          -0.05555555555555555,
+          -0.008333333333333333
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": 0.013888888888888888,
+        "within_study_group_bootstrap_95": [
+          -0.011111111111111112,
+          0.030555555555555555
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.05,
+        "within_study_group_bootstrap_95": [
+          -0.07777777777777778,
+          -0.016666666666666666
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.26666666666666666,
+        "within_study_group_bootstrap_95": [
+          -0.33333333333333337,
+          -0.2
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": 0.0,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.016666666666666666
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-high_disagreement-test-s41": {
+    "kind": "local_model_behavior",
+    "split": "test",
+    "cases": 360,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9277777777777778,
+        "all_attempt_accuracy": 0.9277777777777778,
+        "mean_regret_pp_valid": 0.11478053213888888
+      },
+      "conditional_max/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8111111111111111,
+        "all_attempt_accuracy": 0.8111111111111111,
+        "mean_regret_pp_valid": 0.7897219241833333
+      },
+      "conditional_max/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.6388888888888888,
+        "all_attempt_accuracy": 0.6388888888888888,
+        "mean_regret_pp_valid": 1.9958667441055553
+      },
+      "conditional_max/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9111111111111111,
+        "all_attempt_accuracy": 0.9111111111111111,
+        "mean_regret_pp_valid": 0.11380449383888891
+      },
+      "conditional_max/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9222222222222223,
+        "all_attempt_accuracy": 0.9222222222222223,
+        "mean_regret_pp_valid": 0.12327123030555555
+      },
+      "conditional_min/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.95,
+        "all_attempt_accuracy": 0.95,
+        "mean_regret_pp_valid": 0.8902570173888888
+      },
+      "conditional_min/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8833333333333333,
+        "all_attempt_accuracy": 0.8833333333333333,
+        "mean_regret_pp_valid": 0.6277795069277777
+      },
+      "conditional_min/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8111111111111111,
+        "all_attempt_accuracy": 0.8111111111111111,
+        "mean_regret_pp_valid": 1.1975366791388888
+      },
+      "conditional_min/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9,
+        "all_attempt_accuracy": 0.9,
+        "mean_regret_pp_valid": 1.1122288703333334
+      },
+      "conditional_min/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9555555555555556,
+        "all_attempt_accuracy": 0.9555555555555556,
+        "mean_regret_pp_valid": 0.5557016441111111
+      }
+    },
+    "paired": {
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.11666666666666667,
+        "within_study_group_bootstrap_95": [
+          -0.18333333333333332,
+          -0.06666666666666667
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.28888888888888886,
+        "within_study_group_bootstrap_95": [
+          -0.33333333333333337,
+          -0.26666666666666666
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.016666666666666666,
+        "within_study_group_bootstrap_95": [
+          -0.05,
+          0.011111111111111112
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.06666666666666667,
+        "within_study_group_bootstrap_95": [
+          -0.1111111111111111,
+          -0.03333333333333333
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.1388888888888889,
+        "within_study_group_bootstrap_95": [
+          -0.17777777777777778,
+          -0.1111111111111111
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.05,
+        "within_study_group_bootstrap_95": [
+          -0.07777777777777778,
+          -0.016666666666666666
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": 0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.011111111111111112,
+          0.022222222222222223
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-high_disagreement-validation-s41": {
+    "kind": "local_model_behavior",
+    "split": "validation",
+    "cases": 330,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9090909090909091,
+        "all_attempt_accuracy": 0.9090909090909091,
+        "mean_regret_pp_valid": 0.3150794326666666
+      },
+      "conditional_max/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8727272727272727,
+        "all_attempt_accuracy": 0.8727272727272727,
+        "mean_regret_pp_valid": 0.9661578831818183
+      },
+      "conditional_max/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.7090909090909091,
+        "all_attempt_accuracy": 0.7090909090909091,
+        "mean_regret_pp_valid": 1.2937582116484847
+      },
+      "conditional_max/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8909090909090909,
+        "all_attempt_accuracy": 0.8909090909090909,
+        "mean_regret_pp_valid": 0.30358872080606064
+      },
+      "conditional_max/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9030303030303031,
+        "all_attempt_accuracy": 0.9030303030303031,
+        "mean_regret_pp_valid": 0.3341139797333333
+      },
+      "conditional_min/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8848484848484849,
+        "all_attempt_accuracy": 0.8848484848484849,
+        "mean_regret_pp_valid": 1.1858819786545454
+      },
+      "conditional_min/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.7878787878787878,
+        "all_attempt_accuracy": 0.7878787878787878,
+        "mean_regret_pp_valid": 1.348474916509091
+      },
+      "conditional_min/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.703030303030303,
+        "all_attempt_accuracy": 0.703030303030303,
+        "mean_regret_pp_valid": 2.7859789709575757
+      },
+      "conditional_min/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8424242424242424,
+        "all_attempt_accuracy": 0.8424242424242424,
+        "mean_regret_pp_valid": 2.198478288890909
+      },
+      "conditional_min/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8848484848484849,
+        "all_attempt_accuracy": 0.8848484848484849,
+        "mean_regret_pp_valid": 0.8365279413696969
+      }
+    },
+    "paired": {
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.03888888888888889,
+        "within_study_group_bootstrap_95": [
+          -0.07777777777777778,
+          0.01666666666666667
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.19444444444444442,
+        "within_study_group_bootstrap_95": [
+          -0.26666666666666666,
+          -0.12222222222222222
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.01388888888888889,
+        "within_study_group_bootstrap_95": [
+          -0.061111111111111116,
+          0.027777777777777776
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.1,
+        "within_study_group_bootstrap_95": [
+          -0.13333333333333333,
+          -0.06666666666666667
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.19166666666666665,
+        "within_study_group_bootstrap_95": [
+          -0.2583333333333333,
+          -0.13333333333333333
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.04722222222222222,
+        "within_study_group_bootstrap_95": [
+          -0.09444444444444444,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": 0.0027777777777777775,
+        "within_study_group_bootstrap_95": [
+          -0.02777777777777778,
+          0.027777777777777776
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-low_disagreement-test-s41": {
+    "kind": "local_model_behavior",
+    "split": "test",
+    "cases": 360,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9,
+        "all_attempt_accuracy": 0.9,
+        "mean_regret_pp_valid": 0.23666533131111112
+      },
+      "conditional_max/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8777777777777778,
+        "all_attempt_accuracy": 0.8777777777777778,
+        "mean_regret_pp_valid": 0.4486410776222221
+      },
+      "conditional_max/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.6222222222222222,
+        "all_attempt_accuracy": 0.6222222222222222,
+        "mean_regret_pp_valid": 1.7996906045888885
+      },
+      "conditional_max/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8777777777777778,
+        "all_attempt_accuracy": 0.8777777777777778,
+        "mean_regret_pp_valid": 0.2369696498388888
+      },
+      "conditional_max/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8944444444444445,
+        "all_attempt_accuracy": 0.8944444444444445,
+        "mean_regret_pp_valid": 0.23349019386666675
+      },
+      "conditional_min/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9555555555555556,
+        "all_attempt_accuracy": 0.9555555555555556,
+        "mean_regret_pp_valid": 0.5662513823
+      },
+      "conditional_min/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8277777777777777,
+        "all_attempt_accuracy": 0.8277777777777777,
+        "mean_regret_pp_valid": 0.5008147130277777
+      },
+      "conditional_min/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8111111111111111,
+        "all_attempt_accuracy": 0.8111111111111111,
+        "mean_regret_pp_valid": 1.4832041397888889
+      },
+      "conditional_min/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9222222222222223,
+        "all_attempt_accuracy": 0.9222222222222223,
+        "mean_regret_pp_valid": 0.7665341267555555
+      },
+      "conditional_min/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.95,
+        "all_attempt_accuracy": 0.95,
+        "mean_regret_pp_valid": 0.4547764924833333
+      }
+    },
+    "paired": {
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.12777777777777777,
+        "within_study_group_bootstrap_95": [
+          -0.15,
+          -0.1
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.14444444444444443,
+        "within_study_group_bootstrap_95": [
+          -0.18333333333333335,
+          -0.11666666666666667
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.03333333333333333,
+        "within_study_group_bootstrap_95": [
+          -0.05555555555555555,
+          -0.011111111111111112
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.022222222222222223,
+        "within_study_group_bootstrap_95": [
+          -0.05555555555555555,
+          0.011111111111111112
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.2777777777777778,
+        "within_study_group_bootstrap_95": [
+          -0.3055555555555556,
+          -0.23888888888888887
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.022222222222222223,
+        "within_study_group_bootstrap_95": [
+          -0.05,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-low_disagreement-validation-s41": {
+    "kind": "local_model_behavior",
+    "split": "validation",
+    "cases": 330,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9272727272727272,
+        "all_attempt_accuracy": 0.9272727272727272,
+        "mean_regret_pp_valid": 0.2363524775818182
+      },
+      "conditional_max/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8909090909090909,
+        "all_attempt_accuracy": 0.8909090909090909,
+        "mean_regret_pp_valid": 0.5620590435030304
+      },
+      "conditional_max/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.6484848484848484,
+        "all_attempt_accuracy": 0.6484848484848484,
+        "mean_regret_pp_valid": 1.891005035981818
+      },
+      "conditional_max/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.896969696969697,
+        "all_attempt_accuracy": 0.896969696969697,
+        "mean_regret_pp_valid": 0.2383689139515152
+      },
+      "conditional_max/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9212121212121213,
+        "all_attempt_accuracy": 0.9212121212121213,
+        "mean_regret_pp_valid": 0.2952948751757576
+      },
+      "conditional_min/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8666666666666667,
+        "all_attempt_accuracy": 0.8666666666666667,
+        "mean_regret_pp_valid": 1.0202309332969697
+      },
+      "conditional_min/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.793939393939394,
+        "all_attempt_accuracy": 0.793939393939394,
+        "mean_regret_pp_valid": 1.1243600983151516
+      },
+      "conditional_min/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.696969696969697,
+        "all_attempt_accuracy": 0.696969696969697,
+        "mean_regret_pp_valid": 2.5451652723878784
+      },
+      "conditional_min/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8363636363636363,
+        "all_attempt_accuracy": 0.8363636363636363,
+        "mean_regret_pp_valid": 1.9791114581696971
+      },
+      "conditional_min/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8848484848484849,
+        "all_attempt_accuracy": 0.8848484848484849,
+        "mean_regret_pp_valid": 0.45759182646060614
+      }
+    },
+    "paired": {
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.06944444444444445,
+        "within_study_group_bootstrap_95": [
+          -0.1111111111111111,
+          -0.03888888888888889
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.175,
+        "within_study_group_bootstrap_95": [
+          -0.2138888888888889,
+          -0.14444444444444443
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.030555555555555555,
+        "within_study_group_bootstrap_95": [
+          -0.05555555555555555,
+          -0.008333333333333333
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": 0.022222222222222223,
+        "within_study_group_bootstrap_95": [
+          -0.011111111111111112,
+          0.05555555555555555
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.04722222222222222,
+        "within_study_group_bootstrap_95": [
+          -0.13055555555555554,
+          0.022222222222222223
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.27222222222222225,
+        "within_study_group_bootstrap_95": [
+          -0.34444444444444444,
+          -0.2
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.030555555555555558,
+        "within_study_group_bootstrap_95": [
+          -0.044444444444444446,
+          -0.011111111111111112
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-random_order_augmentation-test-s41": {
+    "kind": "local_model_behavior",
+    "split": "test",
+    "cases": 360,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8666666666666667,
+        "all_attempt_accuracy": 0.8666666666666667,
+        "mean_regret_pp_valid": 0.34183833700000005
+      },
+      "conditional_max/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.7833333333333333,
+        "all_attempt_accuracy": 0.7833333333333333,
+        "mean_regret_pp_valid": 0.7715528131666665
+      },
+      "conditional_max/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.7444444444444445,
+        "all_attempt_accuracy": 0.7444444444444445,
+        "mean_regret_pp_valid": 0.8736967549555553
+      },
+      "conditional_max/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8333333333333334,
+        "all_attempt_accuracy": 0.8333333333333334,
+        "mean_regret_pp_valid": 0.3992543228277778
+      },
+      "conditional_max/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8944444444444445,
+        "all_attempt_accuracy": 0.8944444444444445,
+        "mean_regret_pp_valid": 0.27580423517222225
+      },
+      "conditional_min/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9444444444444444,
+        "all_attempt_accuracy": 0.9444444444444444,
+        "mean_regret_pp_valid": 0.5964115285388889
+      },
+      "conditional_min/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8222222222222222,
+        "all_attempt_accuracy": 0.8222222222222222,
+        "mean_regret_pp_valid": 0.8931215909888888
+      },
+      "conditional_min/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8,
+        "all_attempt_accuracy": 0.8,
+        "mean_regret_pp_valid": 1.4989595409166667
+      },
+      "conditional_min/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9111111111111111,
+        "all_attempt_accuracy": 0.9111111111111111,
+        "mean_regret_pp_valid": 0.8447134809611111
+      },
+      "conditional_min/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9333333333333333,
+        "all_attempt_accuracy": 0.9333333333333333,
+        "mean_regret_pp_valid": 0.6113330498166667
+      }
+    },
+    "paired": {
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.12222222222222222,
+        "within_study_group_bootstrap_95": [
+          -0.14444444444444443,
+          -0.1
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.14444444444444446,
+        "within_study_group_bootstrap_95": [
+          -0.19444444444444445,
+          -0.061111111111111116
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.03333333333333333,
+        "within_study_group_bootstrap_95": [
+          -0.044444444444444446,
+          -0.022222222222222223
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.011111111111111112,
+        "within_study_group_bootstrap_95": [
+          -0.022222222222222223,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.08333333333333333,
+        "within_study_group_bootstrap_95": [
+          -0.2222222222222222,
+          0.06666666666666667
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.12222222222222222,
+        "within_study_group_bootstrap_95": [
+          -0.18888888888888888,
+          -0.08888888888888889
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.03333333333333333,
+        "within_study_group_bootstrap_95": [
+          -0.05555555555555555,
+          -0.011111111111111112
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": 0.02777777777777778,
+        "within_study_group_bootstrap_95": [
+          0.011111111111111112,
+          0.044444444444444446
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-random_order_augmentation-validation-s41": {
+    "kind": "local_model_behavior",
+    "split": "validation",
+    "cases": 330,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.896969696969697,
+        "all_attempt_accuracy": 0.896969696969697,
+        "mean_regret_pp_valid": 0.30942127507272726
+      },
+      "conditional_max/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8848484848484849,
+        "all_attempt_accuracy": 0.8848484848484849,
+        "mean_regret_pp_valid": 0.9573091240424243
+      },
+      "conditional_max/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.7818181818181819,
+        "all_attempt_accuracy": 0.7818181818181819,
+        "mean_regret_pp_valid": 0.8350847863636366
+      },
+      "conditional_max/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8606060606060606,
+        "all_attempt_accuracy": 0.8606060606060606,
+        "mean_regret_pp_valid": 0.4226196657515152
+      },
+      "conditional_max/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.896969696969697,
+        "all_attempt_accuracy": 0.896969696969697,
+        "mean_regret_pp_valid": 0.28855186307272723
+      },
+      "conditional_min/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8727272727272727,
+        "all_attempt_accuracy": 0.8727272727272727,
+        "mean_regret_pp_valid": 0.8167346042060606
+      },
+      "conditional_min/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.7454545454545455,
+        "all_attempt_accuracy": 0.7454545454545455,
+        "mean_regret_pp_valid": 2.1704198041636364
+      },
+      "conditional_min/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.7090909090909091,
+        "all_attempt_accuracy": 0.7090909090909091,
+        "mean_regret_pp_valid": 2.6411892574545455
+      },
+      "conditional_min/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8363636363636363,
+        "all_attempt_accuracy": 0.8363636363636363,
+        "mean_regret_pp_valid": 2.0952944064121213
+      },
+      "conditional_min/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8545454545454545,
+        "all_attempt_accuracy": 0.8545454545454545,
+        "mean_regret_pp_valid": 0.8292729868848486
+      }
+    },
+    "paired": {
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.05555555555555555,
+          0.044444444444444446
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.1111111111111111,
+        "within_study_group_bootstrap_95": [
+          -0.14444444444444443,
+          -0.07777777777777778
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.03611111111111111,
+        "within_study_group_bootstrap_95": [
+          -0.058333333333333334,
+          -0.011111111111111112
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": 0.0027777777777777775,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.025
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.1388888888888889,
+        "within_study_group_bootstrap_95": [
+          -0.22777777777777777,
+          -0.07777777777777778
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.175,
+        "within_study_group_bootstrap_95": [
+          -0.25277777777777777,
+          -0.1
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.04166666666666667,
+        "within_study_group_bootstrap_95": [
+          -0.08055555555555556,
+          -0.011111111111111112
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.019444444444444445,
+        "within_study_group_bootstrap_95": [
+          -0.03888888888888889,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-uniform-test-s41": {
+    "kind": "local_model_behavior",
+    "split": "test",
+    "cases": 360,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9611111111111111,
+        "all_attempt_accuracy": 0.9611111111111111,
+        "mean_regret_pp_valid": 0.06494498943888878
+      },
+      "conditional_max/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9555555555555556,
+        "all_attempt_accuracy": 0.9555555555555556,
+        "mean_regret_pp_valid": 0.2230429553055555
+      },
+      "conditional_max/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.7333333333333333,
+        "all_attempt_accuracy": 0.7333333333333333,
+        "mean_regret_pp_valid": 1.3712111408333332
+      },
+      "conditional_max/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.95,
+        "all_attempt_accuracy": 0.95,
+        "mean_regret_pp_valid": 0.09665227521666651
+      },
+      "conditional_max/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.95,
+        "all_attempt_accuracy": 0.95,
+        "mean_regret_pp_valid": 0.07698683627222211
+      },
+      "conditional_min/canonical": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9722222222222222,
+        "all_attempt_accuracy": 0.9722222222222222,
+        "mean_regret_pp_valid": 0.23589416838888883
+      },
+      "conditional_min/reversed": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8444444444444444,
+        "all_attempt_accuracy": 0.8444444444444444,
+        "mean_regret_pp_valid": 0.9120931908999999
+      },
+      "conditional_min/shuffled": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.8055555555555556,
+        "all_attempt_accuracy": 0.8055555555555556,
+        "mean_regret_pp_valid": 1.5588247937777777
+      },
+      "conditional_min/structured": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.9111111111111111,
+        "all_attempt_accuracy": 0.9111111111111111,
+        "mean_regret_pp_valid": 1.1822041446333333
+      },
+      "conditional_min/checklist": {
+        "attempted": 180,
+        "valid": 180,
+        "invalid": 0,
+        "conditional_accuracy": 0.95,
+        "all_attempt_accuracy": 0.95,
+        "mean_regret_pp_valid": 0.3073327589666667
+      }
+    },
+    "paired": {
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.12777777777777777,
+        "within_study_group_bootstrap_95": [
+          -0.15555555555555556,
+          -0.08888888888888889
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.16666666666666669,
+        "within_study_group_bootstrap_95": [
+          -0.17777777777777778,
+          -0.14444444444444443
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.06111111111111111,
+        "within_study_group_bootstrap_95": [
+          -0.1,
+          -0.022222222222222223
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.022222222222222223,
+        "within_study_group_bootstrap_95": [
+          -0.03888888888888889,
+          -0.005555555555555556
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.005555555555555556,
+        "within_study_group_bootstrap_95": [
+          -0.03333333333333333,
+          0.016666666666666666
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.22777777777777777,
+        "within_study_group_bootstrap_95": [
+          -0.2777777777777778,
+          -0.17777777777777778
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.011111111111111112,
+        "within_study_group_bootstrap_95": [
+          -0.03333333333333333,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 180,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.011111111111111112,
+        "within_study_group_bootstrap_95": [
+          -0.022222222222222223,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  },
+  "qwen3-14b-uniform-validation-s41": {
+    "kind": "local_model_behavior",
+    "split": "validation",
+    "cases": 330,
+    "endpoints": {
+      "conditional_max/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9696969696969697,
+        "all_attempt_accuracy": 0.9696969696969697,
+        "mean_regret_pp_valid": 0.03611486078787878
+      },
+      "conditional_max/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9454545454545454,
+        "all_attempt_accuracy": 0.9454545454545454,
+        "mean_regret_pp_valid": 0.3474086382909092
+      },
+      "conditional_max/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.696969696969697,
+        "all_attempt_accuracy": 0.696969696969697,
+        "mean_regret_pp_valid": 1.5499080685939395
+      },
+      "conditional_max/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9696969696969697,
+        "all_attempt_accuracy": 0.9696969696969697,
+        "mean_regret_pp_valid": 0.030910560909090865
+      },
+      "conditional_max/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9575757575757575,
+        "all_attempt_accuracy": 0.9575757575757575,
+        "mean_regret_pp_valid": 0.06091149500606057
+      },
+      "conditional_min/canonical": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9090909090909091,
+        "all_attempt_accuracy": 0.9090909090909091,
+        "mean_regret_pp_valid": 0.39360613162424246
+      },
+      "conditional_min/reversed": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8303030303030303,
+        "all_attempt_accuracy": 0.8303030303030303,
+        "mean_regret_pp_valid": 0.7588981298848484
+      },
+      "conditional_min/shuffled": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.7212121212121212,
+        "all_attempt_accuracy": 0.7212121212121212,
+        "mean_regret_pp_valid": 2.3800016782727274
+      },
+      "conditional_min/structured": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.8727272727272727,
+        "all_attempt_accuracy": 0.8727272727272727,
+        "mean_regret_pp_valid": 1.7745217152545454
+      },
+      "conditional_min/checklist": {
+        "attempted": 165,
+        "valid": 165,
+        "invalid": 0,
+        "conditional_accuracy": 0.9272727272727272,
+        "all_attempt_accuracy": 0.9272727272727272,
+        "mean_regret_pp_valid": 0.15301219899393942
+      }
+    },
+    "paired": {
+      "conditional_max/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.019444444444444445,
+        "within_study_group_bootstrap_95": [
+          -0.05555555555555555,
+          0.016666666666666666
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.26944444444444443,
+        "within_study_group_bootstrap_95": [
+          -0.3222222222222222,
+          -0.21666666666666667
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": 0.0027777777777777775,
+        "within_study_group_bootstrap_95": [
+          -0.016666666666666666,
+          0.025
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_max/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.011111111111111112,
+        "within_study_group_bootstrap_95": [
+          -0.022222222222222223,
+          0.0
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/reversed": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.07222222222222223,
+        "within_study_group_bootstrap_95": [
+          -0.16111111111111112,
+          -0.011111111111111112
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/shuffled": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.19166666666666668,
+        "within_study_group_bootstrap_95": [
+          -0.225,
+          -0.15
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/structured": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": -0.04166666666666667,
+        "within_study_group_bootstrap_95": [
+          -0.08055555555555556,
+          -0.011111111111111112
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      },
+      "conditional_min/checklist": {
+        "direction": "right minus left",
+        "metric": "correct",
+        "complete_pairs": 165,
+        "groups": 4,
+        "unpaired_or_invalid": 0,
+        "mean_difference": 0.022222222222222223,
+        "within_study_group_bootstrap_95": [
+          -0.011111111111111112,
+          0.05555555555555555
+        ],
+        "limitation": "Shared study/plate dependence remains; no cross-source inference."
+      }
+    },
+    "dataset_freeze_sha256": "5e279a2d65310e02823d8cdcf0daf548815ee6ece2d4f7f4350ec9d79e109411",
+    "scientific_conclusion": null
+  }
+}

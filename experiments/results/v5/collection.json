@@ -1,0 +1,88 @@
+{
+  "checked_utc": "2026-10-09T06:14:02.293810+00:00",
+  "pipeline_exit_code": 0,
+  "verification": "Both full server runs replayed successfully with frozen V5 verify_run.",
+  "raw_files": [
+    {
+      "path": "artifacts/qwen3-14b-base-context-validation-v5/environment.json",
+      "bytes": 89,
+      "sha256": "07820c3b3a559af3e109ff2e6bdc75713accc92bd4447d503bdaf56d068245e7"
+    },
+    {
+      "path": "artifacts/qwen3-14b-base-context-validation-v5/errors.csv",
+      "bytes": 57547,
+      "sha256": "6906882fc4dbd296d638d993baeecf44c026c75b78f864d2c0c7571a490f9fa2"
+    },
+    {
+      "path": "artifacts/qwen3-14b-base-context-validation-v5/model.json",
+      "bytes": 1982,
+      "sha256": "c51dca1042a8344d259b7efa8f1ac48093d66c7002c0529c6dd978f893146567"
+    },
+    {
+      "path": "artifacts/qwen3-14b-base-context-validation-v5/paired_contrasts.csv",
+      "bytes": 4446,
+      "sha256": "abca852b2e6d28b3c799085fe1d85e4b23c191d108e49778ebfeeea750e42632"
+    },
+    {
+      "path": "artifacts/qwen3-14b-base-context-validation-v5/protocol.json",
+      "bytes": 183,
+      "sha256": "bb1da222827e174da28ff5b51f29998ac5163de0587600df3fcc9f449b2d453c"
+    },
+    {
+      "path": "artifacts/qwen3-14b-base-context-validation-v5/responses.jsonl",
+      "bytes": 23791190,
+      "sha256": "1a3ccd22978fc0de495a39fa9a0a607b05039483e4288327d2872e2e3ac56887"
+    },
+    {
+      "path": "artifacts/qwen3-14b-base-context-validation-v5/specification.json",
+      "bytes": 15691,
+      "sha256": "ac7122239aa19f891caa754b4182769723d795804a678b08b9b1854f81333848"
+    },
+    {
+      "path": "artifacts/qwen3-14b-base-context-validation-v5/summary.json",
+      "bytes": 110478,
+      "sha256": "96fef08144cc2dff6ee6c7cd54f4e4f9acced4e08485d5b87a2093dad80f694f"
+    },
+    {
+      "path": "artifacts/qwen3-14b-uniform-context-validation-v5/environment.json",
+      "bytes": 89,
+      "sha256": "07820c3b3a559af3e109ff2e6bdc75713accc92bd4447d503bdaf56d068245e7"
+    },
+    {
+      "path": "artifacts/qwen3-14b-uniform-context-validation-v5/errors.csv",
+      "bytes": 49731,
+      "sha256": "96d66175f07181abc6fe4bfe3ae803c2207d68b40ea93a09965a8342d21118f2"
+    },
+    {
+      "path": "artifacts/qwen3-14b-uniform-context-validation-v5/model.json",
+      "bytes": 3085,
+      "sha256": "33712803e82aedb089e7e65d62e86649991b3800d2f76c16e38bba386d1801cc"
+    },
+    {
+      "path": "artifacts/qwen3-14b-uniform-context-validation-v5/paired_contrasts.csv",
+      "bytes": 4396,
+      "sha256": "1c1434e9debe7aa829eba2812160a36ad163b67149ce91fbca60cc5cd2dc8380"
+    },
+    {
+      "path": "artifacts/qwen3-14b-uniform-context-validation-v5/protocol.json",
+      "bytes": 183,
+      "sha256": "bb1da222827e174da28ff5b51f29998ac5163de0587600df3fcc9f449b2d453c"
+    },
+    {
+      "path": "artifacts/qwen3-14b-uniform-context-validation-v5/responses.jsonl",
+      "bytes": 23787750,
+      "sha256": "404ecc7fd59755003b4f313bf0dff3829054f88f28f4eb7dba74905bca669fd6"
+    },
+    {
+      "path": "artifacts/qwen3-14b-uniform-context-validation-v5/specification.json",
+      "bytes": 15775,
+      "sha256": "761fa4a002b6b134787c38738c91957fe1f045de03351a565f0d3c7c61158366"
+    },
+    {
+      "path": "artifacts/qwen3-14b-uniform-context-validation-v5/summary.json",
+      "bytes": 110290,
+      "sha256": "246077b980d6e4baf413d31415ac2cdde01ca51424b81daa93bdbd57dd9aa907"
+    }
+  ],
+  "local_replay": "Run experiments/tools/replay_results.py for the portable archive replay."
+}

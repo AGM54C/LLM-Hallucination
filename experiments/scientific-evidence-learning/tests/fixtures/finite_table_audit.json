@@ -1,0 +1,543 @@
+{
+  "source": "https://doi.org/10.1126/science.aar5169",
+  "source_sha256": "7ee9e3cbe434c1b3200e3c1654adc92ea644f226c4615b49ccd33e154e3bec83",
+  "complete_blocks": 63,
+  "block_context_pairs": 945,
+  "pairs_with_distinct_scoped_optimum": 396,
+  "blocks_with_any_contrast": 63,
+  "example": {
+    "plate": 1,
+    "base": "BTMG",
+    "additive": "3-methylisoxazole",
+    "pooled_best": "t-BuXPhos",
+    "contextual_best_differs": 5,
+    "contexts": 15,
+    "substrate": "1-bromo-4-methoxybenzene",
+    "contextual_best": "t-BuBrettPhos",
+    "context_yields": {
+      "AdBrettPhos": 43.34412585,
+      "XPhos": 23.41191123,
+      "t-BuBrettPhos": 47.57684436,
+      "t-BuXPhos": 43.182647
+    },
+    "pooled_means": {
+      "AdBrettPhos": 48.241933444,
+      "XPhos": 35.75348942286667,
+      "t-BuBrettPhos": 52.27367195066666,
+      "t-BuXPhos": 57.26774155400001
+    }
+  },
+  "blocks": [
+    {
+      "plate": 1,
+      "base": "BTMG",
+      "additive": "3-methylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "BTMG",
+      "additive": "5-phenylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 4,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "BTMG",
+      "additive": "ethyl-3-methylisoxazole-5-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 3,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "BTMG",
+      "additive": "ethyl-5-methylisoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "MTBD",
+      "additive": "3-phenylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "MTBD",
+      "additive": "4-phenylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 3,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "MTBD",
+      "additive": "5-phenylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 4,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "MTBD",
+      "additive": "ethyl-3-methylisoxazole-5-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 4,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "MTBD",
+      "additive": "ethyl-5-methylisoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 9,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "P2Et",
+      "additive": "3-methylisoxazole",
+      "pooled_best": "AdBrettPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "P2Et",
+      "additive": "3-phenylisoxazole",
+      "pooled_best": "AdBrettPhos",
+      "contextual_best_differs": 9,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "P2Et",
+      "additive": "4-phenylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 1,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "P2Et",
+      "additive": "5-phenylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 2,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "P2Et",
+      "additive": "ethyl-3-methylisoxazole-5-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 9,
+      "contexts": 15
+    },
+    {
+      "plate": 1,
+      "base": "P2Et",
+      "additive": "ethyl-5-methylisoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "BTMG",
+      "additive": "3,5-dimethylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "BTMG",
+      "additive": "5-methylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "BTMG",
+      "additive": "benzo[c]isoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "BTMG",
+      "additive": "benzo[d]isoxazole",
+      "pooled_best": "t-BuBrettPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "BTMG",
+      "additive": "ethyl-5-methylisoxazole-4-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "BTMG",
+      "additive": "ethyl-isoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 6,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "BTMG",
+      "additive": "ethyl-isoxazole-4-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 6,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "BTMG",
+      "additive": "methyl-isoxazole-5-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "MTBD",
+      "additive": "3,5-dimethylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 10,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "MTBD",
+      "additive": "5-methylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "MTBD",
+      "additive": "benzo[c]isoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "MTBD",
+      "additive": "benzo[d]isoxazole",
+      "pooled_best": "t-BuBrettPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "MTBD",
+      "additive": "ethyl-5-methylisoxazole-4-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "MTBD",
+      "additive": "ethyl-isoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 10,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "MTBD",
+      "additive": "ethyl-isoxazole-4-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "MTBD",
+      "additive": "methyl-isoxazole-5-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 4,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "P2Et",
+      "additive": "3,5-dimethylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 6,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "P2Et",
+      "additive": "5-methylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 3,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "P2Et",
+      "additive": "benzo[c]isoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 4,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "P2Et",
+      "additive": "benzo[d]isoxazole",
+      "pooled_best": "t-BuBrettPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "P2Et",
+      "additive": "ethyl-5-methylisoxazole-4-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 9,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "P2Et",
+      "additive": "ethyl-isoxazole-3-carboxylate",
+      "pooled_best": "t-BuBrettPhos",
+      "contextual_best_differs": 12,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "P2Et",
+      "additive": "ethyl-isoxazole-4-carboxylate",
+      "pooled_best": "t-BuBrettPhos",
+      "contextual_best_differs": 6,
+      "contexts": 15
+    },
+    {
+      "plate": 2,
+      "base": "P2Et",
+      "additive": "methyl-isoxazole-5-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 3,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "BTMG",
+      "additive": "3-methyl-5-phenylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "BTMG",
+      "additive": "5-(2,6-difluorophenyl)isoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 6,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "BTMG",
+      "additive": "5-methyl-3-(1H-pyrrol-1-yl)isoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "BTMG",
+      "additive": "N,N-dibenzylisoxazol-3-amine",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "BTMG",
+      "additive": "N,N-dibenzylisoxazol-5-amine",
+      "pooled_best": "t-BuBrettPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "BTMG",
+      "additive": "ethyl-3-methoxyisoxazole-5-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 4,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "BTMG",
+      "additive": "methyl-5-(furan-2-yl)isoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "BTMG",
+      "additive": "methyl-5-(thiophen-2-yl)isoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "MTBD",
+      "additive": "3-methyl-5-phenylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "MTBD",
+      "additive": "5-(2,6-difluorophenyl)isoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "MTBD",
+      "additive": "5-methyl-3-(1H-pyrrol-1-yl)isoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "MTBD",
+      "additive": "N,N-dibenzylisoxazol-3-amine",
+      "pooled_best": "t-BuBrettPhos",
+      "contextual_best_differs": 10,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "MTBD",
+      "additive": "N,N-dibenzylisoxazol-5-amine",
+      "pooled_best": "t-BuBrettPhos",
+      "contextual_best_differs": 7,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "MTBD",
+      "additive": "ethyl-3-methoxyisoxazole-5-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 6,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "MTBD",
+      "additive": "methyl-5-(furan-2-yl)isoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "MTBD",
+      "additive": "methyl-5-(thiophen-2-yl)isoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 6,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "P2Et",
+      "additive": "3-methyl-5-phenylisoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 9,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "P2Et",
+      "additive": "5-(2,6-difluorophenyl)isoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 4,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "P2Et",
+      "additive": "5-methyl-3-(1H-pyrrol-1-yl)isoxazole",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "P2Et",
+      "additive": "N,N-dibenzylisoxazol-3-amine",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 9,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "P2Et",
+      "additive": "N,N-dibenzylisoxazol-5-amine",
+      "pooled_best": "t-BuBrettPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "P2Et",
+      "additive": "ethyl-3-methoxyisoxazole-5-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 8,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "P2Et",
+      "additive": "methyl-5-(furan-2-yl)isoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    },
+    {
+      "plate": 3,
+      "base": "P2Et",
+      "additive": "methyl-5-(thiophen-2-yl)isoxazole-3-carboxylate",
+      "pooled_best": "t-BuXPhos",
+      "contextual_best_differs": 5,
+      "contexts": 15
+    }
+  ],
+  "scope": "有限实测表的描述性比较；总体均值和指定底物最优分别计算。不是因果效应或真实平均反应活性。",
+  "limitations": [
+    "63 个块来自同一研究，并非独立研究来源。",
+    "选择第一个字典序可行例子用于解释，不用于估计模型错误率。",
+    "没有调用或训练任何模型；对照存在不代表模型会失败。",
+    "没有重复测量误差模型；这里只比较记录值。"
+  ]
+}
