@@ -8,7 +8,7 @@
 
 来源：[Ahneman et al., Science 2018](https://doi.org/10.1126/science.aar5169)、[rxn_yields](https://github.com/rxn4chemistry/rxn_yields)、[Doyle 实验室 CN 数据](https://github.com/doyle-lab-ucla/ochem-data/tree/main/CN)。Doyle 数据采用 CC BY 4.0，许可原文随文件保留；本项目派生表增加了条件映射和来源标识。
 
-工作簿的 16 张表是同一批记录的重排。数据没有独立重复与测量误差模型，不能将排序比较解释为化学因果机制。更多资源见[数据集清单](../../datasets/数据集清单.xlsx)。
+工作簿的 16 张表是同一批记录的重排。数据没有独立重复与测量误差模型，不能将排序比较解释为化学因果机制。更多资源见[逐项数据目录](../../datasets/README.md)。
 
 ## 为什么做这些检查
 
