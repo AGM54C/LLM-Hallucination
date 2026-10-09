@@ -54,8 +54,8 @@ def main():
     dataset = read_archive(ROOT / "results/dataset/冻结数据.zip")
     freeze = json.loads(dataset["freeze.json"])
     for name, expected in freeze["files"].items():
-        if name in dataset:
-            require(hashlib.sha256(dataset[name]).hexdigest() == expected, "数据冻结哈希变化：" + name)
+        require(name in dataset, "缺少冻结文件：" + name)
+        require(hashlib.sha256(dataset[name]).hexdigest() == expected, "数据冻结哈希变化：" + name)
     cases = {case.case_id: case for case in map(case_from_dict, rows(dataset["cases.jsonl"]))}
     v4 = read_archive(ROOT / "results/v4/原始记录.zip")
     v5 = read_archive(ROOT / "results/v5/原始记录.zip")
