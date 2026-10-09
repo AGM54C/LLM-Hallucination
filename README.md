@@ -18,7 +18,7 @@
 |---|---|
 | [related work](related%20work/README.md) | 按主题选取 30 篇文章，每篇只有原文 PDF 和中文《我的想法》。 |
 | [discussion](discussion/README.md) | 按日期整理的问题、依据与判断；注明记录来源。 |
-| [experiments](experiments/README.md) | 已做候选实验的代码、结果与复核方法。 |
+| [experiments](experiments/README.md) | 每轮实验的动机、验证问题、方法与设计依据、结果和复核方法。 |
 | [datasets](datasets/数据集清单.xlsx) | 数据地址、特征、核验状态、局限与许可。 |
 | [候选 IDEA 集合](候选IDEA集合/README.md) | 三个待筛选问题，以及一个已停止推进的实验候选。 |
 
