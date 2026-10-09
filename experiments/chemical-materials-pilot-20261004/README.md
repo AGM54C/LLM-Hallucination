@@ -1,6 +1,6 @@
 # 化学数据准备
 
-这里保留当前实验必需的数据与来源核对材料，位于 `sources/chemistry`。
+这里保留已归档化学表格实验必需的数据与来源核对材料，位于 `sources/chemistry`。
 
 - `buchwald_hartwig_annotated.csv`：3,955 个实测条件，回接名称、孔位与来源行；当前配置直接读取它。
 - `Dreher_and_Doyle_input_data.xlsx`、`doyle_CN_raw.csv`：两种公开整理版本，来自同一实验。
