@@ -6,12 +6,13 @@
 
 **科研 IDEA 生成保留为自用探索，不作为本项目的论文方向。** 当前范围与筛选标准见[选题范围与评价标准](discussion/选题范围与评价标准.md)。
 
-此前的[科学场景选题说明](discussion/科学机理约束-研究背景与选题思考.md)完整保留，作为候选分支参考。[原课题框架](https://notes.sjtu.edu.cn/f8gmS3wVQ4i4slalHJ-6Yw)及其[文献对应](related%20work/README.md#与课题逐项对应)不再限定整个项目的研究范围。
+此前的[科学场景选题说明](discussion/AI4S幻觉.md)完整保留，作为候选分支参考。[原课题框架](https://notes.sjtu.edu.cn/f8gmS3wVQ4i4slalHJ-6Yw)及其[文献对应](related%20work/README.md#与课题逐项对应)不再限定整个项目的研究范围。
 
 ## 文件目录
 
 | 目录 | 内容 |
 |---|---|
+| [科学发现工作流中的大模型幻觉综述](综述选题-20261010/README.md) | 正式详细大纲、Word审阅版、71条文献清单与20篇优先精读材料。 |
 | [related work](related%20work/README.md) | 现有 30 篇文章主要围绕科学场景，每篇只有原文 PDF 和中文《我的想法》。 |
 | [discussion](discussion/README.md) | 按日期整理的问题、依据与判断；注明记录来源。 |
 | [experiments](experiments/README.md) | 每轮实验的动机、验证问题、方法与设计依据、结果和复核方法。 |
