@@ -14,3 +14,5 @@ experiments/.local/
 **/*.key
 .DS_Store
 Thumbs.db
+# Office 编辑时自动生成的锁文件
+~$*
