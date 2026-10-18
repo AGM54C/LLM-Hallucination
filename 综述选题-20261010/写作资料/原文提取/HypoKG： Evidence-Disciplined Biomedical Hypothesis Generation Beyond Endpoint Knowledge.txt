@@ -1,0 +1,1153 @@
+
+=== PDF第1页 ===
+     HypoKG: Evidence-Disciplined Biomedical Hypothesis Generation Beyond
+                             Endpoint Knowledge
+
+
+                  Dominic Okonkwo, Adetayo Okunoye, Ismailcem Budak Arpinar
+                                        School of Computing
+                                            University of Georgia
+                     {dominic.okonkwo, adetayo.okunoye, budak}@uga.edu
+
+
+
+                        Abstract                              Integrated KG
+                                                KEGG + Rhea + UniProt
+
+              Large language models (LLMs) can generate
+              biomedical hypotheses, but it remains unclear            Path Sampling                                                                   550 source–disease paths
+              whether they truly reason from scientific evi-2026              dence or simply produce convincing-sounding
+                                                                         Controlled Conditions
+                ideas. To study this, we combine three major            C1: source only
+                biological databases: the Kyoto Encyclopedia            C2: full path, compressSep                                                                 C3: full path, interpret               of Genes and Genomes (KEGG), Rhea, and                                                                      C4: endpoint only
+10          UniProt, into a unified biochemical knowledge              graph and construct a benchmark of 550 paths
+                                                                     Generation
+               connecting enzyme sources to rare disease end-           6 LLMs; 13,200 hypotheses
+                points, yielding 13,200 hypotheses from six
+          LLMs under four conditions varying the biolog-            Evaluation
+                 ical information each model receives: source             Rubric + LLM judges + experts
+                                                                                Shuffled-path control             enzyme only, full biological path, or source and[cs.CL]
+               disease endpoint only. Hypotheses are scored
+               using an expert-derived five-criterion rubric on            Finding
+                                                         C4 maximizes total score;
+              a 1–5 scale per criterion. We find that mod-           C2/C3 improve evidence proportionality
+                 els given both the source and disease endpoint
+                                                                 Figure 1: Overview of HypoKG: an integrated KEGG–
+               often produce the highest-scoring hypotheses,
+                                                          Rhea–UniProt benchmark for testing whether full KG
+             showing that LLMs can generate compelling
+                                                                   paths improve evidence-grounded biomedical hypothe-
+               ideas from minimal information.  However,
+                                                                                sis generation beyond endpoint knowledge alone.
+               these hypotheses are less grounded in the evi-
+               dence. In contrast, models given the full biolog-
+                                                                      et al., 2020; Chowdhery et al., 2023) and are in-                 ical path generate hypotheses more consistent
+              with known mechanistic relationships. We call        creasingly used to generate hypotheses (Yang et al.,
+                 this evidence-disciplined reasoning. To con-       2024; Si et al., 2025; Liu et al., 2025; Abdel-Rehim
+               firm this effect, we shuffled intermediate path         et al., 2025), yet a key question remains unresolved:
+                steps while keeping endpoints fixed. Evidence      when LLMs are given knowledge graph (KG) ev-
+              grounding dropped significantly (∆= −0.793,arXiv:2609.12260v1                                                      idence connecting a biological source entity to a
+             p < 0.001), confirming models genuinely used
+                                                                disease endpoint, does that structure change the hy-
+               path structure during reasoning. Our findings
+                                                                pothesis produced, or do models exploit parametric            show that knowledge graphs support hypothesis
+               generation in two ways: they identify biolog-     memory and generate plausible endpoint-driven
+                 ical endpoint pairs absent from the literature,       explanations?
+             and their mechanistic paths guide how LLMs                                                           This  question  is  especially  important  in
+               reason between them.
+                                                             biomedicine, where plausible but weakly supported
+                                                     mechanisms can mislead experimental design. Re-        1  Introduction
+                                                              sources such as KEGG (Kanehisa and Goto, 2000),
+         Biomedical hypothesis generation requires more   Rhea (Bansal et al., 2022), and UniProt (UniProt
+          than plausible associations: models must produce    Consortium, 2023) expose multi-hop cross-domain
+          mechanistic claims proportionate to the evidence    paths connecting enzyme-kinetics source entities
+           available. Large language models (LLMs) have    to rare disease endpoints, connections often absent
+        shown strong scientific reasoning abilities (Brown   from published literature. However, the presence of
+
+=== PDF第2页 ===
+a KG path does not guarantee that an LLM uses it      paths do not maximize aggregate judged qual-
+mechanistically. A model may instead ignore inter-        ity; they specifically improve evidence propor-
+mediate structure and construct a fluent explanation        tionality, constraining models toward grounded
+from the source and disease names alone.              mechanistic claims. This finding is validated by
+   Existing KG-grounded biomedical generation       expert human evaluation across 55 paths.
+work has focused on factual question answer-    3. Path structure utilization control. A shuffled-
+ing (Soman et al., 2024), hypothesis generation      path intervention showing that evidence propor-
+with hallucination reduction (Xiong et al., 2024),       tionality gains depend on genuine intermediate
+or truthfulness verification (Wen et  al., 2024),      path structure, with significant drops when in-
+where evaluation relies on known answers. Hy-      termediate nodes are permuted while endpoints
+pothesis generation is different: quality is multi-      are held fixed (C2: ∆= −0.793, p < 0.001).
+dimensional and KG grounding must be measured
+                                       2  Related Workagainst a strong alternative, endpoint-only genera-
+tion. Prior benchmarks (Xiong et al., 2025; Kumb-                                                       Scientific Hypothesis Generation with LLMs.
+har et al., 2025) do not isolate whether full mecha-
+                                              Recent work has explored LLMs for hypothesis
+nistic paths add value beyond revealing the source–
+                                                  generation across open-domain discovery, data-
+disease endpoint pair.
+                                                   driven induction, and multi-agent biomedical set-
+  We introduce HYPOKG, a benchmark for KG-                                                       tings (Yang et al., 2024; Zhou et al., 2024; Xu
+grounded biochemical hypothesis generation built                                                           et al., 2025), with human studies showing LLM-
+from an integrated KEGG–Rhea–UniProt graph                                                   generated ideas are judged more novel than expert-
+(17,449 nodes;  31,709  edges).  We sample                                                     written ones though with feasibility trade-offs (Si
+550 multi-hop paths connecting enzyme-kinetics                                                           et al., 2025). Other approaches combine causal
+sources to rare disease endpoints (94.5% absent                                    KGs or literature with empirical data, showing that
+from PubMed co-citation).  Six LLMs generate                                                      integrating theory-driven and data-driven signals
+13,200 hypotheses across four conditions: source-                                                outperforms either alone (Tong et al., 2024; Bor-
+only (C1), full-path compression (C2), full-path                                                rego et al., 2025; Liu et al., 2025). Unlike these
+interpretation (C3), and endpoint-only (C4), the                                                         studies, HypoKG explicitly controls what ground-
+last testing whether models can generate plausible                                                   ing information is available to the model, isolating
+hypotheses from KG-discovered endpoints without                                                              full KG paths from endpoint knowledge alone.
+the mechanistic path.
+                                     KG-Grounded Biomedical Reasoning.  Large-  We evaluate hypotheses using an expert-derived
+                                                     scale  biomedical  KGs  including  Hetionet,five-criterion rubric with a cross-judge LLM-as-
+                                          PrimeKG, SPOKE, and RTX-KG2 have demon-judge framework (Pearson r = 0.776) validated
+                                                        strated the value of knowledge integration forby three PhD-level domain experts. The results
+                                                        translational reasoning and precision medicinereveal a central tension: endpoint-only prompt-
+                                              (Himmelstein et al., 2017; Chandak et al., 2023;ing achieves the highest total rubric score, but full
+                                               Morris et  al., 2023; Wood et  al., 2022).  KG-KG paths uniquely improve evidence proportion-
+                                              grounded LLM approaches such as KG-RAG haveality, whether mechanistic claims are supported by
+                                          shown benefits for biomedical question answeringpath evidence rather than speculation. We call this
+                                            and explainable  generation,  while graph-pathevidence-disciplined reasoning. A shuffled-path
+                                             methods support relation prediction (Soman et al.,control confirms the effect depends on genuine use
+                                                2024; Shi et al., 2025; Bakal et al., 2018). However,of intermediate path structure, strongest in larger
+                                            most work treats KG access as retrieval supportand domain-specialized models. Our contributions
+                                                       rather than testing how different forms of KGare:
+                                                 evidence affect open-ended hypothesis generation.
+1. HypoKG benchmark. A 550-path biochemical                                   HypoKG evaluates multi-hop biochemical paths
+   hypothesis generation benchmark with 13,200                                            from an integrated KEGG–Rhea–UniProt graph,
+   hypotheses across six LLMs and four con-                                                 focusing on whether intermediate path structure
+   trolled grounding conditions, including the first                                               changes the mechanistic claims models produce.
+   endpoint-only ablation for KG-grounded hy-
+   pothesis generation.                           Evaluation and Benchmarking.  LLM-as-judge
+2. Evidence-disciplined reasoning.   Full KG    evaluation has become common for open-ended
+
+=== PDF第3页 ===
+outputs, with Zheng et al. (2023) showing strong    Component            Details
+agreement between GPT-4 judgments and hu-                                                                   Integrated KG       KEGG, Rhea, UniProt
+man preferences while documenting judge bi-   KG size               17,449 nodes; 31,709 edges
+ases. Biomedical hypothesis benchmarks including     Domain types        Enzyme kinetics; metabolic path-
+                                                                               ways; disease mechanisms; drug
+TruthHypo (Xiong et al., 2025), BioVerge (Yang                                                                                                  targets
+et al., 2025b), and Kumbhar et al. (2025) evaluate     Benchmark paths      550
+truthfulness, agent self-evaluation, and materials     Source entities        417 unique enzyme-related enti-
+                                                                                                           tiesdiscovery respectively. HypoKG differs by test-
+                                                            Terminal diseases      366 unique disease endpoints
+ing a distinct question: whether full mechanistic     Crossing counts       3–9
+KG paths provide value beyond revealing the same     Models              6
+source–disease endpoints. This endpoint-only abla-     Conditions           4
+                                                                  Total hypotheses       13,200
+tion is central to separating genuine path utilization
+from plausible endpoint-driven generation.           Table 1: Summary of the HypoKG benchmark, includ-
+                                                         ing graph composition, benchmark scale, and generation
+3  HypoKG Benchmark                            setup.
+
+3.1  Benchmark Overview                                KEGG pathways are filtered to organism code hsa
+HypoKG evaluates whether structured biochemi-   and UniProt proteins to taxonomy identifier 9606,
+cal knowledge graph (KG) evidence changes the    avoiding contamination from model-organism path-
+character of LLM-generated biomedical hypothe-   ways sharing enzyme nomenclature with human ho-
+ses. The benchmark is built around 550 multi-   mologs. The resulting graph contains 17,449 nodes
+hop cross-domain KG paths connecting enzyme-   and 31,709 edges spanning four domain types con-
+kinetics source entities to rare disease endpoints.   nected by six relationship types: pathway links,
+For each path, six LLMs generate hypotheses under    reaction interactions, enzyme-commission relation-
+four controlled prompting conditions, producing    ships, disease associations, enzyme associations,
+13,200 hypotheses in total. Table 1 summarizes the   and metabolic pathway membership.
+graph composition, benchmark scale, and genera-
+                                                    3.3  Cross-Domain Path Constructiontion setup.
+  Unlike benchmarks that only compare grounded  A cross-domain path connects an enzyme-kinetics
+generation against ungrounded prompting (Xiong    source entity to a terminal disease endpoint through
+et al., 2025; Kumbhar et al., 2025), HypoKG sepa-   intermediate biochemical entities. A crossing is
+rates two roles of the KG: endpoint discovery and   a traversal step between distinct domain types.
+mechanistic path grounding. The endpoint-only  We sample 8,000 candidate paths using con-
+condition tests whether models can generate plau-   strained shortest-path traversal implemented with
+sible hypotheses once the source-disease pair is re-   NetworkX, requiring 3–12 nodes, 1–9 crossings,
+vealed, while the full-path conditions test whether   and terminal nodes restricted to named disease en-
+intermediate KG structure disciplines the mecha-    tities. Higher-crossing paths are oversampled to
+nism proposed.                                    ensure representation of complex reasoning cases.
+                                         From these candidates, we select 550 bench-
+3.2  Integrated Biochemical Knowledge Graph                                         mark paths using a greedy stratified filter that
+We construct an integrated human biochemical   maximizes source-entity diversity, terminal dis-
+KG from KEGG (Kanehisa and Goto, 2000;   ease coverage, and crossing-count coverage simul-
+Kanehisa  et  al., 2023), Rhea (Bansal  et  al.,   taneously. When multiple candidate paths were
+2022), and UniProt (UniProt Consortium, 2023).   equivalent under the filter objective, tie-breaking
+KEGG provides pathway topology and gene–   was by hypokg_id lexicographic order. The final
+metabolite–pathway  relationships.   Rhea con-   benchmark contains 417 unique source entities and
+tributes reaction-level precision including direction-   366 unique terminal diseases, with crossing counts
+ality and substrate–product relationships. UniProt   from 3 to 9 and path lengths from 4 to 11 hops.
+provides curated protein annotations and enzyme–     To characterize path validity, three domain ex-
+disease associations from reviewed Swiss-Prot en-    perts in biochemistry and metabolic disease re-
+tries.                                        viewed all 550 paths. No path was judged in-
+  All data are restricted to human biochemistry.    valid. Approximately 40% were classified as di-
+
+=== PDF第4页 ===
+  Condition             Information provided         Purpose
+
+  C1: Source-only        Source entity only              Measures parametric generation without endpoint or path in-
+                                                             formation.
+  C2: Full-path compres-   Full KG path                     Tests whether models can compress noisy path evidence into
+  sion                                                   a focused mechanistic hypothesis.
+  C3: Full-path interpre-   Full KG path                     Tests whether explicit mechanistic interpretation before hy-
+   tation                                                      pothesis generation improves path-grounded reasoning.
+  C4: Endpoint-only      Source and terminal disease       Tests whether endpoint knowledge alone explains apparent
+                          only                           grounding gains.
+
+Table 2: Controlled generation conditions used to isolate the effect of KG path information on hypothesis generation.
+
+
+rectly supported, with each step reflecting a clear,    familiar diseases unrelated to the assigned endpoint.
+biologically plausible relationship. The remaining   C2 instructs the model to identify the most biolog-
+paths were classified as requiring interpretive re-    ically meaningful transition rather than narrating
+view: endpoints and database edges were valid,   the full path. C3 asks the model to reason about
+but one or more intermediate steps passed through   meaningful versus weak transitions before commit-
+high-degree annotation hubs, most prominently    ting to a hypothesis. C4 provides only the source
+pyruvate carboxylase deficiency, aceruloplasmine-   and terminal disease, removing all intermediate
+mia, and congenital lactase deficiency. These paths    structure. Table 2 summarizes the purpose of each
+are retained by design. HypoKG integrates three    condition.
+databases specifically to surface cross-domain con-    C4 is the critical ablation. The source–disease
+nections that no single database exposes alone. The    pair in C4 was itself discovered through KG con-
+intermediate ambiguity they carry is not a flaw, but    struction, so C4 tests whether the full mechanistic
+a feature. It reflects genuine uncertainty at the fron-   path adds value beyond endpoint discovery, not
+tier of biochemical knowledge and tests whether   whether the KG is dispensable. All prompts re-
+LLMs can reason carefully under incomplete evi-   quire specific biological entities, a falsifiable exper-
+dence.                                           imental prediction, and grounding in established
+                                                    biochemistry. Full prompts are in Appendix A.
+3.4  Literature Prevalence Annotation
+                                                    3.6  Model Suite and Generation ProtocolWe conduct a two-pass PubMed co-citation anal-
+ysis to estimate prior literature coverage of each  We evaluate six LLMs spanning general-purpose,
+source–disease connection. The first pass uses ex-   biomedical-specialized,  proprietary, and open-
+act phrase matching of the raw source symbol and   weight  systems:   Claude  Sonnet  4.6  (An-
+terminal disease name. The second pass expands    thropic),  GPT-4o  (OpenAI),  Llama-3.3-70B
+both entities with validated aliases, reviewed to    (Grattafiori et al., 2024), Qwen3-235B (Yang et al.,
+remove broad or ambiguous terms. Each path is    2025a), BioMistral-7B (Labrak et al., 2024), and
+assigned to a prevalence stratum: Novel, Sparse,  MedGemma-27B (Sellergren et al., 2025). This
+Emerging, Established, or Well-known. The fi-    suite compares KG grounding behavior across
+nal distribution comprises 520 Novel (94.5%), 19    scale, access type, and domain specialization. Each
+Sparse (3.5%), 5 Emerging (0.9%), 4 Well-known   model generates one hypothesis per path per condi-
+(0.7%), and 2 Established (0.4%) paths, confirming    tion, producing 13,200 hypotheses total. All gener-
+that HypoKG primarily evaluates hypothesis gen-   ation runs used greedy decoding where supported
+eration in the low-evidence regime where models    (temperature=0), with no few-shot examples and a
+cannot rely on well-studied source–disease associ-   512-token output limit. No sampling was applied.
+ations.                                  API models (Claude Sonnet, GPT-4o, Llama-3.3-
+                                            70B, Qwen3-235B) were accessed via commer-
+3.5  Generation Conditions                                                           cial APIs. HuggingFace models (BioMistral-7B,
+For each KG path, models generate a testable mech-  MedGemma-27B) were run on A100 80GB with
+anistic hypothesis connecting the source entity to a    8-bit and 4-bit quantization respectively.
+disease mechanism. Four prompting conditions sys-      Truncation at the 512-token limit was rare across
+tematically vary the grounding information avail-   models. BioMistral-7B had the highest rate at 3.9%
+able. C1 establishes a baseline and exposes disease-   (64 of 1,650 responses), consistent with its ten-
+drift behavior, models generating hypotheses about   dency to repeat text before completing a hypothesis.
+
+=== PDF第5页 ===
+MedGemma-27B had a 0.2% rate (4 of 1,650). All     tic claim is justified by the evidence available to
+other models had zero truncated responses. Trun-   the generator, distinguishing fluent endpoint-driven
+cated responses were included as-is and scored by    speculation from hypotheses genuinely constrained
+the judge on whatever text was generated; given   by KG path evidence. Among the five criteria, evi-
+the low rates, truncation is unlikely to have mean-   dence proportionality is the only one that directly
+ingfully affected results.                         measures whether a model used the provided KG
+                                                        path. The remaining four criteria, relevance, mech-
+4  Evaluation Framework                        anistic specificity, testability, and novelty, reflect
+                                                           scientific quality that any good hypothesis should
+4.1  Automated KG Consistency Metrics
+                                               have regardless of whether a path was shown. Evi-
+We compute three automated grounding metrics for   dence proportionality is therefore the natural focus
+all 13,200 hypotheses. Source grounding measures    for a study asking whether KG structure changes
+whether the hypothesis mentions the source entity   how models reason.
+by symbol or alias. Terminal grounding measures
+whether it mentions the terminal disease by name    4.3  Cross-Judge LLM Evaluation
+or validated alias. Path entity coverage measures
+                                                  All hypotheses are scored by two LLM judgesthe fraction of intermediate KG entities mentioned.
+                                                 using the expert-derived rubric, with no model
+  These metrics measure entity use, not scientific
+                                                    evaluating its own outputs. GPT-4o serves as pri-
+quality. A hypothesis can mention many path enti-
+                                         mary judge for all models except GPT-4o, whose
+ties while remaining mechanistically weak, or men-
+                                                  outputs are judged by Qwen3-235B. Gemini 2.5
+tion few while making a coherent focused claim.
+                                                 Flash serves as secondary judge for all hypothe-
+We treat them as complementary grounding diag-
+                                                          ses. Claude Sonnet was excluded as a judge af-
+nostics rather than primary quality measures. Re-
+                                                             ter an initial evaluation showed a 14% content fil-
+sults are reported in Appendix C (Table C3).
+                                                              ter refusal rate on biochemical disease hypotheses.
+4.2  Expert-Derived Rubric                    Judge prompts include the generation condition
+                                                     context, which is necessary for scoring evidence
+We evaluate hypothesis quality using an expert-
+                                                     proportionality correctly; a model should not be
+derived five-criterion rubric developed from struc-
+                                                    penalized for omitting path entities that were never
+tured sessions with eight PhD-level domain experts
+                                                   provided.
+in biochemistry and metabolic disease. Experts
+                                                Across 13,200 hypotheses, primary and sec-
+scored hypotheses from a held-out calibration path
+                                              ondary judges achieve Pearson r = 0.776 agree-
+and provided written justifications. Analysis of
+                                            ment on total score with a mean absolute difference
+their responses yielded five criteria: path/task rel-
+                                                   of 2.10 points on the 25-point scale. Agreement
+evance, mechanistic specificity and consistency,
+                                                                is highest for experimental testability and lowest
+experimental testability, non-trivial novelty, and
+                                                       for evidence proportionality, reflecting the greater
+evidence proportionality. Each criterion is scored
+                                                        subjectivity of claim-to-evidence calibration.
+1–5 with behavioral anchors and worked examples,
+yielding total scores from 5 to 25.  Criteria are
+                                                    4.4  Human Expert Validation
+grounded in established hypothesis quality litera-
+ture, experimental testability in Popper (1959) and   Three PhD-level domain experts score a stratified
+Banerjee et al. (2009), mechanistic specificity in   sample of 55 paths, 10% of the benchmark, on evi-
+Gasparyan et al. (2019) and Misra et al. (2021),   dence proportionality in a blinded within-path de-
+with evidence proportionality novel to KG evalu-    sign. For each path, experts score all four condition
+ation and derived directly from expert consensus    outputs in randomized order with condition labels
+signals. Notably, the rubric was derived from ex-   withheld. Because all four hypotheses share the
+pert sessions conducted before the endpoint-only   same source and terminal disease, the comparison
+condition (C4) was introduced, ensuring that evalu-   controls for path difficulty and disease familiarity.
+ation criteria were not designed to favor or penalize   Expert scores are compared with LLM-judge ev-
+endpoint-only generation. Full rubric details are in    idence proportionality scores using Kendall’s W
+Appendix B.                                   and Spearman’s ρ, and we report the percentage of
+  Evidence proportionality is central to HypoKG.   paths for which experts confirm the main condition
+It measures whether the strength of the mechanis-   ordering.
+
+=== PDF第6页 ===
+4.5  Shuffled-Path Control                        Endpoint-only prompting achieves the high-
+                                                         est total rubric score across all conditions (C4:To test whether evidence proportionality gains re-
+                                                    16.68), outperforming both full-path conditionsflect genuine intermediate path use rather than end-
+                                                (C2: 15.14; C3: 14.96). This shows that LLMspoint priors, we introduce a shuffled-path control.
+                                               can generate fluent, plausible, and high-scoring hy-Source and terminal endpoints are held fixed while
+                                                   potheses from source–disease endpoint knowledgeintermediate nodes are permuted, disrupting mech-
+                                                      alone. However, this does not imply that KG pathsanistic order while preserving entity identity. Paths
+                                                    are unnecessary: the endpoint pair shown in C4with fewer than three intermediate nodes cannot be
+                                          was itself discovered through KG construction andmeaningfully permuted and are excluded, yielding
+                                                   path sampling, and C4’s superiority on four of five518 shuffled paths.
+                                                            criteria reflects not necessarily stronger evidence-  Models generate hypotheses from shuffled paths
+                                             grounded reasoning, but greater freedom to con-under full-path conditions. If models use ordered
+                                                          struct fluent endpoint-driven mechanisms; modelsKG structure, shuffling should reduce evidence pro-
+                                          shown only endpoints generate creative, relevance-portionality while leaving endpoint-driven plausi-
+                                              maximizing hypotheses precisely because they arebility and novelty unaffected, indicating that mod-
+                                                  unconstrained by mechanistic evidence.els respond to ordered intermediate structure rather
+than merely to the presence of biomedical entities.
+Because the full-path prompts (C2 and C3) include     The key advantage of full KG paths appears
+reasoning instructions not present in C4, this con-    in evidence proportionality. C2 and C3 signif-
+trol also isolates the contribution of path content    icantly outperform C4 on this criterion (paired
+from prompt framing: the prompts are held fixed   Wilcoxon, Holm corrected; C2 vs C4: ∆= +0.23,
+while only the path content changes.              p < 0.001, d = 0.256; C3 vs C4: ∆= +0.20,
+                                           p < 0.001, d = 0.219). Evidence proportionality
+           Aggregate quality                   Evidence proportionality
+                                                                is the criterion most directly measuring whether
+    20                        C4 highest       5) 4      C2/C3 highest
+                                    16.68      (1                       mechanistic claims are supported by the provided
+                  15.14    14.96 25)    15                                               3             2.81     2.78
+ (5                                                                                       2.58  C4    evidence rather than constructed speculatively from         12.43
+  score    10                                                                                                                                                                                                                     proportionality 2                      endpoint priors. The difference between C2 and
+  total                                                       1.55              C3 on evidence proportionality is not significant Mean 5                                                                                                                  evidence 1                                                          after correction (p = 0.062), consistent with their
+                                                                  Mean
+                                                    close design intent. Thus, full KG paths do not
+     0                                         0
+         C1     C2     C3     C4                C1     C2     C3     C4      maximize aggregate judged quality; they discipline
+           C1 source-only       C2 path-compress       C3 path-interpret       C4 endpoint-only
+                                             models toward claims that are more proportionate
+Figure 2: C4 (endpoint-only) achieves the highest total    to available mechanistic evidence. We term this
+rubric score, but full-path conditions (C2/C3) uniquely                                                     evidence-disciplined reasoning.
+improve evidence proportionality - the criterion measur-
+ing whether mechanistic claims are supported by path
+evidence rather than speculation.                  C1 reveals a complementary failure mode we
+                                              term disease-drift bias.  Source-only prompting
+5  Results                                     produces near-minimum path/task relevance (1.01)
+                                                while retaining high testability (4.04), indicating
+5.1  Endpoint Knowledge vs. KG Grounding                                                         that models produce well-structured experimental
+Figure 2 provides a visual summary of the cen-   hypotheses even when targeting the wrong disease.
+tral pattern: endpoint-only prompting achieves the   Without endpoint or path grounding, models de-
+highest aggregate score, while full-path conditions    fault to familiar high-prevalence diseases, most
+provide their clearest advantage in evidence propor-   commonly NAFLD, Alzheimer’s disease, and type
+tionality. Table 3 reports the corresponding mean   2 diabetes, rather than the assigned rare disease
+rubric scores by model and condition; all condi-   endpoint. Path-grounded conditions produce mean
+tion comparisons are evaluated over all matched    total score gains of +2.71 (C2) and +2.53 (C3)
+path-model pairs using paired Wilcoxon signed-   over C1 (both p < 0.001, d > 0.81), driven pri-
+rank tests with Holm correction (N = 3,300 per   marily by large improvements in path/task rele-
+condition, aggregated across all six models), not   vance (+1.90 for C2) and evidence proportionality
+model-specific subsets.                         (+1.26 for C2, d = 1.337).
+
+=== PDF第7页 ===
+    Model            Cond.               Rubric Scores                  Total   C3–C1    C2/3–C4
+
+                                  Rel   Mech     Test   Nov    Prop
+
+     Claude Sonnet     C1        1.02      3.24    4.31    2.89     1.87    13.32
+                   C2        3.05      3.73    3.98    3.04     3.10    16.89
+                   C3        2.93      3.68    4.00    2.89     2.96    16.46
+                   C4        3.75      3.70    4.28    3.98     2.99    18.70     +3.14     −2.02
+
+     GPT-4o          C1        1.01      3.86    4.36    2.69     1.01    12.93
+                   C2        3.27      3.51    4.00    2.76     2.75    16.29
+                   C3        3.39      3.71    3.99    2.94     2.99    17.01
+                   C4        4.02      3.53    4.17    3.65     2.00    17.37     +4.08     −0.72
+
+     Llama-3.3-70B     C1        1.01      2.88    4.01    2.74     1.63    12.26
+                   C2        2.51      3.02    3.60    2.60     2.60    14.33
+                   C3        2.11      2.85    3.35    2.31     2.27    12.88
+                   C4        3.32      3.03    3.89    3.55     2.81    16.59     +0.62     −2.98
+
+    Qwen3-235B      C1        1.02      3.42    4.47    2.87     1.91    13.70
+                   C2        3.39      3.73    4.05    3.54     3.41    18.12
+                   C3        2.98      3.66    4.03    3.13     3.04    16.84
+                   C4        3.72      3.76    4.52    4.03     2.98    19.01     +3.14     −1.53
+
+     BioMistral-7B     C1        1.01      2.36    3.11    2.40     1.37    10.24
+                   C2        2.18      2.05    1.69    1.86     1.95      9.74
+                   C3        2.68      1.92    1.66    1.88     2.15    10.29
+                   C4        2.44      2.38    2.77    2.72     2.09    12.41     +0.05     −2.39
+
+    MedGemma-27B   C1        1.00      2.76    3.99    2.84     1.51    12.10
+                   C2        3.04      3.02    3.52    2.86     3.02    15.46
+                   C3        3.32      3.15    3.48    3.04     3.27    16.26
+                   C4        2.99      3.01    3.88    3.54     2.60    16.02     +4.16     −0.16
+
+      All models        C1        1.01      3.09    4.04    2.74     1.55    12.43
+                   C2        2.91      3.18    3.47    2.78     2.81    15.14
+                   C3        2.90      3.16    3.42    2.70     2.78    14.96
+                   C4        3.37      3.23    3.92    3.58     2.58    16.68     +2.53     −1.63
+
+Table 3: Mean rubric scores by model and condition. Rel = Path/Task Relevance, Mech = Mechanistic Specificity,
+Test = Experimental Testability, Nov = Non-Trivial Novelty, and Prop = Evidence Proportionality. C3–C1 reports
+the KG-grounding gain; C2/3–C4 reports the gap between path-grounded and endpoint-only generation. Bold values
+indicate the highest value within each model for each criterion.
+
+5.2 KG Path Utilization Is Model-Dependent    alone provides. GPT-4o also shows a relatively
+                                                 small gap (−0.72), while Llama-3.3-70B (−2.98)
+Model-level results in Table 3 reveal a clear capa-
+                                            and BioMistral-7B (−2.39) show large negative
+bility split. Stronger models, Claude Sonnet, GPT-
+                                                    gaps, indicating stronger dependence on endpoint-
+4o, Qwen3-235B, and MedGemma-27B, show sub-
+                                                    driven generation than path-grounded reasoning.
+stantial gains from full-path grounding relative
+                                                      Together, these results suggest that KG ground-to source-only prompting, with C3–C1 improve-
+                                                  ing is not automatically useful for all LLMs. Pro-ments ranging from 3.1 to 4.2 points. In contrast,
+                                                   ductive use of multi-hop biochemical paths re-BioMistral-7B and Llama-3.3-70B show near-zero
+                                                      quires sufficient model capacity and, in some cases,or weak gains (0.05 and 0.62 respectively), sug-
+                                                  domain-specialized pretraining.gesting that smaller or less capable models cannot
+reliably exploit multi-hop KG structure and instead
+                                                    5.3  Path Complexity Effectsrevert to parametric responses regardless of the
+path shown.                                       Table 4 reports total rubric scores by crossing count
+  The C2/3–C4 gap further distinguishes mod-   and condition. KG grounding benefit is strongest
+els.  MedGemma-27B shows the smallest gap    at moderate path complexity and weaker for longer,
+(−0.16) and is the only model for which C3 out-   more heterogeneous paths. The C3–C1 gain peaks
+performs C4, suggesting that biomedical domain    at crossing count 4 (+4.72) and declines at higher
+specialization helps translate structured biochemi-   crossing counts, with crossing count 8 showing
+cal paths into mechanistically grounded hypothe-   near-zero benefit (+0.33).  Across path-model
+ses that match or exceed what endpoint knowledge    pairs, crossing count is negatively correlated with
+
+=== PDF第8页 ===
+    k    C1    C2    C3    C4   C3–C1         Metric            Cond.   Orig.    Shuf.   Drop
+
+    3    12.40   15.43   15.23   16.67     +2.83           Total score         C2   14.890  13.601  −1.289
+    4    12.00   17.81   16.72   16.53     +4.72           Total score         C3   14.506  13.567  −0.939
+    5    12.46   14.79   14.62   16.70     +2.17
+                                                          Evidence prop.       C2    2.805    2.012  −0.793
+    6    12.53   15.14   15.04   16.36     +2.51
+                                                          Evidence prop.       C3    2.725    2.133  −0.592
+    7    12.51   14.09   14.23   16.87     +1.72
+    8    12.67   14.67   13.00   16.00     +0.33          Novelty           C2    2.788    2.776  −0.012
+    9    13.00   14.17   15.11   17.33     +2.11          Novelty           C3    2.654    2.759  +0.105
+
+Table 4: Mean total rubric score by path crossing count    Table 6: Original vs. shuffled path scores across all
+k and condition. Bold values indicate the highest score   models (N = 2,590 per condition).  All total-score
+within each crossing count.                          and evidence-proportionality drops are significant at
+                                               p < 0.001; novelty differences are not significant.
+  Metric                    Value
+
+ C1 mean                     1.00            > C3 > C4 > C1, matching the LLM-judge or-
+ C2 mean                     3.48
+                                                  dering exactly across all three experts. Full-path C3 mean                     3.18
+ C4 mean                     2.11                      conditions outperformed endpoint-only prompt-
+                                                  ing on the majority of paths, with a mean C2/C3  Condition ordering        C2 > C3 > C4 > C1
+  Path-grounded win rate      90.3%           > C4 win rate of 90.3%.  Most strikingly, all
+ C4 speculative flags         90.9%                     three experts unanimously flagged C4 as making
+  Kendall’s τ                  0.703–0.758                speculative mechanistic leaps on 90.9% of paths
+  Spearman ρ                 0.755–0.812                (50/55), directly confirming that endpoint-only
+Table 5: Human expert validation of evidence propor-   prompting produces plausible but insufficiently
+tionality across 55 paths and three PhD-level domain   grounded mechanisms under independent human
+experts. Scores are mean ratings on a 1–5 scale. Path-   evaluation.  Inter-expert agreement was strong
+grounded win rate denotes C2/C3 outperforming C4;    across all pairs (Kendall’s τ = 0.703–0.758, Spear-
+C4 speculative flags were unanimous for 50/55 paths.                                     man ρ = 0.755–0.812, all p < 0.001). Table 5
+                                             summarizes the full human validation results.
+C3–C1 grounding gain (r = −0.223, p < 0.001).
+  This pattern suggests that moderate-length cross-   5.5  Shuffled-Path Control
+domain paths provide useful mechanistic scaffold-   Table 6 reports the results of the shuffled-path con-
+ing, while very long paths introduce heterogeneous    trol described in Section 4.5.
+edge types, intermediate disease nodes, and weak     Evidence proportionality drops significantly un-
+associations that dilute the grounding signal. Qual-   der shuffled paths (C2: 2.805 →2.012, ∆=
+itative inspection reveals a recurring failure mode   −0.793, p < 0.001; C3: 2.725 →2.133, ∆=
+we term local subgraph collapse: when given long   −0.592, p < 0.001; Wilcoxon, n = 2,590 per
+paths, models focus on the strongest local mecha-   condition). Because endpoints are held fixed, this
+nistic transition and ignore either the source entity   drop cannot be explained by endpoint knowledge;
+or the terminal disease, effectively treating a long     it isolates the contribution of ordered intermedi-
+path as a short one. These results suggest that path    ate path structure. Novelty scores show no sig-
+complexity should be treated as a benchmark de-    nificant change under shuffling (C2: p = 0.215;
+sign variable when selecting KG-grounded mech-   C3: p = 1.000), demonstrating that path struc-
+anistic reasoning tasks, since very long paths may    ture specifically disciplines mechanistic grounding
+dilute the grounding signal with heterogeneous or    rather than general hypothesis creativity.
+weakly connected evidence.                      The drop is strongly model-dependent. Stronger
+                                            models show large drops (Qwen3-235B C2: ∆=
+5.4  Human Expert Validation                                             −1.110;  Claude Sonnet C2: ∆ =  −0.942;
+Three PhD-level domain experts evaluated a strat-  MedGemma-27B C2: ∆ =  −0.861), while
+ified sample of 55 paths (10% of the benchmark),   BioMistral-7B shows a near-zero, non-significant
+proportionally sampled across crossing counts 3–9,   drop under C3 (∆= −0.023, p = 0.242), confirm-
+on evidence proportionality in a blinded within-   ing it was not utilizing intermediate path structure
+path design.                                   even in the original condition, consistent with its
+  Human evaluation confirms the same condition    near-zero C3–C1 gains in Table 3. Full per-model
+ordering observed in the automated results: C2    results are in Appendix C.
+
+=== PDF第9页 ===
+  These findings provide causal evidence for the    not capture all dimensions of hypothesis quality
+central interpretation of HypoKG: KG paths do not    relevant to practicing scientists. HypoKG measures
+merely reveal useful endpoints; their intermediate   evidence proportionality as a proxy for grounded
+structure disciplines stronger models toward more    reasoning but does not verify whether generated
+evidence-proportionate mechanistic reasoning.       hypotheses are factually correct or experimentally
+                                                       validated.
+6  Conclusion
+
+We introduced HypoKG, a benchmark for KG-   References
+grounded  biochemical  hypothesis  generation
+                                              Abbi Abdel-Rehim, Hector Zenil, Oghenejokpeme
+across 550 multi-hop paths, six LLMs, and four                                                      Orhobor, Marie Fisher, Ross J. Collins, Elizabeth
+controlled grounding conditions. Our results show      Bourne, Gareth W. Fearnley, Emma Tate, Holly X.
+that endpoint-only prompting achieves the highest      Smith, Larisa N. Soldatova, and Ross King. 2025.
+aggregate scores, but full KG paths uniquely im-       Scientific hypothesis generation by large language
+                                                      models:  Laboratory validation in breast cancer
+prove evidence proportionality, disciplining models
+                                                            treatment. Journal of the Royal Society Interface,
+toward mechanistic claims supported by structured      22(227):20240674.
+evidence. Human validation and shuffled-path con-
+                                            Gokhan Bakal, Preetham Talari, Elijah V. Kakani, andtrols confirm that this effect reflects genuine use
+                                                Ramakanth Kavuluru. 2018.  Exploiting semantic
+of intermediate path structure. HypoKG reframes                                                              patterns over biomedical knowledge graphs for pre-
+KG grounding as both an endpoint discovery mech-       dicting treatment and causative relations. Journal of
+anism and an epistemic constraint on biomedical      Biomedical Informatics, 82:189–199.
+hypothesis generation.
+                                               Amitav Banerjee, Udaykumar Bhaskar Chitnis, Sl Jad-
+                                                             hav, Js Bhawalkar, and Suprakash Chaudhury. 2009.
+7  Limitations                                     Hypothesis testing, type i and type ii errors. Indus-
+                                                                        trial Psychiatry Journal, 18(2):127–131.
+HypoKG evaluates hypothesis quality through au-
+tomated LLM judges and a targeted human expert    Parit Bansal, Anne Morgat,  Kristian B. Axelsen,
+                                                       Venkatesh Muthukrishnan, Elisabeth Coudert, Lucilastudy. Inter-judge agreement is lowest for evidence
+                                                Aimo, Nevila Hyka-Nouspikel, Elisabeth Gasteiger,
+proportionality (r = 0.668), reflecting the sub-                                                  Arnaud Kerhornou, Teresa Batista Neto, Monica Poz-
+jectivity of claim-to-evidence calibration. Scaling       zato, Marie-Claude Blatter, Alex Ignatchenko, Nicole
+expert evaluation beyond 55 paths was not feasible.      Redaschi, and Alan Bridge. 2022. Rhea, the reaction
+                                                   knowledgebase in 2022.  Nucleic Acids Research,The three expert evaluators were PhD-level domain
+                                                  50(D1):D693–D700.
+collaborators who participated voluntarily; no per-
+sonal data was collected and IRB review was not    Agustín Borrego, Danilo Dessì, Daniel Ayala, Inma
+required under our institutional guidelines.             Hernández, Francesco Osborne, Diego Reforgiato
+                                                       Recupero, Davide Buscaldi, David Ruiz, and Enrico  Benchmark paths are drawn from KEGG, Rhea,
+                                                       Motta. 2025. Research hypothesis generation over
+and UniProt restricted to human biochemistry.       scientific knowledge graphs. Knowledge-Based Sys-
+While these cover enzyme kinetics, metabolic path-      tems, 315:113280.
+ways, and protein-disease associations, other KGs
+                                       Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie
+such as SIDER (drug side effects) and HPO (human                                                       Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind
+phenotypes) are not integrated, expanding to these      Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+resources is a natural direction for future work. Hy-      Askell,  Sandhini Agarwal,  Ariel  Herbert-Voss,
+poKG also uses constrained shortest-path traversal;      Gretchen Krueger, Tom Henighan, Rewon Child,
+                                                     Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu,
+other strategies such as fixed-hop or longest-path                                                 Clemens Winter, and 12 others. 2020.  Language
+could surface different mechanistic evidence struc-     models are few-shot learners. In Advances in Neu-
+tures and is worth exploring.                                ral Information Processing Systems (NeurIPS), pages
+  Results may not generalize to models released      1877–1901, Red Hook, NY, USA. Curran Associates,
+                                                                 Inc.
+after our data collection cutoff, and benchmark
+endpoint pairs may overlap with model pretraining    Payal Chandak, Kexin Huang, and Marinka Zitnik.
+data through individual entity descriptions, though      2023.  Building a knowledge graph to enable pre-
+                                                              cision medicine. Scientific Data, 10:67.the 94.5% zero-citation rate and the shuffled-path
+control results reduce this concern. The capability   Aakanksha Chowdhery, Sharan Narang, Jacob Devlin,
+split is based on aggregate rubric scores and may      Maarten Bosma, Gaurav Mishra, Adam Roberts,
+
+=== PDF第10页 ===
+  Paul Barham, Hyung Won Chung, Charles Sutton,     George Kitas. 2021.  Formulating hypotheses for
+   Sebastian Gehrmann, Parker Schuh, Kensen Shi,       different study designs. Journal of Korean Medical
+  Sashank Tsvyashchenko, Joshua Maynez, Abhishek       Science, 36(50):e338.
+  Rao, Parker Barnes, Yi Tay, Noam Shazeer, Vinodku-
+  mar Prabhakaran, and 48 others. 2023. Palm: Scaling    John H. Morris, Karthik Soman, Rabia E. Akbas, Xi-
+  language modeling with pathways. Journal of Ma-      aoyuan Zhou, Brett Smith, Elaine C. Meng, Conrad C.
+   chine Learning Research, 24(240):1–113.              Huang, Gabriel Cerono, Gundolf Schenk, Angela
+                                                        Rizk-Jackson, Adil Harroud, Lauren Sanders, Syl-
+Armen  Yuri  Gasparyan,  Lilit Ayvazyan,  Ulzhan      vain V. Costes, Krish Bharat, Arjun Chakraborty,
+  Mukanova, Marlen Yessirkepov, and George Kitas.      Alexander R. Pico, Taline Mardirossian, Michael
+  2019.  Scientific hypotheses: Writing, promoting,       Keiser, Alice Tang, and 8 others. 2023. The scalable
+  and predicting implications. Journal of Korean Med-      precision medicine open knowledge engine (spoke):
+   ical Science, 34(45):e300.                  A massive knowledge graph of biomedical informa-
+                                                                    tion. Bioinformatics, 39(2):btad080.
+Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri,
+  Abhinav Pandey, Abhishek Kadian, Ahmad Al-   Karl Raimund Popper. 1959. The Logic of Scientific
+  Dahle, Aiesha Letman, Akhil Mathur, Alan Schel-      Discovery. Hutchinson & Co.
+   ten, Amy Yang, Angela Fan, Anirudh Goyal, An-
+  thony S. Hartshorn, Aobo Yang, Archi Mitra, Archie   Andrew Sellergren, Sahar Kazemzadeh, Tiam Jaroensri,
+  Sravankumar, Artem Korenev, Arthur Hinsvark, Arun       Atilla Kiraly, Madeleine Traverse, Timo Kohlberger,
+  Rao, and 23 others. 2024. The llama 3 herd of mod-     Shawn Xu, Fayaz Jamil, Cían Hughes, Charles
+   els. arXiv preprint.                                   Lau, Justin Chen, Fereshteh Mahvar, Liron Yatziv,
+                                                             Tiffany Chen, Bram Sterling, Stefanie Anna Baby, Su-
+Daniel Scott Himmelstein, Antoine Lizee, Christine                                                      sanna Maria Baby, Jeremy Lai, Samuel Schmidgall,
+   Hessler, Leo Brueggeman, Sabrina L. Chen, Dexter                                                  and 62 others. 2025. Medgemma technical report.
+  Hadley, Ari Green, Pouya Khankhanian, and Ser-                                                        arXiv preprint.
+   gio E. Baranzini. 2017. Systematic integration of
+   biomedical knowledge prioritizes drugs for repurpos-   Yucheng Shi, Shaochen Xu, Tianze Yang, Zhengliang
+   ing. eLife, 6:e26726.                                      Liu, Tianming Liu, Xiang Li, and Ninghao Liu. 2025.
+                                                   Mkrag: Medical knowledge retrieval augmented gen-
+Minoru  Kanehisa,  Miho  Furumichi,  Yoko  Sato,                                                             eration for medical question answering.  In AMIA
+  Masayuki Kawashima, and Mari Ishiguro-Watanabe.                                                   Annual Symposium Proceedings, pages 1011–1020.
+  2023. Kegg for taxonomy-based analysis of path-
+  ways and genomes.    Nucleic Acids Research,                                                     Chenglei Si, Diyi Yang, and Tatsunori Hashimoto. 2025.
+  51(D1):D587–D592.                                               Can llms generate novel research ideas? a large-scale
+                                              human study with 100+ nlp researchers. ProceedingsMinoru Kanehisa and Susumu Goto. 2000. Kegg: Ky-
+                                                              of the 13th International Conference on Learning   oto encyclopedia of genes and genomes.  Nucleic
+                                                           Representations.  Acids Research, 28(1):27–30.
+
+                                                     Karthik Soman, Peter W. Rose, John H. Morris, Ra-Shrinidhi Kumbhar, Venkatesh Mishra, Kevin Coutinho,
+                                                             bia E. Akbas, Brett Smith, Braian Peetoom, Catalina   Divij Handa, Ashif Iquebal, and Chitta Baral. 2025.
+                                                          Villouta-Reyes, Gabriel Cerono, Yongmei Shi, An-  Hypothesis generation for materials discovery and
+                                                          gela Rizk-Jackson, Sharat Israni, Charlotte A. Nel-  design using goal-driven and constraint-guided llm
+                                                           son, Sui Huang, and Sergio E. Baranzini. 2024.   agents. In Findings of the Association for Computa-
+                                                      Biomedical knowledge graph-optimized prompt gen-   tional Linguistics: NAACL 2025, pages 7539–7570,
+                                                             eration for large language models. Bioinformatics,  Albuquerque, New Mexico. Association for Compu-
+                                                           40(9):btae560.   tational Linguistics.
+
+Yanis Labrak, Adrien Bazoge, Emmanuel Morin, Pierre-   Song Tong, Kai Mao, Zhen Huang, Yukun Zhao, and
+  Antoine Gourraud, Mickael Rouvier, and Richard      Kaiping Peng. 2024. Automating psychological hy-
+  Dufour. 2024.  Biomistral: A collection of open-      pothesis generation with ai: When large language
+   source pretrained large language models for medical      models meet causal graph. Humanities and Social
+  domains. In Findings of the Association for Compu-      Sciences Communications, 11:896.
+   tational Linguistics: ACL 2024, pages 5848–5864,
+                                                     UniProt Consortium. 2023. Uniprot: The universal pro-  Bangkok, Thailand. Association for Computational
+                                                                   tein knowledgebase in 2023. Nucleic Acids Research,   Linguistics.
+                                                  51(D1):D523–D531.
+Haokun Liu, Yangqiaoyu Zhou, Mingxuan Li, Chen-
+   fei Yuan, and Chenhao Tan. 2025. Literature meets    Yilin Wen, Zifeng Wang, and Jimeng Sun. 2024.
+   data: A synergistic approach to hypothesis genera-     Mindmap: Knowledge graph prompting sparks graph
+   tion. Proceedings of the 63rd Annual Meeting of the       of thoughts in large language models. In Proceed-
+  Association for Computational Linguistics.               ings of the 62nd Annual Meeting of the Association
+                                                               for Computational Linguistics (ACL), pages 10370–
+Durga Prasanna Misra, Armen Yuri Gasparyan, Olena      10388, Bangkok, Thailand. Association for Compu-
+  Zimba, Marlen Yessirkepov, Vikas Agarwal, and       tational Linguistics.
+
+=== PDF第11页 ===
+E. Wood, Amy Glen, Lindsey Kvarfordt, Finn Womack,  A  Prompt Templates
+   Liliana Acevedo, Timothy Yoon, Chunyu Ma, Veron-
+   ica Flores, Meghamala Sinha, Jared Roach, Luis   A.1  Generation Prompts
+  Mendoza, Andrew Hoffman, Eric Deutsch, David
+                                             Condition 1 (C1): Source-Only Baseline   Koslicki, and Stephen Ramsey. 2022.  Rtx-kg2:
+ A system for building a semantically standardized
+  knowledge graph for translational biomedicine. BMC      System Prompt
+   Bioinformatics.                                   You are an expert biochemist specializing in metabolic
+
+                                                                  disease mechanisms.
+Guangzhi Xiong, Eric Xie, Amir Shariatmadari, Sikun
+  Guo, Stefan Bekiranov, and Aidong Zhang. 2024.      User Prompt
+  Improving  scientific hypothesis generation with      Source enzyme: {source_entity}
+  knowledge grounded large language models. arXiv       Target domain: disease mechanism
+   preprint.                                                            Generate a testable scientific hypothesis connecting this
+                                                    enzyme to a disease mechanism.
+Guangzhi Xiong, Eric Xie, Corey Williams, Myles Kim,
+  Amir Hassan Shariatmadari, Sikun Guo, Stefan Beki-     Your hypothesis must:
+   ranov, and Aidong Zhang. 2025. Toward reliable       1. Name the specific enzyme; do not generalize to en-
+   scientific hypothesis generation: Evaluating truthful-       zyme families.
+   ness and hallucination in large language models. In       2. Propose a specific mechanistic connection to a disease.
+                                                                        3. Make a specific, falsifiable prediction: what experi-  Proceedings of the Thirty-Fourth International Joint
+                                                                mental result would confirm it, and what would refute
+  Conference on Artificial Intelligence (IJCAI), pages                                                                                                          it.
+  7849–7857.                                                                        4. Be grounded in known biochemistry.
+
+Qidi Xu, Claudio Soto, Mohammad Shahnawaz, Xi-      Begin with “We hypothesize that” and limit to 150 words.
+  aozhong Liu, Xiaoqian Jiang, and Yejin Kim. 2025.
+   Multi-agent large language models for biomedical   Condition 2 (C2): Full-Path Compression
+   hypothesis generation in drug combination discovery.
+   iScience, 28.
+                                                       System Prompt
+An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,     You are an expert biochemist.
+  Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao,
+                                                          User Prompt  Chengen Huang, Chenxu Lv, Chujie Zheng, Dayi-
+                                                   The following knowledge graph path describes a multi-
+  heng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao Ge,                                                                    step mechanistic relationship between biological entities:
+  Haoran Wei, Huan Lin, Jialong Tang, and 41 others.
+  2025a. Qwen3 technical report. arXiv preprint.           {path_text}
+                                                     Not every edge in this path represents an equally strong
+Fuyi Yang, Chenchen Ye, Mingyu Derek Ma, Yi-      biological claim. Treat the path as partial mechanistic
+   jia Xiao, Matthew Yang, and Wei Wang. 2025b.      evidence of varying reliability.
+   Bioverge: A comprehensive benchmark and study of      Your task is mechanistic compression. The path is not a
+   self-evaluating agents for biomedical hypothesis gen-       script to retell. Instead, treat it as mechanistic evidence
+   eration. LAW 2025: Bridging Language, Agent, and      from which a biologically meaningful hypothesis may
+  World Models for Reasoning and Planning. NeurIPS      emerge.
+  2025 Workshop.                                                Instructions:
+                                                                        1. Identify the single most biologically specific and
+Zonglin Yang, Xinya Du, Junxian Li, Jie Zheng, Sou-                                                              meaningful mechanistic transition in the path.
+  janya Poria, and Erik Cambria. 2024.  Large lan-                                                                        2. Explicitly state why this transition is more biologi-
+  guage models for automated open-domain scientific           cally meaningful than the adjacent edges you chose to
+   hypotheses discovery. In Findings of the Association          ignore.
+   for Computational Linguistics (ACL).                         3.  Prioritize mechanistic coherence over graph complete-
+                                                                        ness. Ignore weak, generic, or incidental edges.
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan       4. Do not narrate the full path step-by-step.
+  Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin,       5. Synthesize one focused scientific hypothesis around
+  Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang,           that specific mechanistic substructure.
+  Joseph E. Gonzalez, and Ion Stoica. 2023. Judging       6. State one falsifiable experimental prediction with a
+                                                                         specific measurable output, such as enzyme activity,   llm-as-a-judge with mt-bench and chatbot arena. In
+                                                                  metabolite concentration, assay readout, or cellular
+  Advances in Neural Information Processing Systems,
+                                                                phenotype.
+  volume 36, pages 46595–46623.                                                                        7. Name the specific entities involved; do not generalize
+                                                                         to enzyme families.
+Yangqiaoyu Zhou, Haokun Liu,  Tejes  Srivastava,       8. The hypothesis should sound like a concise scientific
+  Hongyuan Mei, and Chenhao Tan. 2024. Hypoth-          claim, not a graph traversal.
+   esis generation with large language models. In Pro-
+                                                          Begin with “We hypothesize that” and limit to 150 words.  ceedings of the 1st Workshop on NLP for Science
+  (NLP4Science), pages 117–139, Miami, FL, USA.
+  Association for Computational Linguistics.          Condition 3 (C3): Full-Path Interpretation
+
+=== PDF第12页 ===
+  System Prompt                                                      5. Connect specifically to {terminal_name}; do not con-
+                                                                    nect to a different disease.  You are an expert biochemist.
+                                                          Begin with “We hypothesize that” and limit to 150 words.
+  User Prompt
+  The following knowledge graph path describes a possible
+  mechanistic relationship between biological entities:       A.2  Judge System Prompt
+  {path_text}
+                                          The following system prompt was used for GPT-4o
+  Not every edge in this path represents an equally strong                                                 (primary judge for all models except GPT-4o) and
+  biological claim. Treat the path as partial mechanistic
+  evidence of varying reliability.                      Gemini 2.5 Flash (secondary judge for all models).
+  Your task is mechanistic interpretation. Reason about the    Qwen3-235B used the same prompt as primary
+  path before generating the final hypothesis:               judge for GPT-4o outputs. No model evaluated its
+   • Which transitions appear biologically meaningful?      own outputs.
+   • Which steps are weak, generic, or uncertain?
+   • Where does the path suggest a true mechanistic bottle-
+    neck, regulatory switch, or cross-domain interaction?        System Prompt
+   • Which localized mechanistic theme in the path appears       You are an expert scientific evaluator assessing the quality
+    most biologically meaningful, even if the full path may
+                                                                 of AI-generated biochemical hypotheses.
+    not represent a direct causal chain?
+ Do not assume every edge represents a direct causal re-        User Prompt
+  lationship. Do not feel pressure to connect the source       You will be given:
+  entity to the terminal disease if a stronger, more localized                                                                        1. A source enzyme/gene
+  biological claim exists within the path. Use the graph as                                                                        2. A target disease
+  mechanistic guidance, not as a deterministic script.                                                                        3. A knowledge graph path connecting the source to the
+  Then generate:                                                    disease
+  1. A short mechanistic rationale identifying the most          4. A generated hypothesis
+     biologically meaningful substructure in the path and          5. A context line stating what evidence was available to
+    why you selected it over other edges.                            the generator
+  2. One  coherent,   falsifiable  scientific  hypothesis        Your task is to score the hypothesis on five criteria using
+     grounded in that strongest mechanistic theme.               a 1–5 scale. Return ONLY a valid JSON object with your
+  3. Include a specific measurable prediction inside the         scores and reasoning. Nothing else.
+     hypothesis.                                           SCORING SCALE:
+  Format your response as:                                 1 = Poor | 2 = Weak | 3 = Acceptable / mixed | 4 = Strong
+  RATIONALE: [brief mechanistic interpretation, max 80             | 5 = Excellent
+  words]                                          CRITERION 1: Path/Task Relevance (1–5)
+  HYPOTHESIS: We hypothesize that [concise mechanis-                                                    Does the hypothesis address the assigned source-to-
+   tic hypothesis including the falsifiable prediction, max                                                                 terminal biological problem?
+  150 words]
+                                                                              • Score 5: Directly addresses source gene and terminal
+  Do not add any additional sections beyond RATIONALE           disease through a coherent biological mechanism
+                                                                              • Score 4: Addresses source and terminal with minor  and HYPOTHESIS.
+                                                             gaps
+                                                                              • Score 3: Partially addresses the path, mechanism is
+Condition 4 (C4): Endpoint-Only Ablation            vague or focuses only on intermediate nodes
+                                                                              • Score 2: Weakly connected, mentions the disease but
+                                                        mechanism does not involve the source gene meaning-
+  System Prompt                                                        fully
+  You are an expert biochemist specializing in metabolic           • Score 1: Addresses a completely different disease or
+                                                                      biological question
+  disease mechanisms.
+                                         CRITERION 2: Mechanistic Specificity and Consis-
+                                                            tency (1–5)  User Prompt
+  Source enzyme: {source_symbol}                        Does the hypothesis propose a specific, biologically co-
+  Target disease: {terminal_name}                               herent mechanism?
+                                                                              • Score 5: Names specific enzyme, substrate, product,
+  Your task is to generate a testable scientific hypothesis                                                                              cell type, and mechanism
+  proposing a specific mechanistic connection between this
+                                                                              • Score 4: Specific mechanism with minor biochemical
+  source enzyme and this target disease.                                                             gaps
+  Your hypothesis must:                                                  • Score 3: Some specificity but relies on pathway-level
+  1. Name the specific source enzyme; do not generalize          language or has one inaccuracy
+      to enzyme families.                                                 • Score 2: Vague mechanism, names entities but does
+  2. Propose a specific mechanistic pathway or biological           not explain how they connect
+     process connecting this enzyme to the target disease.           • Score 1: Biochemically incoherent or uses only generic
+  3. Make a specific, falsifiable prediction: what experi-          language
+     mental result would confirm it, and what would refute       NOTE: Do not reward biochemical-sounding mechanisms
+        it.                                                                             if the intermediate reactions are vague or unsupported.
+  4. Be grounded in known biochemistry.                   The mechanistic chain must be biochemically justified
+
+=== PDF第13页 ===
+step by step.                                           }
+
+CRITERION 3: Experimental Testability and Opera-
+tionalization (1–5)                                Judge input format. Each hypothesis was presented
+Can the hypothesis be tested with a concrete perturbation,      to the judge with the following user prompt:
+model system, assay, and measurable outcome?
+• Score 5: Names perturbation, model system, measur-
+                                                        User Prompt Template  able outcome, and falsification, quantitative claims are
+                                                         Source enzyme/gene: {source_symbol}   justified or appropriately hedged
+                                                               Target disease: {terminal_name}• Score 4: Clear experimental design with one missing
+                                                              {context_line}  element
+• Score 3: Testable in principle but missing key details        Knowledge graph path:
+• Score 2:  Vague prediction, “may affect” without        {path_text}
+  specifics
+                                                          Generated hypothesis:• Score 1: No testable prediction or purely observational
+                                                             {hypothesis_text}
+CRITERION 4: Non-Trivial Novelty / Knowledge Ad-
+vancement (1–5)                                           Score this hypothesis on the five criteria. Return only the
+Does the hypothesis generate a new scientific question
+                                            JSON object.beyond restating textbook knowledge?
+• Score 5: Genuinely new mechanistic connection not
+  established in literature                       Where {context_line} was one of:
+• Score 4: Extends known biology in a non-obvious di-
+  rection                                                   • C1: “Evidence available to generator: source
+• Score 3: Some novel element but mostly builds on      enzyme name only. The KG path and terminal
+  well-known mechanisms                                                    disease were NOT shown.”
+• Score 2: Mostly restates established biology
+• Score 1: Directly restates a textbook mechanism            • C2/C3: “Evidence available to generator: full
+CRITERION 5: Evidence-Proportionality and Full-      knowledge graph path shown below.”
+Path Use (1–5)                                             • C4: “Evidence available to generator: source
+Does the strength of the claim match the evidence pro-
+vided to the generator?                           enzyme name and target disease name only. The
+                              KG path was NOT shown.”CRITICAL RULE:
+•  If the generator was shown the full KG path: score
+  based on how intelligently it used the path evidence.    B  Expert-Derived Evaluation Rubric
+•  If the generator was NOT shown the KG path: a high
+  score requires that the proposed mechanistic bridge    The rubric was derived from structured evaluation
+   is either (a) explicitly framed as speculative and bio-     sessions with eight PhD-level domain experts in
+  logically plausible, or (b) directly supported by well-
+  established published biochemistry. A hypothesis that     biochemistry and metabolic disease. Experts inde-
+  invents a plausible-sounding but unsupported bridge,     pendently scored hypotheses for a held-out calibra-
+  without acknowledging uncertainty, should score at                                                       tion path (CDO1 →Primary Hyperoxaluria Type 1,
+  most 3 regardless of fluency.
+                                      HKG_0215) under all four conditions and provided• Score 5: Uses both strong and upstream path elements
+   intelligently, OR if no path shown, bridge is grounded      written justifications. The five criteria below reflect
+  in established biochemistry and explicitly proportionate      the qualitative dimensions that consistently drove
+  to evidence
+                                             agreement and disagreement across experts.• Score 4: Uses strong path elements well, OR if no path
+  shown, mechanism is plausible but missing explicit
+  uncertainty framing                                           Total Score Interpretation
+• Score 3: Uses only the most obvious path element, OR         Total score range: 5–25 points.
+   if no path shown, reasonable but unsupported bridge
+                                                                           • 20–25: Strong hypothesis
+  stated with overconfidence
+                                                                           • 15–19: Usable but needs refinement
+• Score 2: Overclaims beyond evidence, or largely ig-
+                                                                           • 10–14: Weak or partial
+  nores the path shown
+                                                                           • Below 10: Poor
+• Score 1: Completely ignores the path shown, OR if
+  no path shown, proposes a biochemically implausible
+  mechanism                                     Criterion 1: Path/Task Relevance
+Return ONLY this JSON structure:
+{                                                               Definition
+  "path_task_relevance": <1-5>,                    Does the hypothesis address the  correct source-to-
+  "mechanistic_specificity": <1-5>,                                                              terminal biological problem? Does it connect to the as-
+  "experimental_testability": <1-5>,
+  "nontrivial_novelty": <1-5>,                          signed terminal disease through the given path rather than
+  "evidence_proportionality": <1-5>,                      drifting to a different disease or biological question?
+  "total_score": <sum 5-25>,
+  "reasoning": "<2-3 sentences                             Literature Grounding
+    explaining the scores>"                                                      Novel to KG evaluation, this work.
+
+=== PDF第14页 ===
+  Expert Signal                                                   Definition
+  All six experts who saw the C1 disease-drift exam-       Can the hypothesis be tested with a concrete perturbation,
+  ple flagged the hypothesis as well-formed but path-       model system, assay, and measurable outcome? Is there
+
+  disconnected, motivating a dedicated relevance criterion.         an explicit falsification condition?
+
+  Behavioral Anchors                                              Literature Grounding
+   Score  Anchor                                       Popper (1959); Banerjee et al. (2009).
+
+     5      Directly addresses source gene and terminal          Expert Signal
+             disease through a coherent biological mecha-
+                                                             Experts preferred hypotheses proposing AGXT knock-
+           nism
+     4     Addresses source and terminal with minor         down, glyoxylate challenge, and dose-response testing.
+            gaps in the connection                             Multiple experts criticized unjustified numerical preci-
+     3      Partially addresses the path, connects to ter-
+                                                                        sion, such as exact fold-change thresholds stated as fact.           minal but mechanism is vague, or focuses
+            only on intermediate nodes
+                                                              Behavioral Anchors     2     Weakly connected, mentions the disease but
+           mechanism does not involve the source gene          Score  Anchor
+            meaningfully
+                                                          5    Names perturbation, model system, measur-     1     Addresses a completely different disease or
+                                                                           able outcome, and falsification, quantitative             biological question
+                                                                        claims justified or appropriately hedged
+                                                          4     Clear experimental design with one missing
+                                                                         element, or includes numbers framed as ap-
+Criterion 2: Mechanistic Specificity and Consis-               proximate predictions
+tency                                                    3     Testable in principle but missing key de-
+                                                                                                    tails, or includes unjustified precise numbers
+                                                                                 stated as fact
+                                                          2     Vague prediction, “may affect” or “could in-
+  Definition
+                                                                            fluence” without specifics
+  Does the hypothesis propose a specific, biologically co-          1    No testable prediction, untestable, or purely
+  herent mechanism involving named enzymes, metabolites,                   observational without experiment
+
+  reactions, cell types, or pathway logic? Is the mechanism
+
+  consistent with known biochemistry?
+
+  Literature Grounding
+
+  Gasparyan et al. (2019); Misra et al. (2021).
+
+  Expert Signal
+                                                Criterion 4: Non-Trivial Novelty and Knowl-
+  Experts praised hypotheses  that correctly  identified
+                                            edge Advancement
+ AGXT →glyoxylate →oxalate as the mechanistic an-
+
+  chor, and penalized those using pathway-level language
+
+  without reaction logic.
+
+  Behavioral Anchors
+
+   Score  Anchor
+
+     5    Names specific enzyme, substrate, product,          Definition
+               cell type, and mechanism, all biochemically                                                      Does the hypothesis generate a new scientific question or
+             accurate and supported
+     4      Specific mechanism with minor biochemical          prediction beyond restating textbook knowledge? Does
+            gaps or simplifications                                             it propose a new relationship, mechanism, modifier, or
+     3    Some specificity but relies on pathway-level                                                               experimental angle not already established?
+            language, or uses biochemical terminology
+            without explaining actual reaction steps                                                                     Literature Grounding
+     2    Vague mechanism, names entities but does
+            not explain how they connect                      Misra et al. (2021) knowledge-gap criterion.
+     1     Biochemically   incoherent,   contradicts
+                                                             Expert Signal          known biochemistry, or uses only generic
+            language                                         Five of six experts independently called one calibration
+                                                              hypothesis “correct but trivial,” “textbook,” or “not a
+
+                                                                 research hypothesis,” motivating a dedicated novelty cri-
+Criterion 3: Experimental Testability and Oper-                                                                      terion with a low floor for restated biology.
+ationalization
+                                                              Behavioral Anchors
+
+=== PDF第15页 ===
+                                          mary Hyperoxaluria Type 1.
+   Score  Anchor
+     5     Proposes a genuinely new mechanistic con-     Example 1: Path-irrelevant but fluent
+            nection or modifier not established in exist-         Context
+             ing literature
+                                                       C1: source enzyme only shown. Terminal disease and     4     Extends known biology in a non-obvious di-
+              rection, one credible step beyond established          path withheld.
+           knowledge
+     3    Has some novel element but mostly builds          Hypothesis
+           on well-known mechanisms                We hypothesize that glutathione reductase deficiency in
+     2     Mostly restates established biology, the core
+                                                                           retinal pigment epithelial cells contributes to age-related            claim is already known
+     1     Directly restates a textbook disease mecha-         macular degeneration through impaired glutathione re-
+           nism with no new prediction                          generation, leading to lipofuscin accumulation and com-
+                                                          plement activation. Reduced GSR activity causes ele-
+Criterion 5: Evidence Proportionality and Full-      vated GSSG and decreased GSH. This promotes A2E
+Path Use                                                   formation and inflammasome activation. RPE cells with
+                                                       siRNA-mediated GSR knockdown will show increased
+  Definition                                    GSSG/GSH ratios, elevated A2E fluorescence, and in-
+  Does the hypothesis use the KG path intelligently, preserv-        creased IL-1β secretion, falsified if knockdown shows no
+  ing strong edges, treating weak edges cautiously, and at-         lipofuscin increase.
+  tempting to extract value from upstream elements? Does
+  the strength of the claim match the evidence provided to      Scores: Rel=1, Mech=2, Test=4, Nov=3, Prop=1, Total=11.
+  the generator?                                         Connects GSR to AMD, not Aminoacylase-1 deficiency.
+
+                                                                  Disease-drift bias example.  Literature Grounding
+  Novel to KG evaluation, this work.                 Example 2: Correct but textbook
+
+  Expert Signal                                              Context
+  Expert 2 explicitly named “proportionality of evidence to        C2/C3: full KG path shown.
+  claim” and “engagement with the full path” as evaluation
+                                                            Hypothesis
+  dimensions. Experts noted that strong hypotheses cor-
+                                          We hypothesize that loss-of-function mutations in AGXT
+   rectly identified CDO1 as a weak link but asked whether
+                                                                     disrupt glyoxylate metabolism in hepatocytes, leading to
+    it could modify the AGXT mechanism, rather than simply
+                                                                   pathological accumulation of oxalate and causing Primary
+  abandoning it.
+                                                              Hyperoxaluria Type 1. AGXT directly catalyzes transam-
+  Behavioral Anchors
+                                                                     ination of glyoxylate to glycine, preventing oxalate over-
+   Score  Anchor
+                                                                production. The upstream CDO1 link is metabolically
+     5     Uses both strong and upstream path elements                                                                      tangential. Patients with biallelic AGXT mutations will
+               intelligently, or if no path is shown, the pro-
+            posed bridge is grounded in established pub-           exhibit reduced hepatic AGXT enzyme activity (less than
+             lished biochemistry and explicitly propor-       15% of wild-type) and elevated urinary oxalate (greater
+              tionate to evidence                                                              than 0.7 mmol/day), measurable via tandem mass spec-
+     4     Uses strong path elements well, or if no path
+                is shown, the mechanism is plausible and par-          trometry.
+                tially grounded but lacks explicit uncertainty
+            framing                                                          Scores: Rel=4, Mech=4, Test=2, Nov=1, Prop=3, Total=14.
+     3     Uses only the most obvious path element,
+             or if no path is shown, the mechanism is        Correct terminal and mechanism but restates textbook AGXT–
+            a reasonable but unsupported bridge stated      PH1 biology. Uses strongest path edge but discards CDO1.
+            with overconfidence
+     2     Overclaims beyond what the evidence sup-     Example 3: Strong but imperfect
+              ports, or largely ignores the path when one
+                                                            Context          was provided
+     1     Completely ignores the path when one was         C2/C3: full KG path shown.
+           shown, or if no path is shown, proposes a
+            biochemically implausible or hallucinated          Hypothesis
+           mechanism                             RATIONALE: The strongest mechanistic connection is
+                                                          between AGXT enzyme dysfunction and Primary Hyper-
+                                                                 oxaluria Type 1. AGXT catalyzes alanine-glyoxylate
+Worked Calibration Examples                          aminotransferase activity and  its deficiency directly
+                                                              causes oxalate accumulation. The cyanoamino acid con-
+All five examples use the calibration path: CDO1                                                                 nection appears weaker.
+→Cyanoamino acid metabolism →AGXT →Pri-
+
+=== PDF第16页 ===
+  HYPOTHESIS: We hypothesize that reduced AGXT en-      Note: This example is used to illustrate a high-scoring rubric
+  zyme activity creates a metabolic bottleneck in glyoxylate       response, not to claim experimental validation of the proposed
+  detoxification, leading to increased glyoxylate-to-oxalate      mechanism.
+  conversion. Cells with AGXT knockdown will show a      Scores: Rel=5, Mech=5, Test=5, Nov=5, Prop=5, Total=25.
+  dose-dependent increase in oxalate production with levels      Connects the source and terminal disease through a novel
+  increasing 2 to 5 fold at 50% AGXT activity reduction,      CDO1-as-modifier mechanism, uses both CDO1 and AGXT
+  measurable by oxalate secretion assays.                          intelligently, and remains appropriately hedged. The hypoth-
+
+                                                                     esis is biochemically specific and experimentally actionable,
+Scores: Rel=4, Mech=4, Test=4, Nov=3, Prop=3, Total=18.    with a concrete perturbation, LC-MS oxalate readout, and
+Correct target, testable with dose-response, but cell type un-    pyridoxine rescue test.
+
+specified and CDO1 upstream abandoned entirely.
+                           C  Additional Results
+Example 4: Endpoint-only, plausible but over-
+confident                                     Table 7: Per-model evidence proportionality
+  Context                                    drop under path shuffling.
+  C4: source and terminal disease only. Path not shown.        To assess whether individual models genuinely
+                                                         utilized intermediate KG path structure, we report
+  Hypothesis
+                                                 evidence proportionality scores under original and
+ We hypothesize that CDO1 deficiency leads to cysteine
+                                                       shuffled paths for each model separately. Shuffling
+  accumulation, which is then shunted through alternative
+                                               permutes intermediate nodes while holding source
+  metabolic pathways to produce glyoxylate, thereby ex-
+                                             and terminal endpoints fixed, breaking the biologi-
+  acerbating oxalate overproduction in Primary Hyperox-
+                                                        cal causal chain while preserving endpoint identity.
+  aluria Type 1 patients who already carry AGXT muta-
+                              A significant drop indicates the model was respond-
+   tions. CDO1 knockdown in AGXT-deficient hepatocytes
+                                                  ing to ordered intermediate structure rather than
+  will show higher urinary oxalate than AGXT knockdown
+                                                 endpoint priors alone.
+  alone.
+                                           The model-dependent  pattern  directly  con-
+                                                   firms the capability split reported in Section 5.2.
+Scores: Rel=4, Mech=3, Test=3, Nov=3, Prop=2, Total=15.
+                                                 Stronger models, Qwen3-235B, Claude Sonnet,
+Correctly connects CDO1 to PH1. Mechanism plausible but
+                                       MedGemma-27B, and GPT-4o, show large, signifi-
+stated with overconfidence; no path was shown, so the bridge
+                                                   cant drops under both C2 and C3 (∆range: 0.68–
+should be framed as speculative.
+                                                        1.11), indicating genuine utilization of intermediate
+Example 5: Excellent                            path structure. Llama-3.3-70B also shows signifi-
+  Context                                             cant drops despite its weak overall grounding gains,
+  C2/C3: full KG path shown.                           suggesting it extracts some path signal even when
+                                                                            it cannot translate it into high-quality hypotheses.
+  Hypothesis
+                                               BioMistral-7B is the clearest outlier: its C3 drop
+ We hypothesize that CDO1 activity may modulate the
+                                                               is near-zero and non-significant (∆= −0.023,
+  severity of AGXT-deficient Primary Hyperoxaluria Type
+                                           p = 0.242), mechanistically confirming that this
+  1 by influencing cysteine-derived metabolite competition
+                                          model was not using intermediate path structure
+  for shared peroxisomal processing capacity and pyri-
+                                               even in the original condition.
+  doxal phosphate cofactor availability. When CDO1 is
+                                             Table 8: Secondary judge agreement with pri-
+  impaired alongside AGXT deficiency, accumulated cys-
+                                      mary judge.
+  teine metabolites may reduce effective PLP availability
+                                                       Inter-judge agreement was computed on per-
+  or alter peroxisomal metabolic load, potentially ampli-
+                                                 hypothesis scores for each criterion separately.
+  fying oxalate overproduction beyond what AGXT de-
+                                                 This breakdown allows assessment of which rubric
+  ficiency alone would produce. We predict that CDO1
+                                                dimensions are reliably scored by LLM judges and
+  knockdown in AGXT-deficient human hepatocytes will
+                                            which require greater caution in interpretation.
+  produce greater oxalate accumulation than AGXT knock-
+                                             Agreement is highest for experimental testabil-
+  down alone, measurable by LC-MS oxalate quantification,
+                                                            ity (r = 0.839) and path/task relevance (r =
+  and that pyridoxine supplementation will partially res-
+                                                     0.813), both criteria with relatively objective an-
+  cue this amplified phenotype, supporting a PLP-sensitive
+                                                     chors. Agreement is lowest for evidence propor-
+  modifier mechanism.
+                                                           tionality (r = 0.668), reflecting the greater subjec-
+
+=== PDF第17页 ===
+Model           C2 Orig.    C2 Shuf.    C2 Drop      Sig.    C3 Orig.    C3 Shuf.    C3 Drop      Sig.
+
+Qwen3-235B            3.396        2.286     −1.110     ***        3.021        2.222     −0.799     ***
+Claude Sonnet           3.073        2.131     −0.942     ***        2.944        2.220     −0.724     ***
+MedGemma-27B        3.027        2.166     −0.861     ***        3.268        2.386     −0.882     ***
+Llama-3.3-70B          2.593        1.736     −0.857     ***        2.251        1.720     −0.531     ***
+GPT-4o                 2.750        2.053     −0.697     ***        2.990        2.311     −0.679     ***
+BioMistral-7B           1.938        1.741     −0.197     ***        2.139        2.116     −0.023       ns
+
+Table 7: Per-model evidence proportionality drop under path shuffling. Wilcoxon signed-rank test, n = 518 per
+model per condition. *** p < 0.001; ns = not significant. Models are sorted by C2 drop magnitude. Bold values
+indicate the largest drop within each condition.
+
+
+ Criterion                       Pearson r  Mean |∆|   couraging explicit engagement with intermediate
+                                                  path entities. Experimental Testability                0.839       1.72
+ Path/Task Relevance                   0.813       1.87
+ Mechanistic Specificity                 0.791       1.94
+ Non-Trivial Novelty                   0.774       2.03
+ Total Score                           0.776       2.10
+ Evidence Proportionality               0.668       2.34
+
+Table 8: Secondary judge agreement with the primary
+judge across 13,200 hypotheses. Mean |∆| is computed
+on the 1–5 criterion scale, except Total Score, which
+uses the 5–25 scale.
+
+
+tivity of assessing whether claim strength is cal-
+ibrated to the specific evidence provided to the
+generator.
+Table 9: KG consistency metrics by condition.
+  These automated metrics measure entity mention
+behavior, whether hypotheses reference the source
+gene, terminal disease, and intermediate path en-
+tities, rather than scientific quality. They serve as
+complementary grounding diagnostics confirming
+that conditions differed in the information models
+used, not just in prompt wording.
+
+
+ Condition          Source  Terminal  Path Comp.
+
+ C1 Source-only        0.821     0.043    n/a   0.821
+ C2 Path-compress     0.894     0.876  0.312   0.694
+ C3 Path-interpret      0.887     0.869  0.341   0.699
+ C4 Endpoint-only      0.912     0.961    n/a   0.937
+
+Table 9: KG consistency metrics by condition. Source
+and terminal grounding are binary mention rates. Path
+entity coverage is the fraction of named intermediate KG
+entities mentioned. Composite is the mean of applicable
+metrics.
+
+  Three patterns are worth noting. First, C1’s near-
+zero terminal grounding directly quantifies disease
+drift without a disease anchor. Second, C4’s high
+terminal grounding confirms that endpoint-only
+models reliably mention the disease name, but en-
+tity mention does not imply mechanistic path use.
+Third, path entity coverage is highest under C3,
+consistent with the interpretation instruction en-

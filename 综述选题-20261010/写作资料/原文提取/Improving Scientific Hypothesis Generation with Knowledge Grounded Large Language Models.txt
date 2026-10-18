@@ -1,0 +1,970 @@
+
+=== PDF第1页 ===
+        Improving Scientific Hypothesis Generation with Knowledge Grounded Large
+                                Language Models
+
+                  Guangzhi Xiong1*, Eric Xie1*, Amir Hassan Shariatmadari1, Sikun Guo1,
+                                      Stefan Bekiranov1, Aidong Zhang1
+                                                            1University of Virginia
+
+
+
+                               Abstract                            drug discovery, biological sequence analysis, and material
+                                                                       design (AI4Science and Quantum 2023).
+             Large language models (LLMs) have demonstrated remark-                                                                                     Specifically, with the capability of processing and synthe-2024       able capabilities in various scientific domains, from natural
+                                                                              sizing vast amounts of text, LLMs are well-suited to accel-             language processing to complex problem-solving tasks. Their
+                                                                                erate the analysis of scientific literature and generate new                ability to understand and generate human-like text has opened
+            up new possibilities for advancing scientific research, en-        hypotheses for potential scientific discovery (Qi et al. 2023;Nov              abling tasks such as data analysis, literature review, and even       Zhou et al. 2024). Traditional scientific research, particu-
+4       experimental design. One of the most promising applications          larly in natural sciences like biology, typically involves a
+              of LLMs in this context is hypothesis generation, where they         multi-step, time-consuming process from gathering litera-
+             can identify novel research directions by analyzing existing          ture to validating hypotheses. By generating promising re-
+             knowledge. However, despite their potential, LLMs are prone         search ideas directly from existing literature, LLMs have the
+               to generating “hallucinations”, outputs that are plausible-          potential to significantly streamline and reduce the time re-
+             sounding but factually incorrect. Such a problem presents sig-                                                                         quired for these labor-intensive tasks.
+                nificant challenges in scientific fields that demand rigorous
+                                                                   However, despite their advanced capabilities, LLMs face[cs.CL]       accuracy and verifiability, potentially leading to erroneous or
+             misleading conclusions. To overcome these challenges, we          criticism for generating misinformation or so-called “hallu-
+             propose KG-CoI (Knowledge Grounded Chain of Ideas), a         cinations”, which are responses that seem plausible but are
+             novel system that enhances LLM hypothesis generation by          factually incorrect (Huang et al. 2023). This issue is partic-
+               integrating external, structured knowledge from knowledge          ularly critical in scientific research, where every reasoning
+             graphs (KGs). KG-CoI guides LLMs through a structured         step must be transparent and verifiable. In the context of hy-
+              reasoning process, organizing their output as a chain of ideas         pothesis generation for natural sciences, hallucinations can
+               (CoI), and includes a KG-supported module for the detec-          easily arise if the parametric knowledge of LLMs lacks ac-
+               tion of hallucinations. With experiments on our newly con-                                                                            curate scientific information. Moreover, these hallucinations
+               structed hypothesis generation dataset, we demonstrate that
+                                                                            are particularly challenging to detect in generated hypothe-           KG-CoI not only improves the accuracy of LLM-generated
+                                                                                    ses, as they are often related to potential discoveries that             hypotheses but also reduces the hallucination in their reason-
+              ing chains, highlighting its effectiveness in advancing real-        have not yet been explored.
+             world scientific research.                                  To address the problems mentioned above, we propose a
+                                                                       novel system termed KG-CoI (Knowledge Grounded Chain
+                                                                          of Ideas), designed to enhance hypothesis generation by
+                        Introduction                            incorporating external knowledge from knowledge graphs
+                                                                    (KGs). These KGs contain well-organized structured in-arXiv:2411.02382v1   Advanced Large Language Models (LLMs) such as GPT-
+         4 (OpenAI et al. 2024) have exhibited exceptional perfor-      formation that has been verified by existing literature. By
+        mance in a wide range of general machine learning tasks,      prompting LLMs to generate a chain of ideas (CoI) through
+         such as question answering (Hendrycks et al. 2021) and       step-by-step reasoning (Wei et al. 2022), our system facili-
+           arithmetic computation (Cobbe et al. 2021). Recently, there       tates in-depth analysis of the input and further verification of
+          has been growing interest in harnessing the reasoning ca-       the generated content. The KG-CoI system consists of three
+            pabilities of LLMs within scientific domains. These efforts      key modules: KG-guided context retrieval, KG-augmented
+         have shown impressive results, with LLMs tackling com-       chain-of-idea generation, and KG-supported hallucination
+          plex scientific questions and often achieving, or even ex-       detection. By linking LLM hypothesis generation to KGs,
+          ceeding, human-level performance (Nori et al. 2023; Hou      our system aligns the output with well-established scien-
+         and Ji 2023; Stribling et al. 2024). As a result, LLMs are         tific knowledge and ensures that the generated hypotheses
+           increasingly viewed as promising tools with the potential to       are grounded in reliable information sources.
+           significantly advance real-world scientific research, such as       To quantitatively demonstrate the effectiveness of our sys-
+                                                                       tem, we construct a hypothesis generation dataset by mask-
+              *Equal contribution.                                          ing certain links within a KG and prompting LLMs to hy-
+
+=== PDF第2页 ===
+pothesize potential relations without prior knowledge of    LLM to generate intermediate reasoning steps when answer-
+the facts. Our experiments show that, compared to existing      ing user questions. This technique helps the LLM generate
+methods for prompting LLMs in hypothesis generation, KG-     much more accurate results than standard prompting. While
+CoI achieves the highest accuracy in generating hypotheses,       the reasoning paths generated by CoT are a useful mecha-
+underscoring its advantages in real-world scientific research.      nism to explain why the LLM generated an answer, some
+Moreover, with the KG-supported hallucination detection,       studies show it is not faithful to the LLM’s inner reasoning
+we demonstrate the effectiveness of KG-CoI in reducing hal-      (Liu et al. 2023). Additionally, there can be reasoning steps
+lucinations, thereby improving its reliability in natural sci-       that sound plausible but factually or logically flawed (Liu
+ences.                                                                   et al. 2023). Several studies demonstrate the effectiveness
+  Our contributions can be summarized as follows:              of incorporating external knowledge with CoT prompting
+                                                                     to obtain more accurate, factually grounded answers while
+ • We present KG-CoI, a novel LLM-enhanced hypothesis
+                                                          improving the explainability of reasoning paths (Luo et al.
+   generation system that augments the generated hypothe-
+                                                          2023; Trivedi et al. 2022; Wen, Wang, and Sun 2023). Fol-
+   ses with external structured knowledge and presents the
+                                                          lowing CoT, advanced frameworks are further proposed to
+    result as a coherent chain of ideas.
+                                                         enhance LLM for accurate and reliable outputs (Wang et al.
+ • We construct a new dataset to evaluate LLM hypothe-      2022; Yao et al. 2024; Besta et al. 2024), which leverage the
+    sis generation and conduct extensive experiments on both       internal knowledge of LLMs for complex reasoning.
+   open- and close-source LLMs, showing the effectiveness
+                                                        Hypothesis Generation.  Hypothesis generation has been   of KG-CoI in hypothesizing scientific knowledge.
+                                                           pursued as the task of mining meaningful implicit associa-
+ • We propose a KG-supported  hallucination  detection                                                                     tion between disjoint concepts in decades, where the goal is
+   method within KG-CoI, which demonstrates the advan-                                                                     to predict connections between different concepts identified
+   tage of KG-CoI in reducing hallucinations.                                                               within scientific literature (Sebastian, Siew, and Orimaye
+                                                              2017). This process typically involves uncovering meaning-
+               Related Work                              ful relationships between separate concepts by systemati-
+Retrieval-augmented Generation.  The integration of ex-       cally analyzing existing publications. Traditional methods
+ternal knowledge into large language models (LLMs) has       in this domain often focus on identifying these connections
+become an increasingly explored area of research, partic-      from a static view of the literature. While these approaches
+ularly for enhancing the accuracy and reliability of gener-       are effective and can be rigorously tested, they generally as-
+ated content (Gao et al. 2023; Zhao et al. 2024). This ap-     sume that all relevant concepts are pre-existing in the liter-
+proach, known as retrieval-augmented generation (RAG),       ature and simply need to be linked. This approach lacks the
+helps mitigate issues like hallucinations by grounding LLM       ability to account for the contextual factors that researchers
+outputs in relevant and accurate information from external      consider important during the hypothesis formation process,
+sources (Lewis et al. 2020; Guu et al. 2020; Borgeaud et al.      and it does not fully engage with the creative and generative
+2022; Izacard and Grave 2020). In various domains, particu-       aspects of scientific thinking.
+larly biomedical and scientific research, retrieval-augmented         Recently, attention has shifted towards using LLMs to
+methods have proven effective in improving LLM perfor-      generate hypotheses. For example, SciMON (Wang et al.
+mance on tasks such as question answering and claim verifi-      2023) proposed a framework that utilizes prior scientific lit-
+cation (Zakka et al. 2024; Xiong et al. 2024; Liu et al. 2024).       erature to fine-tune LLMs for the generation of novel ideas.
+  Recent advancements have further refined these meth-       Additionally, in (Zhou et al. 2024), a method was intro-
+ods by incorporating knowledge graphs (KGs) into the re-      duced that uses prompts with LLMs to iteratively generate
+trieval process, addressing limitations such as the omission      hypotheses based on provided examples. Our approach dif-
+of rare but crucial information and the overrepresentation       fers by utilizing both structured and unstructured domain-
+of frequently seen concepts. For instance, tools like KRA-       specific knowledge from scientific resources while leverag-
+GEN utilize KGs to enhance LLM capabilities by struc-      ing the reasoning capabilities of LLMs to explore new in-
+turing the retrieval process through graph-based reasoning       sights from the current knowledge. Moreover, we focus on
+(Matsumoto et al. 2024). Similarly, hybrid approaches that       the hallucination detection in the generated content, provid-
+combine KG-based retrieval with traditional text embedding      ing an end-to-end system from context retrieval to hypothe-
+methods have shown promise in handling the long tail of        sis evaluation.
+biomedical knowledge, providing a more balanced and com-                                                          Methodology
+prehensive retrieval of information (Delile et al. 2024). In
+                                                             Figure 1 shows the overview of our KG-CoI system. Thereour work, we leverage the authoritative knowledge of exist-
+                                                                 are three different modules in KG-CoI, including the KG-ing domain-specific KGs for the generation of new scientific
+                                                           guided context retrieval, the KG-augmented chain-of-ideahypotheses, which demonstrates the potential of integrating
+                                                                  generation, and the KG-supported hallucination detection.structured knowledge with LLMs to inspire novel insights
+                                                 KG-CoI provides an end-to-end solution to augment the hy-that might be valuable for scientific research.
+                                                                 pothesis generation of LLMs with KG information while
+Chain-of-thought Based Reasoning. LLM reasoning can      providing an explicit analysis of hallucinations in the gen-
+be powered by the Chain-of-Thoughts (CoT) prompting       erated content. The details of each module are introduced in
+(Wei et al. 2022) technique, which involves prompting the       the remaining parts of this section.
+
+=== PDF第3页 ===
+                KG-guided Context Retrieval        KG-augmented Chain-of-idea Generation    KG-supported Hallucination Detection
+
+
+           LLM-E            Relations             LLM-G
+
+                                                             Reasoning Step 1           KG-R     LLM-V                         KG-R
+
+                                                             Reasoning Step 2
+
+          Keywords        Question
+
+
+
+
+
+                Lit-R         Documents               Reasoning Step N           KG-R     LLM-V
+
+
+                                          Generated Hypothesis
+
+Figure 1: An overview of our proposed KG-CoI for knowledge-grounded hypothesis generation. “KG-R” and “Lit-R” are
+retrievers for scientific knowledge graphs (KGs) and literature, respectively. “LLM-E”, “LLM-G”, and “LLM-V” are LLM
+agents for query enrichment, hypothesis generation, and claim verification, respectively.
+
+
+KG-guided Context Retrieval                           w1, · · · , wT will be generated as
+While retrieval-augmented generation (Lewis et al. 2020)       w1, · · · , wT = arg max PLLM-E(w∗1, · · · , w∗T |Q, R),  (2)
+provides an opportunity to enhance LLM output with ex-                    w∗1,··· ,w∗T
+ternal information from domain-specific corpora, the gen-                                                       where LLM-E is an LLM agent that is required to gener-
+eration of scientific hypotheses is a challenging task where                                                                     ate search keywords to help answer the given question using
+the relevant information of the new scientific knowledge can                                                                    existing information. In our KG-CoI, the query enrichment
+hardly be found in the existing literature. Thus, we propose                                                                serves as an important step to naturally fuse the information
+to augment the hypothesis generation capability of LLMs                                                                of KG and the original question for context retrieval. We fur-
+using a KG-guided context retrieval, instead of the vanilla                                                                     ther test the importance of such a design, which is discussed
+information retrieval from literature.                                                                     in our ablation studies.
+Knowledge Enhancement with KG.  The first key step                                                        Information Retrieval with Literature.  After the query
+of our KG-guided context retrieval is to enhance the given                                                           enrichment step, we perform information retrieval using the
+question using authoritative knowledge from KG. Specifi-                                                              generated keywords to retrieve relevant documents from the
+cally, for a given question Q about the possible scientific                                                                          scientific literature for the original question. For the biolog-
+facts between two entities eh and et, we can search for all        ical domain explored in this paper, we use PubMed1 as the
+k-step relation chains in a knowledge graph G such that eh      source of documents, including all biomedical abstracts in it.
+and et are linked by                                         For the text retriever on PubMed, we select BM25 (Robert-
+                     r1       r2          rk                         son, Zaragoza et al. 2009), a sparse retriever that is based on
+            eh ←→e1 ←→e2 . . . ←→et,            (1)                                                                lexicon comparisons. BM25 is a suitable choice for biolog-
+where the relations on the bidirectional arrows connect two        ical information retrieval, as domain-specific terms such as
+adjacent entities. The directions of the relations are defined      gene names may be wrongly tokenized by dense retrievers,
+by the KG selected. As shown in Figure 1, KG-CoI uses a      leading to misunderstanding. We term a literature retrieval
+KG-based retriever (KG-R) to search for neighbor relations      system with both a corpus and a retriever as “Lit-R”, which
+for the given question, which is implemented with a breadth-       takes the keywords w1, · · · , wT as the input and outputs rel-
+first search strategy. The relation chains will then be used      evant documents D from the given corpus.
+as external knowledge from KG to augment the context re-
+                                            KG-augmented Chain-of-idea Generationtrieval for the original question. For simplicity, we will refer
+to the retrieved relations as R in our later descriptions.       We then prompt LLMs to perform a KG-augmented chain-
+                                                                  of-idea generation, which is the core part of our KG-CoI
+Query Enrichment with KG.  Given the input question                                                              system. The hypothesis generation of LLMs is augmented
+and the retrieved relations from KG, we propose to en-                                                     by KG from two different perspectives. First, we directly
+rich the user query by generating keywords using all exist-                                                       add the retrieved neighbor relations R from KG to the in-
+ing information, which can facilitate further information re-                                                               put context of LLMs, making them knowledgeable of related
+trieval from the scientific literature. Formally, given an input
+question Q and the retrieved KG relations R, the keywords           1https://pubmed.ncbi.nlm.nih.gov/
+
+=== PDF第4页 ===
+information given by KG. Second, the retrieved documents      and
+from scientific literature are also provided to the LLMs for                 LLM-V((eij, rijk, eik), si) = 1.           (5)
+the augmentation of text generation. As described in the pre-
+                                            LLM-V is an LLM agent designed for claim verificationvious subsection, the retrieval of knowledge from literature
+                                                             given a triple of head and tail entities as well as their re-is also guided by the relevant KG information, resulting in
+                                                                          lation, which outputs 1 if the claim can be verified by thean implicit impact on the final output.
+                                                                      relation triple else 0.  Additionally, we prompt LLMs to generate their predic-
+                                                                  In practice, KG-CoI uses the KG retriever “KG-R” de-tions step by step as a chain of ideas (CoI). As discussed in
+                                                                   fined in the KG-guided context retrieval phase, leveragingthe existing literature, prompting LLMs to have step-by-step
+                                                                                     its abilities to find the direct links among entities that ap-thinking would help them dive deep into the given question
+                                                              pear in the current claim. The retrieved relations will thenand organize its answer in a logical way (Wei et al. 2022).
+                                                        be examined iteratively to check if any of them can supportMoreover, it is crucial for our system to have a chain of ideas
+                                                                 the claim made by LLMs in their chain of ideas. We onlyas the output of LLMs, which will be further used in our last
+                                                               consider the direct link among entities because, in the idealmodule to analyze the hallucination and the confidence of
+                                                                    case, the reasoning steps of the hypothesis generation shouldLLMs in the generated contents.
+                                                        be composed of simple scientific facts that can be verified by  Formally, given the original question Q, the retrieved KG
+                                                                     authoritative KG information. While the chain of ideas en-relations R, and the retrieved documents D from literature,
+                                                                 ables LLMs to have a deep analysis of the original question,a chain of ideas for the new scientific hypothesis can be gen-
+                                                                 the knowledge it uses for each reasoning step should be sim-erated by
+                                                                 ple and easy to verify.
+
+   s1 = arg max PLLM-G(s∗1|Q, R, D),                                                          Algorithm                                                                                1: The                                                                              algorithm                                                                                           of                                                                       KG-CoI                                                                                                             for scientific                                                                                                           hypoth-                s∗                  1
+                                                                       esis                                                                   generation
+     =           arg           max      s2                    PLLM-G(s∗2|Q, R, D, s1),
+                s∗                                                            Input:                                         A scientific                                                                                 question                                                                       Q,                                                                             Knowledge                                                                                        Graph                                                                                                        G,                                                                                                                 Scien-                  2                                                                                                  k                                                                                      tific                                                                        Literature                                                                    Corpus                                                                                      C, Maximum                                                                                                            relation                                                                                                       chain                                                                                                                 length                                                                 (3)              ·               · ·
+                                                       Output: A scientific hypothesis H with confidence score
+                                                                 ·                                                                   ·                                                                     ·     =           arg           max                             D,                                                                       ,                                          s1,                                          sN−1),                    PLLM-G(s∗N|Q, R,
+                                                                              1:                                                            Step                                                                         1: KG-guided                                                                            Context                                                                                            Retrieval                s∗N
+                                                                              2:                                                                    Retrieve                                                                             k-step                                                                                           relation                                                                                         chains                                                R from G for entities in   H                                                                  ·                                                                   ·                                                                     ·     =           arg                          R,                             D,                                                                       ,           max PLLM-G(H∗|Q,                                           s1,                                           sN),  sN                                   Q           H∗                                                                    using                                                                              the                                              KG                                                                                              retriever                                                                      “KG-R”
+                                                                              3: Generate enriched query keywords w1, · · · , wT using
+where s1, · · · , sN are the step-by-step ideas (or step-by-step                                               LLM-E based on Q and R
+claims) and H is the final hypothesis generated given the                                                                              4: Retrieve relevant documents D from C using a literature
+chain of ideas. LLM-G is an LLM agent designed to gen-                                                                            retriever “Lit-R” with keywords w1, · · · , wT
+erate new scientific hypotheses with the given information.                                                                              5: Step 2: KG-augmented Chain-of-idea Generation
+While Formula 3 describes a process of greedy search in the                                                                              6: Generate step-by-step ideas s1, · · · , sN for a new hy-
+generation of ideas, we also explore the potential of running                                                                     pothesis H using LLM-G, incorporating Q, R, and D
+KG-CoI multiple times with randomness and examine its                                                                              7: Formulate the final hypothesis H based on the chain of
+self-consistency in the answer prediction (Wang et al. 2022),                                                                     ideas
+which will be compared in detail in our Experiments.                                                                              8: Step 3: KG-supported Hallucination Detection
+                                                                              9: for each step si in {s1, · · · , sN} doKG-supported Hallucination Detection
+                                                                      10:     Identify entities ei1, · · · , eiB in si using NER
+While  the KG-guided  context  retrieval  and  the KG-       11:    Check  correctness  of  si by  verifying  relations
+augmented chain-of-idea generation modules have already            (eij, rijk, eik) ∈G using LLM-V, ∀j, k ∈{1, · · · , B}
+enhanced LLMs and provided the final prediction of the hy-       12:    Assign correctness score correctness(si) based on
+pothesis, it is also important to explore the hallucinations      KG validation
+in the generated content and examine how reliable the hy-       13: end for
+pothesis is. With the output organized as a chain of ideas in       14: Calculate confidence score using Formula 6
+our KG-CoI system, we propose to verify the correctness of       15: Return the final hypothesis H and its confidence score
+each generated reasoning step using the information from a
+domain-specific KG.
+                                                                  After computing the correctness of each reasoning step in  For each reasoning step si in the chain of ideas defined
+in Formula 3, we  first identify  all B biological entities       the chain of ideas, KG-CoI can summarize the overall con-
+ei1, · · · , eiB in the claim using a named entity recognition       fidence of a generated hypothesis as
+(NER) tool tailored for domain-specific research. We then                        N
+                                                                            1define the correctness of the claim si given the KG G as a                                                                  confidence(H) =                           X correctness(si).      (6)
+boolean variable with values 0 and 1. The correctness of si                 N
+                                                                                          i=1
+will be 1 if ∃j, k ∈{1, · · · , B} and the relation rijk such
+that                                                  The measure of confidence can reflect the hallucinations
+                      (eij, rijk, eik) ∈G                  (4)       in the generated content in terms of knowledge from a KG. If
+
+=== PDF第5页 ===
+                                            Greedy Search                   Self Consistency
+   LLM         Method  Knowledge                                          Accuracy   F1    Confidence   Accuracy   F1    Confidence
+
+     Llama-3.1-8B     Direct      No        47.00    48.71     00.00       65.00    70.86     00.00
+     Llama-3.1-8B    CoT      No        56.67    56.61     40.22       56.67    64.92     41.36
+     Llama-3.1-8B   RAG       Yes        68.67    69.83     37.44       65.00    70.86     38.35
+     Llama-3.1-8B   KG-CoI      Yes        70.33    70.42     43.46       66.67    72.63     40.46
+
+     Llama-3.1-70B    Direct      No        72.00    71.94     00.00       71.67    72.00     00.00
+     Llama-3.1-70B   CoT      No        73.67    73.77     35.23       71.33    71.58     34.97
+     Llama-3.1-70B   RAG       Yes        73.33    73.50     35.02       72.33    73.12     34.58
+     Llama-3.1-70B  KG-CoI      Yes        79.33    79.52     30.78       81.00    81.92     26.24
+
+    GPT-4o-mini      Direct      No        70.00    69.45     00.00       69.33    69.71     00.00
+    GPT-4o-mini     CoT      No        73.00    72.61     39.28       73.33    73.59     39.21
+    GPT-4o-mini    RAG       Yes        76.67    76.55     40.61       76.67    76.70     40.04
+    GPT-4o-mini    KG-CoI      Yes        82.67    82.56     43.87       84.00    84.27     44.24
+
+    GPT-4o           Direct      No        73.33    73.40     00.00       74.00    74.37     00.00
+    GPT-4o        CoT      No        74.33    74.26     34.41       75.67    75.68     34.93
+    GPT-4o       RAG       Yes        75.67    75.97     37.74       74.33    74.74     36.21
+    GPT-4o        KG-CoI      Yes        86.00    85.83     44.24       86.33    86.17     41.66
+
+Table 1: Comparison of our proposed KG-CoI system and baseline methods on hypothesis generation for biological knowledge.
+“Knowledge” denotes if the method is augmented with external biological knowledge. All scores are percentages.
+
+
+the confidence of a hypothesis is high, it means most reason-     we test its performance with both the greedy search and the
+ing steps in the chain of ideas can be verified by an external       self-consistency across five runs (Wang et al. 2022). More
+KG, indicating a high probability for the overall analysis to       ablation studies about different components in KG-CoI are
+be reliable. If the confidence is low for a generated hypoth-      presented in the “Ablation Studies” section.
+esis, it shows most reasoning steps are unverifiable, calling                                                            For our KG-CoI, we implement the KG retriever KG-R
+for additional cautions when using the hypothesis.                                                             using the KG given by PubTator3 (Wei et al. 2024) along
+  The overall algorithm of our KG-CoI system is presented                                                            with its named entity recognition tool, which can identify
+in Algorithm 1.                                                                 the exact entity ID given the term description. We choose
+                                                                 the “en core sci sm” model from ScispaCy (Neumann et al.
+               Experiments                        2019) to extract biological named entities from a complete
+Experimental Settings                                        sentence. The retriever and corpus selected for the literature-
+                                                           based information retrieval system Lit-R are BM25 (Robert-To simulate the process of generating novel hypotheses, we
+                                                                 son, Zaragoza et al. 2009) and PubMed, respectively, asuse the knowledge graph (KG) of PubTator3 (Wei et al.
+                                                         mentioned in the Methodology. For LLM agents used in2024) and remove a set of relations from  it to examine
+                                                            our system, we choose GPT-4o-mini as the LLM-V agentthe capabilities of LLMs in hypothesizing the hidden rela-
+                                                                     for claim verification, since the hallucination detection tooltions using other existing knowledge in the KG. The con-
+                                                            should be fixed for a fair comparison. More discussion ofstructed dataset mimics real-world scenarios where LLMs
+                                                                 the choice of LLM-V will be presented in the Appendix. Forneed to analyze existing knowledge and hypothesize new
+                                                                 the implementation of LLM-E and LLM-G agents which arescientific facts, while providing a ground truth for model
+                                                                responsible for the generation of the chain of ideas and fi-evaluation and comparison. The constructed hypothesis gen-
+                                                                 nal hypotheses, we select both commercial and open-sourceeration dataset contains 300 instances, where each of the
+                                                       models with various sizes, including Llama-3.1-8B, Llama-three target classes (“stimulate”, “inhibit”, “no relation”) has
+                                                             3.1-70B, GPT-4o-mini, and GPT-4o.100 instances. More details about the dataset construction
+can be found in the Appendix.                                  For LLMs with each setting, we compute the correctness
+  We choose direct prompting (Direct), chain-of-thought       of answers using accuracy and F1 scores. For settings that
+prompting (CoT; Wei et al., 2022), and retrieval-augmented      provide a chain of ideas for hypothesis generation (CoT,
+generation (RAG; Lewis et al., 2020) as the baselines for     RAG, KG-CoI), we evaluate their hallucinations using the
+comparison, exploring if KG-CoI helps LLMs better find      proposed KG-supported hallucinating detection tool in our
+out the correct potential scientific facts given existing infor-     KG-CoI system. The results of the hallucination detection
+mation. Direct and CoT examine if LLMs can make correct       will be summarized as “Confidence”, indicating the propor-
+predictions based on their own parametric knowledge. RAG       tion of claims verified by a given KG in an idea chain. More
+shows how well LLMs perform with external knowledge       details about our experimental settings can be found in the
+from scientific literature only. For each LLM and setting,      Appendix.
+
+=== PDF第6页 ===
+                                       Hypothesis generation question
+
+    Input: Can we hypothesize a key relation between Carbon Tetrachloride and SLC17A5?
+   Ground Truth: stimulate
+
+                                                      Direct
+    Answer: no relation ✗
+
+                                       CoT
+
+    Reasoning: Carbon Tetrachloride is a toxic compound that can cause cellular damage, and SLC17A5 is a gene involved
+     in the transport of organic anions, including potentially toxic compounds. There is evidence that SLC17A5 can be in-
+    volved in the transport of carbon tetrachloride, which can lead to cellular damage and toxicity.
+    Answer: inhibit ✗
+
+                                  RAG
+
+    Retrieved documents: [...]
+    Reasoning: Carbon Tetrachloride is a toxic compound that can cause damage to the liver and other organs. SLC17A5
+     is a gene that encodes for a protein called sialin, which is involved in the transport of sialic acid in the lysosome. There
+     is no direct evidence that Carbon Tetrachloride interacts with SLC17A5.
+    Answer: no relation ✗
+
+                                      KG-CoI (Ours)
+
+    Neighbor relations: (Carbon Tetrachloride, cause, Liver Failure), (Liver Failure, associate, SLC17A5), [...]
+    Retrieved documents: [...]
+    Reasoning: Carbon Tetrachloride is a chemical that causes liver injury, and SLC17A5 is a gene associated with liver
+     diseases, including liver failure and fibrosis. The relationship between Carbon Tetrachloride and SLC17A5 is that
+    Carbon Tetrachloride causes liver injury, which is associated with SLC17A5.
+    Answer: stimulate ✔
+
+Table 2: An example of how KG-CoI helps Llama-3.1-8B generate correct hypotheses and reduce hallucinations. Verified rea-
+soning steps and misinformation are highlighted. The correct answer is marked with “✔” and the wrong answers are marked
+with “✗”.
+
+
+Main Results                                                       3.1. As the KG only contains authoritative and objective
+Table 1 presents the main results of our experiments, show-      knowledge in the domain, the knowledge in literature may
+ing how KG-CoI performs compared with other methods us-      not have an exact match in KG. Thus, the retrieved doc-
+ing different LLMs. We can observe from the table that KG-      uments from biological literature sometimes may not be
+CoI consistently outperforms all other methods on different       verified by the KG, leading to the fluctuating confidence
+LLMs in terms of accuracy and F1. Specifically, the perfor-      changes given by RAG in different LLMs. Nevertheless,
+mance of LLMs on hypothesis generation gradually improve      with additional authoritative knowledge from KG, KG-CoI
+with the incorporation of reasoning capabilities (Direct →      improves the model confidence on most LLMs examined,
+CoT), knowledge from scientific literature (CoT →RAG),      with a 3.30% confidence increase on average compared to
+and knowledge from KG (RAG →KG-CoI). By compar-       the CoT method.
+ing different LLMs, we can see that larger models (Llama-         In addition to the results for the greedy search of LLMs
+3.1-70B, GPT-4o) tend to perform better than smaller ones     on the constructed dataset, we also examine if LLMs benefit
+(Llama-3.1-8B, GPT-4o-mini) when using the same method      from multiple runs on each instance using self-consistency
+for hypothesis generation. Interestingly, with the assistance     (Wang et al. 2022). While Llama-3.1-8B presents an in-
+of KG-CoI, the weakest LLM in our experiment (Llama-3.1-      creased F1 score but a decreased accuracy with multiple
+8B) can present an accuracy and F1 score close to the most       runs, self-consistency is shown to be effective for KG-CoI
+advanced LLM (GPT-4o) in the “Direct” setting.              on all other three LLMs in terms of accuracy and F1. On
+  Moreover, Table 1 reveals that KG-CoI helps reduce hal-       the measurement of hallucinations, it is shown that the com-
+lucinations in LLM generation with more reasoning steps      parison of methods in the self-consistency setting presents
+verified by domain-specific KG. While CoT examines the       the same patterns as in the greedy search setting, reflect-
+internal knowledge of LLMs, both RAG and KG-CoI aug-      ing the effectiveness of KG-CoI in reducing hallucinations.
+ment the LLM hypothesis generation with external biolog-     The results also reveal that compared to greedy search, self-
+ical knowledge. It can be observed that RAG improves the      consistency does not necessarily improve the confidence of
+confidence of hypotheses generation by GPT-4o-mini and      generated hypotheses. This may be a result of output uncer-
+GPT-4o, but does not show the same pattern on Llama-       tainty caused by the introduced randomness in the multiple
+
+=== PDF第7页 ===
+                               Llama-3.1-8B     Llama-3.1-70B     GPT-4o-mini       GPT-4o
+        Setting                              Accuracy   F1    Accuracy   F1    Accuracy   F1    Accuracy   F1
+
+      KG-CoI                   70.33    70.42    79.33    79.52    82.67    82.56    86.00    85.83
+     ✗KG information          65.00    65.66    73.33    73.24    74.33    74.29    74.67    74.93
+        ✗Literature information    60.67    59.96    75.33    75.34    76.00    75.53    83.33    83.35
+      ✗Query enrichment        64.67    65.01    79.00    79.18    78.67    78.51    83.00    83.19
+       ✗Chain of thoughts        62.00    62.19    77.00    76.99    71.67    72.39    76.00    75.73
+
+Table 3: Ablation studies of different components in KG-CoI on various LLMs. “KG-CoI” denotes the full version of our
+proposed system. “✗” means the removal of specific components in KG-CoI.
+
+
+trials of the self-consistency setting as opposed to the con-      keywords generated given both the question and the neigh-
+sistent and deterministic nature of greedy search.                bor relations. The last setting in our ablation studies involves
+                                                                 the removal of the chain of thoughts, testing how the system
+Case Studies                                              performs without prompting LLMs to think step-by-step.
+                                                     The results of our ablation studies are presented in Table
+To understand how KG-CoI helps LLMs generate the cor-
+                                                                       3. In general, the performance of KG-CoI drops with the re-
+rect hypothesis, we perform case studies on actual instances
+                                                      moval of any component in our ablation studies, which is
+in our dataset to analyze the effect of components in KG-CoI
+                                                                   consistently observed on all LLMs. The importance of dif-
+on the final prediction. Table 2 shows an example where KG-
+                                                                     ferent components to the model performance is shown to be
+CoI helps Llama-3.1-8B find the true relation between Car-
+                                                                  diverse in various LLMs. For example, the removal of KG
+bon Tetrachloride and SLC17A5. While the direct prompt-
+                                                              information brings the most dramatic performance decrease
+ing of the LLM provides a wrong answer, the CoT prompt-
+                                                     on Llama-3.1-70B and GPT-4o, while it is the least impor-
+ing results in an incorrect answer with hallucinated reason-
+                                                                       tant one with the minimal performance change on Llama-
+ing steps. As can be observed from the case, LLMs with CoT
+                                                              3.1-8B. We also discover from Table 3 that, from the LLM
+may hallucinate scientific knowledge that is not verified by
+                                                            with the lowest accuracy (Llama-3.1-8B, 70.33%) to the
+existing KG. In contrast, RAG may fail to retrieve useful
+                                                                 highest accuracy (GPT-4o, 86.00%), the relative importance
+information from the literature to augment the hypothesis
+                                                                of the literature information changes from the most impor-
+generation, leading to false negatives of the prediction.
+                                                                       tant to the least one on corresponding LLMs. While the re-
+  By providing LLMs with neighbor information from the                                                      moval of the literature information causes a performance
+domain-specific KG, KG-CoI enables LLMs to reason on                                                          drop of 9.66% in Llama-3.1-8B, it only decreases the perfor-
+objective structured knowledge that may not be explicitly                                                   mance of GPT-4o by 2.67%. Such a result can be interpreted
+stated in the scientific literature. Table 2 shows the addition                                                     by the fact that more advanced LLMs tend to have read more
+of KG knowledge helps Llama-3.1-8B build the reasonable                                                                          literature during training, leading to fewer needs for exter-
+logic chain to link different entities and find out the ground                                                                 nal literature information. The ablation studies demonstrate
+truth relation. Also, the use of both literature and KG in-                                                                 the necessity of various components in our KG-CoI system,
+formation in KG-CoI provides verified knowledge from re-                                                       which also provide additional insights into the LLMs used
+liable sources, reducing the hallucinations in the generated                                                                     in our experiments.
+content.                                                                 Additional experimental results can be found in the Ap-
+                                                               pendix.
+Ablation Studies
+As described in the Methodology, our KG-CoI is a multi-                     Conclusion
+step hypothesis generation system with external knowledge                                         We propose KG-CoI, a systematic approach to enhancing
+from different sources. To illustrate how each component                                                                 the scientific hypothesis generation capability of LLMs with
+contributes to the entire system, we perform ablation studies                                                               domain-specific knowledge graphs (KGs), which include
+to see how different settings affect the performance of the                                                     KG-guided context retrieval, KG-augmented chain-of-idea
+system. We first ablate the source of biological knowledge                                                                  generation, and KG-supported hallucination detection. Us-
+in KG-CoI. As both KG and literature information are used                                                               ing a newly constructed hypothesis generation dataset in-
+in our system, we test if the removal of any of them will                                                             troduced in this work, we demonstrate the effectiveness of
+lead to a performance drop. Specifically, the removal of KG                                                 KG-CoI in generating correct hypotheses and reducing hal-
+information is performed by discarding the neighbor KG re-                                                                     lucinations. Our ablation studies and case studies further jus-
+lations in both the query enrichment and the augmented gen-                                                                             tify the component designs in our system and illustrate how
+eration steps. The literature information is removed by using                                                                                     its predictions will be generated and used in real-world ap-
+the neighbor relations only to augment the hypothesis gener-                                                                       plications. This work paves the potential for researchers to
+ation. We further examine a special setting with the removal                                                                           utilize LLMs as a tool to verify results and generate reliable
+of query enrichment, retrieving useful documents from lit-                                                                     insights for future research.
+erature based on the original question only instead of using
+
+=== PDF第8页 ===
+                References                             Liu, Y.; Yao, Y.; Ton, J.-F.; Zhang, X.; Cheng, R. G. H.;
+                                                          Klochkov, Y.; Taufiq, M.  F.; and Li, H. 2023.   Trust-AI4Science, M. R.; and Quantum, M. A. 2023. The impact
+                                                         worthy LLMs: a Survey and Guideline  for Evaluatingof large language models on scientific discovery: a prelimi-
+                                                          Large Language Models’ Alignment.    arXiv  preprintnary study using gpt-4. arXiv preprint arXiv:2311.07361.
+                                                            arXiv:2308.05374.
+Besta, M.; Blach, N.; Kubicek, A.; Gerstenberger,  R.;                                                         Luo, L.; Li, Y.-F.; Haffari, G.; and Pan, S. 2023. Reasoning
+Podstawski, M.; Gianinazzi, L.; Gajda,  J.; Lehmann, T.;                                                     on graphs: Faithful and interpretable large language model
+Niewiadomski, H.; Nyczyk,  P.; et  al. 2024.   Graph of                                                                reasoning. arXiv preprint arXiv:2310.01061.
+thoughts: Solving elaborate problems with large language
+                                                       Matsumoto, N.; Moran,  J.; Choi, H.; Hernandez, M. E.;models. In Proceedings of the AAAI Conference on Artifi-
+                                                             Venkatesan, M.; Wang, P.; and Moore, J. H. 2024. KRA-cial Intelligence, volume 38, 17682–17690.
+                                              GEN: a knowledge graph-enhanced RAG framework for
+Borgeaud, S.; Mensch, A.; Hoffmann, J.; Cai, T.; Ruther-      biomedical problem solving using large language models.
+ford, E.; Millican, K.; Van Den Driessche, G. B.; Lespiau,       Bioinformatics, 40(6).
+J.-B.; Damoc, B.; Clark, A.; et al. 2022. Improving language
+                                                    Neumann, M.; King, D.; Beltagy, I.; and Ammar, W. 2019.
+models by retrieving from trillions of tokens.  In Interna-
+                                                           ScispaCy: fast and robust models for biomedical natural lan-
+tional conference on machine learning, 2206–2240. PMLR.
+                                                        guage processing. arXiv preprint arXiv:1902.07669.
+Cobbe, K.; Kosaraju, V.; Bavarian, M.; Chen, M.; Jun, H.;                                                                Nori, H.; King, N.; McKinney, S. M.; Carignan, D.; and
+Kaiser, L.; Plappert, M.; Tworek, J.; Hilton, J.; Nakano, R.;                                                                 Horvitz, E. 2023. Capabilities of gpt-4 on medical challenge
+et al. 2021. Training verifiers to solve math word problems.                                                            problems. arXiv preprint arXiv:2303.13375.
+arXiv preprint arXiv:2110.14168.
+                                                     OpenAI; Achiam, J.; Adler, S.; Agarwal, S.; Ahmad, L.;
+Delile, J.; Mukherjee, S.; Van Pamel, A.; and Zhukov, L.      Akkaya, I.; Aleman, F. L.; Almeida, D.; Altenschmidt, J.;
+2024.  Graph-Based Retriever Captures the Long Tail of      Altman, S.; Anadkat, S.; Avila, R.; Babuschkin,  I.; Bal-
+Biomedical Knowledge. arXiv preprint arXiv:2402.12352.          aji, S.; Balcom, V.; Baltescu, P.; Bao, H.; Bavarian, M.;
+Gao, Y.; Xiong, Y.; Gao, X.; Jia, K.; Pan, J.; Bi, Y.; Dai,      Belgum, J.; Bello,  I.; Berdine, J.; Bernadett-Shapiro, G.;
+Y.; Sun, J.; and Wang, H. 2023. Retrieval-augmented gen-      Berner, C.; Bogdonoff, L.; Boiko, O.; Boyd, M.; Brakman,
+eration for large language models: A survey. arXiv preprint       A.-L.; Brockman, G.; Brooks, T.; Brundage, M.; Button, K.;
+arXiv:2312.10997.                                               Cai, T.; Campbell, R.; Cann, A.; Carey, B.; Carlson, C.;
+                                                            Carmichael, R.; Chan, B.; Chang, C.; Chantzis, F.; Chen,
+Guu, K.; Lee, K.; Tung, Z.; Pasupat, P.; and Chang, M.                                                                D.; Chen, S.; Chen, R.; Chen,  J.; Chen, M.; Chess, B.;
+2020. Retrieval augmented language model pre-training. In                                                        Cho, C.; Chu, C.; Chung, H. W.; Cummings, D.; Currier,
+International conference on machine learning, 3929–3938.                                                                                       J.; Dai, Y.; Decareaux, C.; Degry, T.; Deutsch, N.; Deville,
+PMLR.                                                                D.; Dhar, A.; Dohan, D.; Dowling, S.; Dunning, S.; Ecof-
+Hendrycks, D.; Burns, C.; Basart, S.; Zou, A.; Mazeika, M.;        fet, A.; Eleti, A.; Eloundou, T.; Farhi, D.; Fedus, L.; Felix,
+Song, D.; and Steinhardt, J. 2021. Measuring Massive Mul-       N.; Fishman, S. P.; Forte, J.; Fulford, I.; Gao, L.; Georges,
+titask Language Understanding.  In 9th International Con-       E.; Gibson, C.; Goel, V.; Gogineni, T.; Goh, G.; Gontijo-
+ference on Learning Representations, ICLR 2021, Virtual      Lopes, R.; Gordon, J.; Grafstein, M.; Gray, S.; Greene, R.;
+Event, Austria, May 3-7, 2021. OpenReview.net.                 Gross, J.; Gu, S. S.; Guo, Y.; Hallacy, C.; Han, J.; Harris,
+                                                                                       J.; He, Y.; Heaton, M.; Heidecke, J.; Hesse, C.; Hickey, A.;Hou, W.; and Ji, Z. 2023.  Assessing GPT-4 for cell type
+                                                             Hickey, W.; Hoeschele, P.; Houghton, B.; Hsu, K.; Hu, S.;annotation in single-cell RNA-seq analysis. BioRxiv.
+                                                      Hu, X.; Huizinga, J.; Jain, S.; Jain, S.; Jang, J.; Jiang, A.;
+Huang, L.; Yu, W.; Ma, W.; Zhong, W.; Feng, Z.; Wang, H.;       Jiang, R.; Jin, H.; Jin, D.; Jomoto, S.; Jonn, B.; Jun, H.; Kaf-
+Chen, Q.; Peng, W.; Feng, X.; Qin, B.; et al. 2023. A sur-       tan, T.; Łukasz Kaiser; Kamali, A.; Kanitscheider, I.; Keskar,
+vey on hallucination in large language models: Principles,      N. S.; Khan, T.; Kilpatrick, L.; Kim, J. W.; Kim, C.; Kim, Y.;
+taxonomy, challenges, and open questions.  arXiv preprint      Kirchner, J. H.; Kiros, J.; Knight, M.; Kokotajlo, D.; Łukasz
+arXiv:2311.05232.                                          Kondraciuk; Kondrich, A.; Konstantinidis, A.; Kosic, K.;
+Izacard, G.; and Grave, E. 2020.  Leveraging passage re-      Krueger, G.; Kuo, V.; Lampe, M.; Lan, I.; Lee, T.; Leike,
+trieval with generative models for open domain question an-         J.; Leung, J.; Levy, D.; Li, C. M.; Lim, R.; Lin, M.; Lin, S.;
+swering. arXiv preprint arXiv:2007.01282.                      Litwin, M.; Lopez, T.; Lowe, R.; Lue, P.; Makanju, A.; Mal-
+                                                                          facini, K.; Manning, S.; Markov, T.; Markovski, Y.; Martin,
+Lewis, P.; Perez, E.; Piktus, A.; Petroni, F.; Karpukhin, V.;                                                                   B.; Mayer, K.; Mayne, A.; McGrew, B.; McKinney, S. M.;
+Goyal, N.; K¨uttler, H.; Lewis, M.; Yih, W.-t.; Rockt¨aschel,                                                      McLeavey, C.; McMillan, P.; McNeil, J.; Medina, D.; Mehta,
+T.;  et  al.  2020.    Retrieval-augmented  generation  for                                                                A.; Menick,  J.; Metz, L.; Mishchenko, A.; Mishkin,  P.;
+knowledge-intensive nlp tasks. Advances in Neural Infor-                                                     Monaco, V.; Morikawa, E.; Mossing, D.; Mu, T.; Murati, M.;
+mation Processing Systems, 33: 9459–9474.                                                      Murk, O.; M´ely, D.; Nair, A.; Nakano, R.; Nayak, R.; Nee-
+Liu, H.; Soroush, A.; Nestor, J. G.; Park, E.; Idnay, B.; Fang,       lakantan, A.; Ngo, R.; Noh, H.; Ouyang, L.; O’Keefe, C.;
+Y.; Pan, J.; Liao, S.; Bernard, M.; Peng, Y.; et al. 2024. Re-      Pachocki, J.; Paino, A.; Palermo, J.; Pantuliano, A.; Paras-
+trieval augmented scientific claim verification. JAMIA open,      candolo, G.; Parish, J.; Parparita, E.; Passos, A.; Pavlov, M.;
+7(1): ooae021.                                              Peng, A.; Perelman, A.; de Avila Belbute Peres, F.; Petrov,
+
+=== PDF第9页 ===
+M.; de Oliveira Pinto, H. P.; Michael; Pokorny; Pokrass,      Xiong, G.; Jin, Q.; Lu, Z.; and Zhang, A. 2024. Benchmark-
+M.; Pong, V. H.; Powell, T.; Power, A.; Power, B.; Proehl,      ing retrieval-augmented generation for medicine.  In Find-
+E.; Puri, R.; Radford, A.; Rae, J.; Ramesh, A.; Raymond,       ings of the Association for Computational Linguistics: ACL
+C.; Real, F.; Rimbach, K.; Ross, C.; Rotsted, B.; Roussez,      2024.
+H.; Ryder, N.; Saltarelli, M.; Sanders, T.; Santurkar, S.;      Yao, S.; Yu, D.; Zhao, J.; Shafran,  I.; Griffiths, T.; Cao,
+Sastry, G.; Schmidt, H.; Schnurr, D.; Schulman,  J.; Sel-       Y.; and Narasimhan, K. 2024.  Tree of thoughts: Deliber-
+sam, D.; Sheppard, K.; Sherbakov, T.; Shieh, J.; Shoker,       ate problem solving with large language models. Advances
+S.; Shyam, P.; Sidor, S.; Sigler, E.; Simens, M.; Sitkin, J.;       in Neural Information Processing Systems, 36.
+Slama, K.; Sohl, I.; Sokolowsky, B.; Song, Y.; Staudacher,                                                          Zakka, C.; Shad, R.; Chaurasia, A.; Dalal, A. R.; Kim, J. L.;
+N.; Such, F. P.; Summers, N.; Sutskever, I.; Tang, J.; Tezak,                                                       Moor, M.; Fong, R.; Phillips, C.; Alexander, K.; Ashley, E.;
+N.; Thompson, M. B.; Tillet, P.; Tootoonchian, A.; Tseng,                                                                          et al. 2024. Almanac—retrieval-augmented language mod-
+E.; Tuggle, P.; Turley, N.; Tworek, J.; Uribe, J. F. C.; Val-                                                                        els for clinical medicine. NEJM AI, 1(2): AIoa2300068.
+lone, A.; Vijayvergiya, A.; Voss, C.; Wainwright, C.; Wang,
+                                                          Zhao,  P.; Zhang, H.; Yu, Q.; Wang, Z.; Geng, Y.; Fu,J. J.; Wang, A.; Wang, B.; Ward, J.; Wei, J.; Weinmann, C.;
+                                                                                F.; Yang, L.; Zhang, W.; and Cui, B. 2024.   Retrieval-Welihinda, A.; Welinder, P.; Weng, J.; Weng, L.; Wiethoff,
+                                                   Augmented Generation for AI-Generated Content: A Sur-M.; Willner, D.; Winter, C.; Wolrich, S.; Wong, H.; Work-
+                                                                   vey. arXiv preprint arXiv:2402.19473.man, L.; Wu, S.; Wu, J.; Wu, M.; Xiao, K.; Xu, T.; Yoo,
+S.; Yu, K.; Yuan, Q.; Zaremba, W.; Zellers, R.; Zhang, C.;      Zhou, Y.; Liu, H.; Srivastava, T.; Mei, H.; and Tan, C. 2024.
+Zhang, M.; Zhao, S.; Zheng, T.; Zhuang, J.; Zhuk, W.; and      Hypothesis Generation with Large Language Models. arXiv
+Zoph, B. 2024. GPT-4 Technical Report. arXiv:2303.08774.       preprint arXiv:2404.04326.
+Qi, B.; Zhang, K.; Li, H.; Tian, K.; Zeng, S.; Chen, Z.-R.;
+and Zhou, B. 2023. Large Language Models are Zero Shot
+Hypothesis Proposers. arXiv preprint arXiv:2311.05965.
+Robertson, S.; Zaragoza, H.; et al. 2009. The probabilistic
+relevance framework: BM25 and beyond. Foundations and
+Trends® in Information Retrieval, 3(4): 333–389.
+Sebastian, Y.; Siew, E.-G.; and Orimaye, S. O. 2017. Emerg-
+ing approaches in literature-based discovery: techniques and
+performance review. The Knowledge Engineering Review,
+32: e12.
+Stribling, D.; Xia, Y.; Amer, M. K.; Graim, K. S.; Mulligan,
+C. J.; and Renne, R. 2024. The model student: GPT-4 per-
+formance on graduate biomedical science exams. Scientific
+Reports, 14(1): 5670.
+Trivedi, H.; Balasubramanian, N.; Khot, T.; and Sabharwal,
+A. 2022.  Interleaving retrieval with chain-of-thought rea-
+soning for knowledge-intensive multi-step questions. arXiv
+preprint arXiv:2212.10509.
+Wang, Q.; Downey, D.; Ji, H.; and Hope, T. 2023. Scimon:
+Scientific inspiration machines optimized for novelty. arXiv
+preprint arXiv:2305.14259.
+Wang, X.; Wei, J.; Schuurmans, D.; Le, Q.; Chi, E.; Narang,
+S.; Chowdhery, A.; and Zhou, D. 2022.  Self-consistency
+improves chain of thought reasoning in language models.
+arXiv preprint arXiv:2203.11171.
+Wei, C.-H.; Allot, A.; Lai, P.-T.; Leaman, R.; Tian, S.; Luo,
+L.; Jin, Q.; Wang, Z.; Chen, Q.; and Lu, Z. 2024.  Pub-
+Tator 3.0: an AI-powered literature resource for unlocking
+biomedical knowledge. Nucleic Acids Research, gkae235.
+Wei, J.; Wang, X.; Schuurmans, D.; Bosma, M.; Xia, F.;
+Chi, E.; Le, Q. V.; Zhou, D.;  et  al. 2022.   Chain-of-
+thought prompting elicits reasoning in large language mod-
+els. Advances in neural information processing systems, 35:
+24824–24837.
+Wen, Y.; Wang, Z.; and Sun, J. 2023. Mindmap: Knowledge
+graph prompting sparks graph of thoughts in large language
+models. arXiv preprint arXiv:2308.09729.
+
+=== PDF第10页 ===
+               Appendix                              claim. In addition to the results from GPT-4o-mini, we also
+                                                                             test GPT-3.5 and GPT-4o to see how GPT-4o-mini performsData and Code Availability
+                                                      compared with them.
+Our data and source code are available at https://anonymous.                                                               Table 4 presents the exact match ratio of different anno-
+4open.science/r/KG-CoI-C203/.                                                                           tators. Among the three examined LLMs, GPT-4o aligns the
+                                                                  best with human annotators while GPT-3.5-turbo performs
+Details of Dataset Construction                                                                 the worst. However, considering the prices of the LLMs,
+We created a high-quality test set focusing on achieving      GPT-4o-mini turns out to be the most cost-effective choice
+a balance between creating an environment that mirrors a      with a low price but a good performance. Thus, we select
+real-world hypothesis generation task and ensuring effective      GPT-4o-mini to be the LLM-V in our experiments for hallu-
+quantitative evaluation. Each question within the evaluation       cination detection.
+dataset is constructed from a subgraph extracted from Pub-
+Tator3 (Wei et al. 2024), containing information supported                                                      H1   H2     3.5    4o-mini    4o
+by a repository of biomedical literature.
+  In PubTator3, a selected edge between two key nodes was       H1       1.00   0.90   0.70     0.74     0.76
+deliberately removed to create a scenario of incomplete in-       H2       0.90   1.00   0.66     0.72     0.82
+formation. The model was then asked to hypothesize the re-           3.5       0.70   0.66   1.00     0.82     0.74
+lation between the two nodes. This approach accomplishes          4o-mini   0.74   0.72   0.82     1.00     0.80
+two objectives: it mimics the process of hypothesizing with         4o        0.76   0.82   0.74     0.80     1.00
+incomplete information while expanding upon the current                                                                     Price      –     –    $0.50    $0.15    $5.00
+body of knowledge, and it provides a ground truth for effec-
+tively measuring the model’s performance.                                                             Table 4: Exact match of different annotations on claim ver-
+  To select edges for our dataset, we focus on two relation                                                                            ification. “H1” stands for the first human annotator. “H2”
+types: “stimulate” and “inhibit”. These terms are used in                                                                stands for the second human annotator. “3.5”, “4o-mini”,
+place of the labels given in PubTator3, “positive correlate”                                                        “4o” denote GPT-3.5-Turbo, GPT-4o-mini, and GPT-4o, re-
+and “negative correlate,” to ensure clarity in their definitions                                                                      spectively. The prices for 1M input tokens are listed for the
+and reduce the risk of confusion in model predictions. We                                                                     tested LLMs.
+began by selecting a random initial node from within PubTa-
+tor3. From this node, we identified a connected second node
+through one of its observed relations. Next, we analyzed the
+relations of this second node to find a third connected node,     Additional Results on Self-consistency Scaling
+and continued to traverse the graph in this manner. To select
+                                                                In Table 1 of the main paper, we demonstrate that the self-
+each subsequent node, we sorted the relations of the previous
+                                                               consistency (Wang et al. 2022) of multiple runs helps KG-
+node by the number of publications that observe each rela-
+                                                     CoI find out more accurate hypotheses with increased ac-
+tion as a measure of relevance and significance, descending
+                                                            curacy and F1 scores. To explore if such an improvement
+through the most frequently cited relations until a “stimu-
+                                                       grows with the scaling number of runs in self-consistency,
+late” or “inhibit” is found.
+                                              we perform further experiments on KG-CoI to evaluate its
+  Once a relation is selected, we verified whether the op-
+                                                          performance with the number of runs N in self-consistency
+posing relation (i.e., if “stimulate” is chosen, we verify “in-
+                                                                     to be N = 1, 5, 10, 15.
+hibit”, and vice versa) has a similar number of publications.
+                                                                Figure 2 shows the performance of various LLMs andSpecifically, for a selection to be valid, the opposite rela-
+                                                       methods when we increase the number of runs in the self-tion must have less than half the number of publications as
+                                                               consistency setting. From the results, we can observe thatthe selected relation. This process was repeated until 100
+                                                 KG-CoI consistently outperforms other compared methodssamples of stimulate or inhibit relations had been identi-
+                                                 when we scale up the runs in self-consistency. Moreover, thefied. To find “no relation” pairings, we randomly selected
+                                      LLM performance tends to improve with the increased num-nodes from those involved in previously identified “stimu-
+                                                               ber of runs, especially in weak models such as Llama-3.1-8Blate” or “inhibit” relations and verified the absence of a di-
+                                                       and Llama-3.1-70B. These results demonstrate the potentialrect connection between them, continuing this process until
+                                                                of KG-CoI to be further improved by increasing the number100 “no relation” samples were obtained.
+                                                                of runs when using the self-consistency technique.
+Discussion on Hallucination Detection
+                                             Prompt Templates in Experiments
+In the implementation of our KG-CoI system, we select
+GPT-4o-mini as the model for the LLM-V agent to verify     To improve the reproducibility of our work and facilitate the
+if an LLM-generated claim can be supported by an existing      follow-up research based on KG-CoI, we provide all prompt
+relation triple in a domain-specific knowledge graph.             templates we used in our experiments in this section, which
+  To justify the choice of GPT-4o-mini in the current imple-       are shown in Figures 3 - 8. For all tested methods, we add
+mentation, we randomly sample 100 instances of (claim, re-      a simple example question in the prompts to instruct LLMs
+lation triple) from the actual hallucination detection process,       to perform this new hypothesis generation task, which was
+and manually annotate if each instance contains a supported      manually designed by human annotators.
+
+=== PDF第11页 ===
+                       Llama-3.1-8B                         Llama-3.1-8B
+              70
+                                                          70
+
+              65
+                                                          65
+
+              60                             F1                                                          60                                   Accuracy
+              55                                         55
+
+              50                                         50
+                  1        5          10          15         1        5          10          15
+                           Number of runs                              Number of runs
+                       Llama-3.1-70B                       Llama-3.1-70B
+                                                          85              84
+              82                                         80
+
+              80                                         75
+
+              78                             F170                                   Accuracy
+              76                                                          65
+              74
+                                                          60
+              72
+                                                          55
+                  1        5          10          15         1        5          10          15
+                           Number of runs                              Number of runs
+                        GPT-4o-mini                          GPT-4o-mini
+              86
+                                                                85.0
+              84
+                                                                82.5              82
+              80                                              80.0
+              78                            F177.5                                   Accuracy76                                                                75.0
+              74
+                                                                72.5
+              72
+                                                                70.0              70
+                  1        5          10          15         1        5          10          15
+                           Number of runs                              Number of runs
+                         GPT-4o                             GPT-4o
+              88                                         88
+              86                                         86
+              84                                         84
+              82                                         82
+                                         F1                                   Accuracy80                                         80
+              78                                         78
+              76                                         76
+              74                                         74
+                  1        5          10          15         1        5          10          15
+                           Number of runs                              Number of runs
+
+                                              Direct       CoT       RAG        KG-CoI
+
+Figure 2: Performance of various methods with different numbers of runs used in the self-consistency setting.
+
+=== PDF第12页 ===
+       Prompt template for Direct prompting of LLMs
+
+      You are a leading scientist tasked with hypothesizing interactions between two given biochemical entities
+        in the format “Answer: [‘relation’]” without the quotes. The answer choices are [‘inhibit’], [‘stimulate’], or
+        [‘no relation’].
+
+       Example:
+       Question: Can we hypothesize a key relation between GENE JAK1 and CHEMICAL ruxolitinib?
+       Output your answer in the format “Answer: [your answer (among ‘inhibit’, ‘stimulate’, and ‘no relation’)]”.
+       Answer: [‘inhibit’]
+
+       Question: {{question}}
+       Output your answer in the format “Answer: [your answer (among ‘inhibit’, ‘stimulate’, and ‘no relation’)]”.
+
+
+
+                               Figure 3: Prompt template for Direct prompting of LLMs.
+
+
+       Prompt template for CoT prompting of LLMs
+
+      You are a leading scientist tasked with hypothesizing interactions between two given biochemical entities in
+        the format Reasoning:, then Answer:. You must strictly follow this structure. Each reasoning step should be
+        verifiable using a knowledge graph. The answer choices are inhibit, stimulate, or no relation.
+
+       Example:
+       Question: Can we hypothesize a key relation between GENE JAK1 and CHEMICAL ruxolitinib?
+       Output your answer in the format “Reasoning: your reasoning steps”, then “Answer: [your answer (among
+         ‘inhibit’, ‘stimulate’, and ‘no relation’)]”.
+       Reasoning: Ruxolitinib is a JAK1 inhibitor. Additionally, Ruxolitinib has been shown to treat diseases associated
+       with JAK1 mutations.
+       Answer: [‘inhibit’]
+
+       Question: {{question}}
+       Output your answer in the format “Reasoning: your reasoning steps”, then “Answer: [‘inhibit’],”, “Answer:
+        [‘stimulate’]”, or “Answer: [‘no relation’]”.
+
+
+                                Figure 4: Prompt template for CoT prompting of LLMs.
+
+
+Additional Case Studies
+In addition to the case study of Llama-3.1-8B shown in Table
+2 of the main paper, we perform more case studies of other
+LLMs on the same input, which are presented in Tables 5, 6,
+7. Similar to the study of Llama-3.1-8B, the results show that
+other LLMs also benefit from the additional KG information
+provided by KG-CoI, helping them hypothesize the correct
+relation between Carbon Tetrachloride and SLC17A5 that is
+not found by any other methods compared.
+
+=== PDF第13页 ===
+ Prompt template for RAG prompting of LLMs
+
+You are a leading scientist tasked with hypothesizing interactions between two given biochemical entities in
+the format Reasoning:, then Answer:. You must strictly follow this structure. Each reasoning step should be
+verifiable using a knowledge graph. The answer choices are inhibit, stimulate, or no relation.
+
+Example:
+Context:  context  Question: Can we  hypothesize a key  relation between GENE JAK1 and CHEMI-
+CAL ruxolitinib?
+Output your answer in the format “Reasoning: your reasoning steps”, then “Answer: [your answer (among
+‘inhibit’, ‘stimulate’, and ‘no relation’)]”.
+Reasoning: Ruxolitinib is a JAK1 inhibitor. Additionally, Ruxolitinib has been shown to treat diseases associated
+with JAK1 mutations.
+Answer: [‘inhibit’]
+
+Question: {{question}}
+Output your answer in the format “Reasoning: your reasoning steps”, then “Answer: [‘inhibit’],”, “Answer:
+[‘stimulate’]”, or “Answer: [‘no relation’]”. Make sure to include the brackets.
+
+
+                         Figure 5: Prompt template for RAG prompting of LLMs.
+
+
+
+
+
+ Prompt template for LLM-E in KG-CoI
+
+You are an expert tasked with constructing a query to find documents that will answer a given question. Look
+it up as if you are creating a google search. Your output must only contain the keywords, nothing else.
+
+You are an expert tasked with constructing a query to find documents that will answer a given question. Look it
+up as if you are creating a google search. Your output must only contain the keywords, nothing else, so do not
+say “Here are the relevant keywords: ” or anything of that nature. Additionally, you are given several relations
+that may assist in creating the query. Identify which connections from the list are the strongest and use them to
+construct the query. Your output will be fed directly into the retriever, so ensure it is in natural language format.
+
+Context: {{context}}
+Question: {{question}}
+
+
+                            Figure 6: Prompt template for LLM-E in KG-CoI.
+
+=== PDF第14页 ===
+ Prompt template for LLM-A in KG-CoI
+
+You are a leading scientist tasked with hypothesizing interactions between two given biochemical entities in
+the format Reasoning:, then Answer:. You must strictly follow this structure. Each reasoning step should be
+verifiable using a knowledge graph. The answer choices are inhibit, stimulate, or no relation.
+
+Example:
+Context:  context  Question: Can we  hypothesize a key  relation between GENE JAK1 and CHEMI-
+CAL ruxolitinib?
+Output your answer in the format “Reasoning: your reasoning steps”, then “Answer: [your answer (among
+‘inhibit’, ‘stimulate’, and ‘no relation’)]”.
+Reasoning: Ruxolitinib is a JAK1 inhibitor. Additionally, Ruxolitinib has been shown to treat diseases associated
+with JAK1 mutations.
+Answer: [‘inhibit’]
+
+Question: {{question}}
+Output your answer in the format “Reasoning: your reasoning steps”, then “Answer: [‘inhibit’],”, “Answer:
+[‘stimulate’]”, or “Answer: [‘no relation’]”. Make sure to include the brackets.
+
+
+                            Figure 7: Prompt template for LLM-A in KG-CoI.
+
+
+
+
+
+ Prompt template for LLM-V in KG-CoI
+
+You are tasked with finding if a relation extracted from a knowledge graph supports a given statement. For
+example, stating that a chemical has a negative correlation with a gene supports the chemical being an inhibitor,
+but stating that a chemical is simply ’associated’ with the gene does not. Think it through, and use the format
+Reasoning: ... then Answer: [‘...’] to structure your response. Possible answers include [‘yes’] or [‘no’]
+
+Relation: {{relation}}
+Statement: {{sentence}}
+
+
+                            Figure 8: Prompt template for LLM-V in KG-CoI.
+
+=== PDF第15页 ===
+                                       Hypothesis generation question
+
+    Input: Can we hypothesize a key relation between Carbon Tetrachloride and SLC17A5?
+   Ground Truth: stimulate
+
+                                                      Direct
+    Answer: no relation ✗
+
+                                       CoT
+
+    Reasoning: Carbon tetrachloride (CCl4) is a toxic compound that can cause liver damage. SLC17A5 is a gene that
+    encodes a transporter involved in the transport of organic anions, including bile acids. Research has shown that CCl4
+    can alter the expression of SLC17A5 in the liver, leading to changes in bile acid transport. However, there is no direct
+    evidence that CCl4 directly inhibits or stimulates SLC17A5. Instead, the interaction is likely indirect, through CCl4-
+    induced liver damage and subsequent changes in gene expression.
+    Answer: no relation ✗
+
+                                  RAG
+
+    Retrieved documents: [...]
+    Reasoning: There is no known interaction between Carbon Tetrachloride and SLC17A5. Carbon Tetrachloride is a
+    chemical compound that can cause liver damage, while SLC17A5 is a gene that encodes a protein involved in the
+     transport of sialic acid. There is no established link between the two.
+    Answer: no relation ✗
+
+                                      KG-CoI (Ours)
+
+    Neighbor relations: (Carbon Tetrachloride, cause, Liver Failure), (Liver Failure, associate, SLC17A5), [...]
+    Retrieved documents: [...]
+    Reasoning: ((@CHEMICAL Carbon Tetrachloride has the relation cause with @DISEASE Liver Failure), which has
+    the relation associate with @GENE SLC17A5). — ((@CHEMICAL Carbon Tetrachloride has the relation cause with
+   @DISEASE Chemical and Drug Induced Liver Injury), which has the relation associate with @GENE SLC17A5).
+  — ((@CHEMICAL Carbon Tetrachloride has the relation negative correlate with @CHEMICAL Silymarin), which
+    has the  relation negative correlate with @GENE SLC17A5). — ((@GENE SLC17A5 has the  relation asso-
+     ciate with @DISEASE Chemical and Drug Induced Liver Injury), which has the relation cause with @CHEMI-
+   CAL Carbon Tetrachloride). — ((@GENE SLC17A5 has the relation associate with @DISEASE Liver Failure),
+    which has the relation cause with @CHEMICAL Carbon Tetrachloride). — ((@GENE SLC17A5 has the rela-
+     tion associate with @DISEASE Fibrosis), which has the relation cause with @CHEMICAL Carbon Tetrachloride).
+  — ((@GENE SLC17A5  has  the  relation  associate  with @DISEASE Liver Cirrhosis), which  has  the  re-
+     lation  cause  with @CHEMICAL Carbon Tetrachloride). — ((@GENE SLC17A5  has  the  relation  stimulate
+    with @DISEASE Chemical and Drug Induced Liver Injury), which  has  the  relation  cause  with @CHEMI-
+   CAL Carbon Tetrachloride). — ((@GENE SLC17A5 has the relation associate with @DISEASE Liver Diseases),
+    which has the relation cause with @CHEMICAL Carbon Tetrachloride). — ((@GENE SLC17A5 has the relation
+    stimulate with @DISEASE Liver Failure), which has the relation cause with @CHEMICAL Carbon Tetrachloride).
+  — ((@GENE SLC17A5 has the relation associate with @DISEASE Fatty Liver), which has the relation cause
+    with @CHEMICAL Carbon Tetrachloride). — ((@GENE SLC17A5 has  the  relation  negative correlate with
+   @CHEMICAL Silymarin), which has the relation negative correlate with @CHEMICAL Carbon Tetrachloride). —
+   ((@GENE SLC17A5 has the relation stimulate with @DISEASE Liver Diseases), which has the relation cause with
+   @CHEMICAL Carbon Tetrachloride).
+    Answer: stimulate ✔
+
+Table 5: An example of how KG-CoI helps Llama-3.1-70B generate correct hypotheses and reduce hallucinations. Verified
+reasoning steps and misinformation are highlighted. The correct answer is marked with “✔” and the wrong answers are marked
+with “✗”.
+
+=== PDF第16页 ===
+                                       Hypothesis generation question
+
+    Input: Can we hypothesize a key relation between Carbon Tetrachloride and SLC17A5?
+   Ground Truth: stimulate
+
+                                                      Direct
+    Answer: no relation ✗
+
+                                       CoT
+
+    Reasoning: SLC17A5 is a transporter protein involved in the transport of certain organic anions and is linked to the
+    metabolism of various substances. Carbon Tetrachloride is a toxic compound that can cause liver damage and disrupt
+    normal metabolic processes. There is no direct evidence or established interaction between Carbon Tetrachloride and
+   SLC17A5 that suggests a stimulating or inhibiting effect. Therefore, the relationship is likely to be non-existent.
+    Answer: no relation ✗
+
+                                  RAG
+
+    Retrieved documents: [...]
+    Reasoning: Carbon Tetrachloride is known to cause liver damage and can lead to the impairment of various metabolic
+    processes. However, there is no direct evidence or established interaction between Carbon Tetrachloride and the
+   SLC17A5 gene, which is primarily involved in sialic acid transport in lysosomes. Therefore, any hypothesized re-
+     lation between Carbon Tetrachloride and SLC17A5 would not be supported by existing biochemical knowledge.
+    Answer: no relation ✗
+
+                                      KG-CoI (Ours)
+
+    Neighbor relations: (Carbon Tetrachloride, cause, Liver Failure), (Liver Failure, associate, SLC17A5), [...]
+    Retrieved documents: [...]
+    Reasoning: Carbon Tetrachloride is known to cause liver damage and is associated with various liver diseases. The
+    gene SLC17A5 has been shown to have a relationship with liver diseases, including those induced by chemical ex-
+    posure. Specifically, SLC17A5 is associated with conditions like Chemical and Drug-Induced Liver Injury, which is
+    caused by Carbon Tetrachloride. Therefore, SLC17A5 is likely to be stimulated in response to the liver injury caused
+    by Carbon Tetrachloride.
+    Answer: stimulate ✔
+
+Table 6: An example of how KG-CoI helps GPT-4o-mini generate correct hypotheses and reduce hallucinations. Verified rea-
+soning steps and misinformation are highlighted. The correct answer is marked with “✔” and the wrong answers are marked
+with “✗”.
+
+=== PDF第17页 ===
+                                       Hypothesis generation question
+
+    Input: Can we hypothesize a key relation between Carbon Tetrachloride and SLC17A5?
+   Ground Truth: stimulate
+
+                                                      Direct
+    Answer: no relation ✗
+
+                                       CoT
+
+    Reasoning: Carbon Tetrachloride is a hepatotoxic chemical known to cause liver damage. SLC17A5 is a gene encod-
+    ing a lysosomal sialic acid transporter, primarily involved in cellular transport mechanisms. There is no direct evidence
+    or established pathway indicating that Carbon Tetrachloride interacts with or affects the function of SLC17A5.
+    Answer: no relation ✗
+
+                                  RAG
+
+    Retrieved documents: [...]
+    Reasoning: Carbon Tetrachloride is a chemical compound known for its hepatotoxic effects and is commonly used
+     in research to induce liver damage. SLC17A5 is a gene encoding the sialin protein, which is involved in lysosomal
+     transport of sialic acid. There is no known direct interaction or pathway linking Carbon Tetrachloride to the function
+    or expression of SLC17A5.
+    Answer: no relation ✗
+
+                                      KG-CoI (Ours)
+
+    Neighbor relations: (Carbon Tetrachloride, cause, Liver Failure), (Liver Failure, associate, SLC17A5), [...]
+    Retrieved documents: [...]
+    Reasoning: The knowledge graph indicates that Carbon Tetrachloride causes various liver diseases, including liver
+     failure, chemical and drug-induced liver injury, fibrosis, liver cirrhosis, and fatty liver. SLC17A5 is associated with
+    these diseases and is shown to stimulate chemical and drug-induced liver injury, liver failure, and liver diseases.
+     Additionally, SLC17A5 has a negative correlation with Silymarin, which in turn has a negative correlation with Carbon
+     Tetrachloride. This suggests that SLC17A5 is involved in the pathways affected by Carbon Tetrachloride, and its ac-
+     tivity is likely stimulated by the presence of Carbon Tetrachloride.
+    Answer: stimulate ✔
+
+Table 7: An example of how KG-CoI helps GPT-4o generate correct hypotheses and reduce hallucinations. Verified reasoning
+steps and misinformation are highlighted. The correct answer is marked with “✔” and the wrong answers are marked with “✗”.

@@ -1,0 +1,3544 @@
+
+=== PDF第1页 ===
+    LLM SEQUENTIAL DECISION MAKING UNDER UNCERTAINTY IN
+                    BIOCHEMICAL DOMAINS
+
+
+
+
+              Mattias Akke †   Soojung Yang ∗    Jur´gis Ruža    Sathya Edamadaka    Rafael Gómez-Bombarelli ∗
+           Lund University       Stanford        MIT           MIT                MIT
+
+
+
+                                                   September 29, 20262026
+                                   ABSTRACT
+
+                  Large language models (LLMs) are increasingly used to drive scientific discovery. UnderstandingSep
+               how LLMs make decisions from new data and memory of the literature is vital before trusting
+27             theminvisibleto designin the experimentscurrent performanceunder tightscoresexperimentalused to evaluatebudgets.researchHowever,agents.their decisionHere, westrategiesbenchmarkare
+                       five frontier LLMs in a Bayesian Optimization setting against published statistical baselines on seven
+                    combinatorial datasets spanning protein engineering, reaction optimization, molecular design, peptide
+                    self-assembly, and catalysis. Performance is paired with direct measurements of model beliefs and
+                     actions, enabling highly resolved behavior analysis. A prompt ablation that progressively strips
+                    context separates memorization from chemical reasoning and from bare categorical optimization.[cs.AI]                Prior chemical knowledge helps in expectation, but with high variance and occasionally even harms
+                   performance. No configuration tested decisively beats a mean statistical baseline across domains.
+                  Belief-movement and Martingale diagnostics, corrected here for a measurement-noise bias that
+                    mislabels rational agents as irrational, show that models overreact to incoming data rather than
+                   entrenching on their priors in the contexts studied here.  Interestingly, while LLM actions are
+                      exploitative, models sincerely intend to explore and consistently act on that intent. This failure is a
+                 competence gap arising from context-stickiness. Removing in-context history restores exploration,
+                     indicating that priors and data must be decoupled to achieve effective LLM-driven discovery.
+
+        1  Introduction
+
+       A central feature of scientific research is that the search space of experimental conditions is potentially enormous, yet
+           physical experiments are constrained by cost and time. Discovery then unfolds as a series of decisions under partial
+          knowledge, where new information often contradicts prior belief. Large language models (LLMs) are increasingly
+           deployed in this loop to propose, test, and revise hypotheses in response to data — off-the-shelf, fine-tuned on domainarXiv:2609.33061v1       data [1, 2, 3, 4], or embedded in agentic frameworks [5, 6] that act through tools to run experiments. Successful examples
+            are reported in protein [7] and alloy [8] design, studies of molecular degradation  [9], and more [10]. Off-the-shelf
+          models already encode priors over the search space that exceed those of models fit only to a task-specific training
+             distribution. However, it remains unclear how those priors update against incoming evidence, and therefore whether
+        LLMs can be trusted to spend real experimental budget in discovery.
+
+           This discovery loop can be formalized as Bayesian Optimization (BO), where a prior over the search space is updated
+           as data accumulate and each new query is drawn from the resulting posterior (Figure 1b). BO has become a standard
+            tool for biochemical and materials discovery, valued for sample efficiency in costly evaluation settings where the
+            acquisition function makes the exploration-exploitation tradeoff explicit [11, 12, 13, 14, 15, 16, 17, 18]. To leverage
+           both statistical efficiency and the rich prior knowledge of LLMs, a growing body of work casts language models as BO
+           optimizers [19]. The literature reports mixed signals. In the biochemical and materials domains, off-the-shelf models
+          have been reported to match or even beat statistical baselines [20, 21]. Reinhart et al. (2024)[22] have shown that
+
+               ∗Co-correspondence: soojungy@mit.edu, rafagb@mit.edu
+             †Work done at MIT
+
+=== PDF第2页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+Claude 3.5 [23] outperforms active-learning and genetic-algorithm pipelines on macromolecule design, suggesting
+LLMs implicitly balance exploration and exploitation. However, others report poor performance of language models as
+optimizers [24] unless fine-tuned on domain data [25]. Gupta et al. (2025) [26] show that statistical models outperform
+open-source LLMs across genetic perturbation and molecular property optimization tasks, and even report that language
+models are insensitive to experimental feedback, performing no worse when true outcomes are replaced with randomly
+permuted labels. Our own earlier work landed in between, with LLMs overfixating on irrelevant context such that
+withholding information actually improved performance [27]. Every side of this debate argues over a performance
+number, but none inspects the decision policy that produces it.
+
+Tools for understanding the decision-making and behavior of language model exist, but have not been applied to
+scientific discovery and LLM-driven BO. Belief-movement and Martingale diagnostics from cognition and economics
+respectively [28, 29, 30] formalize how far a rational agent’s beliefs should move as new evidence arrives, and have
+recently been applied to LLMs [31]. These frameworks diagnose two opposing pathologies in two different settings. In
+semantically rich domains, where the model already has prior knowledge about the real-world meaning of available
+options, such as in forecasting real events or reviewing academic papers, He et al. (2025) [32] find that, across iterative
+reasoning, LLMs entrench; their beliefs drift back toward the prior rather than toward the evidence. In abstract,
+semantically inert domains, where the agent has no useful prior and must rely on the incoming signal alone, the opposite
+is observed. In controlled card-drawing inference tasks with no domain content, humans move their beliefs too much in
+response to weak signals while underreacting to strong ones [29], and LLMs reproduce this pattern, overreacting when
+the signal is weak [33]. Critically, entrenchment has been observed only where priors are rich and data absent, and
+overreaction only where priors are absent and data weak. Scientific discovery is both at once — semantically rich, with
+only a few noisy points in a vast search space. Here, the two regimes make opposing predictions, and no existing work
+resolves which one governs LLM behavior in the scientific domains such as biochemical and materials discovery.
+
+A scientist deciding whether to hand an LLM an experimental budget needs to know whether the agent is acting on the
+data in front of it or on its memory of the literature. As we show, that distinction is invisible in performance scores
+alone. We resolve it by studying belief evolution and behavior directly, varying the semantic prior available to the agent
+while holding the data flow constant in a sequential decision-making campaign. Specifically, we control how much
+information the model receives through three prompting modes that progressively strip away the chemical context. At
+each cycle, the model chooses which regions of the combinatorial space to retrieve experimental data in the next batch,
+and we compare its behavior against a Bayesian reference. BO is useful as a behavioral reference because its surrogate
+model can provide an explicit posterior over the search space (i.e., a prediction and uncertainty estimate) to score
+LLM implicit beliefs and actions against. Its acquisition function is a separate, swappable policy with interpretable
+explore–exploit balancing, letting us separate what an agent believes from how it acts (Figure 1f). We treat the Bayesian
+reference as a diagnostic, not a claim of optimality. We detail how we use BO as a behavioral reference and practical
+baseline, and its limits, in the Methods section.
+
+We find that prior knowledge gives LLMs a real but high-variance edge that is occasionally even harmful to performance,
+and no model beats the mean statistical baseline on average. A common failure mode is that LLMs are too exploitative
+rather than exploring properly, and we show that what manifests as an exploitative policy is not a preference but a
+competence gap. LLMs sincerely intend to explore and act on that intent, yet realize little information gain because
+their selections avoid the high-uncertainty regions of the space. An explicit uncertainty estimate, supplied as a tool,
+only partly repairs this. The underlying mechanism, common to every model tested, is context-stickiness — the models
+ground their decisions in the data already in the context window and cannot reason beyond it — and in this rich-prior,
+weak-signal regime, it manifests as overreaction to incoming data rather than entrenchment on priors.
+
+This paper makes three types of contributions. Methodologically, belief- and uncertainty-dynamics analysis, extended
+to combinatorial search spaces with marginalized belief updates, provides much finer resolution than prior LLM-BO
+work and uncover new insights into LLM decision making. In addition, a noise correction removes a bias in widely
+used Martingale-based belief diagnostics that otherwise flags even a perfectly rational agent as overreacting when its
+beliefs are measured with noise. The corrected metric shows LLMs overreact to new data. Empirically, a prior-ablation
+design — default, alias, and blind prompting modes that progressively strip chemical information from the prompt —
+identifies and separates failures related to the ability of an LLM to memorize chemical knowledge, reason over chemical
+descriptors, and optimize over bare categorical spaces. Scientifically, the failure modes of LLM discovery agents
+involve overreacting to weak signals rather than entrenching on priors, and their under-exploration is a competence
+gap rather than a preference. These findings yield concrete guidance for interpreting and designing LLM-based BO
+pipelines for scientific discovery.
+
+
+
+
+
+                                               2
+
+=== PDF第3页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+ (a)
+
+
+
+
+
+ (b)
+
+
+
+
+
+ (c)
+
+
+
+
+
+ (d)
+
+
+
+
+
+Figure 1: Overview of each experimental setup. (a) The standard Bayesian optimization loop. An initial batch of
+validated data trains a model to predict fitness over the search space of candidates. An acquisition function then selects
+a batch of next experiments. Experiments (here simulated using a lookup table) validates selected candidates. (b) The
+LLM replaces the optimization and selection steps. Three different LLM configurations with increasing capabilities are
+tested. The no-reasoning prompt includes prior information about the task and a history of validated candidates each
+turn. It provides the next batch of candidates directly. The reasoning models are asked to strategize with reasoning
+turned on. The agent has a tool wrapping the statistical model in (a), offering an independent mean and uncertainty
+estimate about the candidates. Additionally, no history agent probes the behavioral impact of the in-context history
+(Section 2.5). (c) All experiments use a single prompt template. Three different prompt modes with decreasing prior
+information about the task at hand separate memorization, domain3     knowledge, and optimization ability. (d) Performance
+is scored using normalized AUC by two different metrics to enable comparisons between datasets.
+
+=== PDF第4页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+2  Results
+
+We benchmark five frontier LLMs against published statistical models across 7 datasets spanning 5 biochemical and
+materials domains (protein optimization, chemical reaction optimization, reaction synthesis, peptide self-assembly, and
+metal catalyst optimization; Figure 1a). Each LLM receives a prompt containing prior background on the task, the
+optimization campaign, and a history of all data points tested in earlier steps, then is asked to sequentially propose
+batches of experiments (Figure 1c). Performance is the area under the best-yet-fitness and top-2%-recall trajectories,
+normalized per dataset so that random selection scores 0 and the best statistical model scores 1 (Figure 1e). To separate
+dataset memorization, general chemical knowledge, and optimization strategy, we vary how much prior information
+the prompt carries (Figure 1d): default (full biochemical names and descriptors), alias (descriptors retained, names
+replaced with generic labels), and blind (a domain-agnostic one-hot search space). The series progressively strips
+prior knowledge without changing the optimization function, letting us ask whether an LLM prior is entangled with its
+optimization strategy or merely a layer on top. The LLMs are run in three configurations (Figure 1c): with reasoning off
+(No reasoning) and on (Reasoning), and as an agent equipped with a tool that wraps the same exact statistical models
+the LLM is benchmarked against, providing an independent uncertainty estimate beside the in-context history and prior
+information (Agent).
+
+
+2.1  Prior knowledge helps on average but is unreliable
+
+The default and alias modes often yield similar performance across datasets and models (Figure 2a), indicating
+that the LLMs use the chemical descriptors given to them, rather than drawing decisions directly from memory
+invoked by domain-specific terms. The prior helps on average, and there is a weak positive correlation between
+increased prior information and performance across the two metrics used (Spearmann-ρ = +0.20, one-sided p = 0.03,
+hierarchical bootstrap, Figure 2a). The actual value of the prior relative blind is high variance, worth about 1.0 batch
+(CI95%[−0.21, 2.58]) of data points. Adding a tool to the LLM (Agent) does not reliably improve performance in any
+prompt mode (Figure 2c). The high variance across models and datasets, as well as differences between fitness and
+recall scores, highlights the limitations of using absolute performance to elucidate behavior or capability (Figure 2b).
+
+Per dataset, the picture is highly heterogeneous (Figure 2b). LLMs beat the best statistical model in default mode on
+non-fullerene-acceptor (NFA) (pBH < 0.05) and tripeptide self-assembly (pBH < 0.001, correction across 7 respective
+datasets and 2 metrics). At the same time, they fall short elsewhere, occasionally harming performance relative to blind
+mode (Figure 2a). Models also vary substantially, but no one model is consistently better. For full per-domain and
+per-model breakdowns, and convergence analysis, we refer to SI-2.1. There, we also document three distinct failure
+modes that highlight peculiar dataset-specific biases. Briefly, we identify that (i) GPT-5.4 and Qwen3.5 consistently
+avoid the optimal ligand CgMe-PPh with and without reasoning or tools (pBH < 0.001, 750 selections total); (ii) the
+name of a protein,“TrpB” is associated with over-selection of aromatics in GPT-5.4 (pBH < 0.001, 5 models), although
+aromatics are worse on average; and (iii) that LLMs prefer to start with simple experiments. It is not trivial to determine
+a policy for where which model will work well (Section SI-2).
+
+
+2.2  Belief dynamics rule out entrenchment towards priors
+
+Overall performance is a poor surrogate for understanding LLM strategies in these settings as it is opaque to which
+strategies are used, and sensitive to test settings such as batch size, campaign length, and metric of choice. The weak
+performance gained from adding prior information could be explained by either entrenchment to the prior–models
+overfixate on semantically rich information and ignore data–or overreaction–models overfixate on the incoming data
+stream and ignore the prior. We therefore estimate the beliefs reasoning LLMs hold during optimization directly in
+two ways. An LLM judge reads each reasoning trace and assigns, per dimension in the combinatorial search space,
+a marginal probability that a given label belongs to the best candidate (stated belief). Separately, we derive a belief
+directly from the actions (action belief), as a smoothed marginal over the proposed batch. Neither belief can resolve
+cross-dimensional relationships such as "temperature 100 is good given ligand X". Marginalization also hinders analysis
+on the OER dataset, whose search space is a reduced simplex where beliefs cannot be easily assigned to each component.
+
+Across models, prompts, and datasets, the stated beliefs are well correlated with the actual selections (Figure 3a).
+Section SI-1 clarifies that this strong agreement between belief estimates is not driven mainly by the judge being able to
+deduce the final extracted candidates. The judge routinely places substantial probability mass on unselected candidates.
+
+Beliefs are then used to evaluate how the LLMs respond to new data. Belief updates of a rational agent should
+be unpredictable to the agent itself and from its prior beliefs. This does not mean that the magnitude should be
+unpredictable; However, if most of the search space has already been observed, the next update is probably small, which
+is foreseeable. The direction must be unpredictable. Suppose the agent’s current best guess of the quantity it cares about
+
+
+                                               4
+
+=== PDF第5页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+ (a)
+
+
+
+
+
+ (b)                                                  (c)
+
+
+
+
+
+Figure 2: Prior knowledge helps on average but is unreliable. (a) Change in normalized AUC relative to blind mode, one
+point per dataset and metric, ordered by increasing prior information in the prompt (blind, alias, default). Filled points
+mark fitness; open points mark recall@2%. Black line marks the mean per model. (b) Normalized fitness AUC per
+dataset, model, and capability (agent, reasoning, no reasoning), in each prompt mode. 1 (yellow) ties the best statistical
+model, 0 ties random, black cells underperform random. (c) Normalized AUC pooled over datasets and models, fitness
+left and recall right. No configuration reaches the best statistical model in expectation; reasoning and agents perform
+within each other’s confidence intervals. Error bars are 95% intervals from a nested bootstrap (datasets, then models,
+the seeds). The 7 datasets set the effective sample size
+
+
+
+
+
+                                               5
+
+=== PDF第6页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+is expected to rise. If it truly believed that, a rational agent would already have revised the guess upward before seeing
+any new data. So it cannot know in advance whether the next observation will push that guess up or down. We measure
+deviations from this property using two diagnostics from cognition and economics: (1) the excess-movement statistic,
+Z = ¯m −¯r, comparing realized belief movement ∆m to realized uncertainty reduction r, and (2) the Martingale score
+M, the slope in the regression of belief updates on prior beliefs. For a rational Bayesian agent, both are zero; positive
+movement and negative slope indicate over-reaction to new data, while the reverse indicates entrenchment. We correct
+for an error-in-variables bias in the naive slope estimate from the original Martingale Score paper [32], and a similar
+bias in the original excess movement paper [28] (Methods-4.10).
+
+All models, on all datasets, overreact similarly to incoming data in all prompt modes (Figure 3b). Beliefs move the most
+in the first step (Figure 3c) as the model adjusts from being grounded solely in its prior to basing its beliefs on data.
+Later updates are more calibrated, suggesting that most of the prior belief is overwritten in the first step. Stated and
+action beliefs agree well, confirming that measured over-reaction is not caused by over-emphatic reasoning. The belief
+dynamics rule out entrenchment. Rather than ignoring new data, the models overreact to it, drawing more information
+from the new data stream than a rational agent would.
+
+
+
+2.3 LLMs are context-sticky optimizers
+
+
+Performance and belief dynamics can explain where the LLMs look for evidence. However, it does not answer how.
+We therefore decompose every selection made by an LLM or a statistical model into a value feature (V) and an
+uncertainty feature (U). We derive the features by fitting a conditional logit model to the actions taken, using a single
+shared Gaussian-process surrogate (Methods). High V denotes a value-seeking choice; high U, an uncertainty-seeking
+one. Six statistical acquisition strategies make up the behavioral baselines: upper confidence bound (UCB), expected
+improvement (EI), Thompson sampling (TS), ϵ-greedy, greedy, and directed evolution (DE, i.e., randomly changing one
+dimension around the top performer). The decomposition separates the statistical policies as expected, placing DE and
+greedy acquisition in the uncertainty-agnostic regime, and UCB and EI sampling in the roaming, uncertainty-aware
+regime (Figure 4a).
+
+As expected, reasoning and non-reasoning LLMs’ actions are not uncertainty-seeking [34, 35, 36]. They select more
+low-uncertainty candidates than any other statistical model tested. Non-reasoning LLMs match or are more uncertainty-
+avoiding than even directed evolution (Figure 4). The reasoning LLMs achieve even less coverage of the search space
+than DE (Figure 4c).
+
+We propose this because LLMs are “context-sticky" – clustering selections around candidates already in the context
+window – unlike any other samplers tested. They therefore appear to avoid high-uncertainty candidates, which are
+generally rare or not included in the history of past selected candidates. Indeed, measuring the mean Hamming distance
+from each proposal to the history confirms that the reasoning LLM overwhelmingly selects candidates close to those
+already in context (Figure 4b), more so than any non-DE model. As we show in Section 2.2, the clustered selections are
+data-driven rather than an artifact of belief entrenchment, which would also cluster selections. Further, reasoning does
+not alleviate bias relative to non-reasoning, but enforces it (Figure 4b). The bias is structural and not caused by lack of
+effort or strategy. Adding tools to inform the search improves uncertainty awareness, but the agent is still notably bound
+by the bias. Novelty in selections matches that of a pure greedy acquisition function over the statistical models.
+
+
+
+2.4  And yet, LLMs intend to explore
+
+
+The reasoning LLMs nonetheless invoke exploration in 92% of all traces and reliably act on their intentions to explore
+(Section SI-1.1). To understand this seeming paradox, we extract an explore/exploit intent in [0,1] from each reasoning
+trace with an LLM judge, and correlate the intent to explore against three simple exploration proxies derived from the
+actions actually taken: rarity, Hamming novelty, and coverage gain (Figure 4c). All metrics and intent are adjusted
+for a cycle trend in which exploration is artificially easier and more common early on in the campaign (Methods 4.13).
+
+For reasoning models, the correlation between stated intent and realized exploration is zero for rarity and novelty and
+only weakly positive for coverage gain (Figure 4c). A reasoning model’s stated intention to explore does not track
+its realized information gain. When the model is given the tool (agent), the correlation becomes positive, indicating
+that injected statistical uncertainty metrics can help alleviate locality bias, as previously suggested [35]. Crucially, a
+substantial part of the failure is transferred to the agents, relative to their own tools (UCB, EI). The intent to explore is
+honest and enacted and the failure is not in a intention-action gap.
+
+
+                                               6
+
+=== PDF第7页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+ (a)                                          (b)
+
+
+
+
+
+ (c)
+
+
+
+
+
+Figure 3: Belief dynamics rule out entrenchment towards priors.(a) Agreement between stated beliefs, read from
+reasoning traces by an LLM judge, and action beliefs derived from the proposed batches. The pooled Pearson ρ = 0.759
+(CI95%[+0.754, +0.764], 673,702 beliefs from 13,484 reasoning traces over 1,350 campaigns) holds across every
+model, prompt mode, and dataset. (b) Excess movement Zs and Martingale score Ms by BO step, pooled by prompt
+mode, computed from the stated beliefs. A rational Bayesian agent would sit at 0 for both martingale score and excess
+movement. Every mode is positive in Zs and negative in Ms at every step: the models over-react to incoming data
+rather than entrenching around their prior. Shading marks 95% confidence intervals. (c) Per-dataset belief movement
+∆m, at the first step (filled) compared with the mean of steps 2–9 (open). Beliefs swing roughly 3× more on the first
+update as the model moves away from a purely prior-driven belief, then settle into more calibrated updates thereafter.
+Error bars are 95% confidence intervals across seeds.
+
+
+
+
+
+                                               7
+
+=== PDF第8页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+  (a)                                                        (b)
+
+
+
+
+
+  (c)
+
+
+
+
+
+Figure 4: LLMs act as local, uncertainty-avoiding optimizers, yet intend to explore. (a) Every selection decomposed
+into a value feature V and an uncertainty feature U through a shared GP surrogate. High V is value-seeking; high U
+is uncertainty-seeking. The six statistical policies span the uncertainty axis as expected, placing greedy and directed
+evolution (DE) at the bottom and UCB and EI at the top. Reasoning LLMs sit below every predictive policy tested; non-
+reasoning models sit at or below DE. The agent recovers roughly half the distance in the U-axis to the uncertainty-based
+statistical policies, and the agent with the history removed reaches the U-range of a Thompson sampler (Section 2.5).
+(b) Mean Hamming distance from each proposal to the candidates already in history, per campaign step. Higher is
+more novel. The reasoning LLM stays closer to its own history than any policy except DE, and allowing reasoning
+enforces the bias against exploration rather than relieving it. (c) Cycle-corrected correlation between the exploration
+intent extracted from each reasoning trace and three realized exploration proxies (novelty, coverage gain, rarity), for
+reasoning LLMs, agents, and agents with the history removed. Each point is one campaign step. 13,550 traces, first
+step of each campaign omitted. For the reasoning LLM, the correlation is indistinguishable from zero on novelty and
+rarity; giving it a tool that provides an uncertainty estimate makes all three positive. The intent to explore is honest and
+enacted. The failure is an intention-ability gap, not an intention-action gap. Coloured lines are binned means with 95%
+intervals. Grey reference levels mark UCB, greedy, and DE.
+
+
+
+                                               8
+
+=== PDF第9页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+2.5  In-context data drive stickiness
+
+To test that LLMs are context-sticky causally, we remove the history of validated candidates from the agent’s prompt.
+The agent retains full access to the statistical tool and can still learn from the data, but only through the tool, never from
+raw data points in context (Figure 1c, no history agent). The tools recommend candidates using chosen strategies, but
+the model still selects the final batch to submit and can still impose its priors.
+
+Removing the history has mixed effects on performance. Comparing agents with and without in-context data on the
+benchmark, we expect that, without history in default prompt mode, net performance should be lower on average across
+the datasets, as the agent can no longer update its prior effectively. Any such difference in score can not be statistically
+determined here (See SI-3.1). In blind mode for example, differences in score between agents with and without history
+varies greatly between datasets. On datasets that reward local search, the standard agent’s stickiness may help, whereas
+datasets that require wider exploration may benefit from the agent not hugging the history points. However, while there
+is a positive correlation between the improvement of removing the history, and UCB (uncertainty aware optimizer) - DE
+(local optimizer) difference (Figure SI-10) the error is wide on 7 datasets (ρ = 0.6, CI95%[−0.25, +0.96] by normalized
+fitness and recall AUC) and more datasets would be needed to say this conclusively.
+
+In the (V, U) plane, the effect is clear. Reasoning models sit in the uncertainty-avoiding region, the agent halfway
+towards the statistical policies, and the agent without history (no-history agent) sits at roughly the U-range of a
+Thompson sampler (Figure 4a). Removing history further strengthens the correlation between the agent’s stated intent to
+explore and its realized information gain (Figure 4b), suggesting the effect is behavioral rather than purely mechanical
+as we restrict the model’s options.
+
+
+
+
+
+                                               9
+
+=== PDF第10页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+3  Discussion
+
+While LLMs benefit in expectation from the priors, the benefit is variable and occasionally harmful. The greatest
+limitation to LLM performance in these settings is not strategy or domain knowledge, but a mechanical inability to
+identify high-uncertainty, information-rich areas of the search space. Across all models, stated intention to explore has
+little to no correlation with the actual information gain of the LLMs’ actions. Providing LLMs with uncertainty-informed
+tools alleviates the issue but doesn’t fully mitigate it. The cause is what we call "context-stickiness," whereby LLMs
+ground their reasoning and decision-making in the history data points — a tendency that manifests as overreaction to
+new data.
+
+Taken together, these results give a comprehensive diagnostic of LLM behavior in sequential decision making in prior-
+and data-heavy domains, complementing reports that LLMs entrench without data signals [32]. The findings also add
+nuance to the claim that “LLM-based agents show no sensitivity to experimental feed back” [26], a conclusion drawn
+from shuffling the labels in the history and observing little change in performance. Another possible explanation is
+that the LLMs are sensitive to feedback but are context-sticky. Shuffling the labels leaves the set of points in-context
+intact and may therefore not sufficiently alter the model’s search strategy. However, removing the history data entirely
+aligns the intention of LLMs to explore with realized information gain. The context-stickiness is also orthogonal to the
+domain prior. It is structural and present regardless of whether the prior is correct or how strong the prior is. However,
+it can be difficult to separate the two.
+
+The failure is a competence gap, not a limitation in the LLM’s intention to explore. The distinction matters for
+intervention design. Previously identified gaps in strategy and intention respond well to increased prompt instructions
+and to reward shaping, which is why RL fine-tuning narrows the knowing-doing gap on bandits [37, 38]. A competence
+gap does not, which is why an explicit exploration instruction leaves every exploration metric unchanged (Section SI-3.4),
+while supplying an external uncertainty estimate partly improves behavior.
+
+In-context trajectory data induces context stickiness that keeps LLM decision-making suboptimal, and removing that
+context removes the failure mode. The results are consistent with previous reports on bandit problems and earlier
+models (Gemma 2, GPT4) [35, 37]).
+
+Many recent successful LLM-BO models [39, 10] have solved for this issue: they have removed this confound between
+context and prior, either by converting the LLM prior to a statistical score to use with a statistical model, or by converting
+numerical data and uncertainty proxies into semantic text. These interventions allows the priors to act on the search
+without introducing the bias.
+
+To support these behavioral findings, we contribute a measurement-noise correction for the Martingale and excess-
+movement diagnostics, reusable by anyone diagnosing belief dynamics. We also introduce a reconstructed dense NFA
+dataset.
+
+With current frontier models, it is important to decouple LLM priors from LLM decision-making under uncertainty
+and directly inform the construction of LLM-informed optimizers and general LLM agents in the biochemical domain.
+Future work should aim at designing methods that allow LLMs to reason rationally across data and semantic priors
+simultaneously. This study is limited in scope to settings with combinatorial search spaces and small budgets, but
+given similar exploration failures already reported in bandit and forecasting settings, and context-stickiness would
+likely occur in domains other than chemistry and materials science. The conclusions also provide nuance to an ongoing
+discussion about the role of single, large-context agents vs multi-agent systems in scaling autonomous research [40].
+More information in larger context windows does not simply scale capability; it may change model behavior, and our
+results show the change is not always positive.
+
+
+4  Methods
+
+4.1  Optimization domains and statistical surrogates
+
+We benchmarked LLMs on 7 datasets spanning 5 domains of biochemistry: reaction optimization (EDBO) [41],
+protein-motif optimization (ALDE) [42], peptide self-aggregation [43], reaction catalysis optimization (OER) [44], and
+synthesis of non-fullerene acceptors (NFA) [45]. Organic–inorganic perovskites [46] were initially included but were
+removed from the main benchmark result, as the LLMs showed strong evidence of memorization.
+
+We used the direct-arylation (4 bases, 12 ligands, 4 solvents, 3 concentrations, 3 temperatures, 1,728 data points total,
+100% coverage) and aryl-amination-2b (3 aryl halides, 22 additives, 3 bases, 4 ligands, 792 data points in total, 100%
+coverage) datasets from EDBO [41], as these show the greatest difference between the greedy and EI acquisition
+functions. They are also less studied than the Suzuki reaction, which the LLMs appeared to know well.
+
+
+                                              10
+
+=== PDF第11页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+For ALDE [42], we used the TrpB (4 mutation sites with 20 amino acids, 159,129 data points in total, 99.5% coverage)
+and GB1 (4 mutation sites with 20 amino acids, 149,361 data points in total, 93.4% coverage) datasets.
+
+For OER, we used the full set of 2,121 data points on the 3496 plate. The optimization landscape is a simplex where the
+task is to select a mix of up to four metals, with ratios in 0.1 increments.
+
+We used the dropped perovskites dataset (16 organics, 4 anions, 3 cations; 192 data points in total; 100% coverage)
+exclusively in an ablation study to illustrate how our suite could detect memorization.
+
+The NFA dataset of ∼4200 data points, referenced in the Gryffin paper [46], has not been shared. We therefore
+constructed a new dense subset of NFAs from the original study [45] (12 terminals, 8 spacers, 4 cores, 301 data
+points in total, 78.4% coverage). The original study contains ∼51k NFA constructs made from a set of available
+molecular fragments. We reconstructed most fragment attachment points from the original paper, and we reconstructed
+an additional 4 by matching substructures in the larger dataset. No mapping from fragments to constructs exists. We
+matched the fragments using rdkit 2026.3.2 against the large dataset by generating all possible constructs from the
+fragments in the pattern terminal-spacer-core-spacer-terminal, including all E/Z isomers and fragment orientations. The
+final subset of 301 compounds was selected to optimize coverage and size.
+
+The LLMs knew the general settings of the 7 selected datasets. Still, they did not appear to know the actual optimal
+candidates or any specifics that would significantly contaminate the tests (except for perovskites).
+
+We fetched each dataset from a paper proposing a statistical model for BO, optimized and validated on the respective
+dataset. We pulled these exact models in their entirety, upgraded them only as needed to Python 3.13.5, and used
+them directly as baselines. The model from the tripeptides paper [43] is a stack of two models operating on two different
+encodings (Judred and Mordred). While it likely performed well on its specific task of finding the top 20 candidates
+as quickly as possible, we could not achieve strong performance on our recall and fitness tasks. The optimized GP
+used in the EDBO domain, operating on the Judred encodings, performed significantly better than the published model
+and was used instead. We obtained similar results on the perovskites and NFA datasets used in the Gryffin paper [46].
+The EDBO GP significantly beat the distributed Python package Gryffin 1.0.0 on both datasets. We therefore also
+used the EDBO GP model, operating on one-hot encodings, on the Gryffin datasets. Where these were not already
+available, we added expected improvement (EI), Thompson sampler (TS), and upper confidence bound (UCB) to the
+set of acquisition strategies to enable cross-dataset comparisons. We also implemented ϵ-greedy (greedy acquisition
+with an ϵ = 5% probability of selecting a candidate at random) and directed evolution (DE, i.e., randomly selecting a
+candidate at Hamming distance 1 from the best-performing candidate) as behavioral baselines.
+
+UCB sampled the top candidates from the score s = µ + β1/2σ, using β = 4. Expected improvement sampled the
+candidates that maximizes E[max(0, f(x) −f ⋆)] = (µ −f ⋆), Φ(Z) + σ, ϕ(Z),  Z = µ−fσ ⋆ , where f ⋆is the largest
+candidate found so far, Φ and ϕ are the CDF and PDF respectively. One dataset needed a custom Thompson sampler
+(TS). For OER we directly used the joint Gaussian-process posterior f(X) ∼N µ, Σ  , µ ∈Rn, Σ ∈Rn×n, with full
+covariance Σ. For a batch of size b, we pick the argmax candidate of b independent functions as
+
+                 Xi = arg   max      f (j)(X),   f j ∼N(µ, Σ),     j = 1, . . . , b
+                                      X,/∈,X1,...,Xj−1
+
+
+Table 1 shows the exact settings used for each campaign.
+
+
+Scope of the Bayesian reference We acknowledge the limits of using Bayesian behavior as a rational behavior
+reference. We do not claim that Bayesian policies are the most optimal policy for the scientific tasks, and that optimal
+policy remains an open question. We used the Bayesian reference in two separate roles: an information gain efficiency
+diagnostic and a performance diagnostic. The martingale property that the former tests holds independently of whether
+Bayesian updating is the best policy for the task. An agent can satisfy it and still optimize poorly, and it is possible to
+optimize the task well while violating it. This behavioral diagnosis is valuable because it evaluates an agent’s belief
+trajectory against itself rather than against the unknown optimum, so that it can flag a pathologically updating agent and
+provide failure mechanism from its behavior alone.
+
+
+4.2  Language models
+
+We ran 5 frontier LLM models as described in 2. All Anthropic runs cost $515,26; OpenRouter (Qwen) cost $211;
+OpenRouter (Kimi) cost $192; Z.AI cost $241,27; and OpenAI cost $1256,57. The entire test suite contained ∼100k
+API calls and yielded ∼40k reasoning traces for analysis.
+
+
+                                              11
+
+=== PDF第12页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+Table 1: Per-benchmark configurations. LLM campaigns use ninit=0; statistical runs draw the first batch at random.
+New acquisitions are manually implemented over the surrogate posterior.
+
+      Study      Dataset               |X|  Ndim      Batch  Budget  Cycles  Surrogate   New Acquisitions
+
+               TrpB              159,129  4          10    100     10   ALDE DNN  EI
+    ALDE
+             GB1              149,361  4          10    100     10   ALDE DNN  EI
+
+                    direct_arylation       1,728  5           5     50     10   EDBO GP
+    EDBO
+                  aryl_amination_2b     792  4           5     50     10   EDBO GP
+
+       Tripeptide  tripeptides            8,000  3           5     50     10   EDBO GP
+
+            NFA                 301  3           3     30     10   EDBO GP
+       Gryffin
+                   perovskites           192  3           3     30     10   EDBO GP
+
+    OER      3496                 2,121  10-binned    5     50     10   OER GP    UCB, TS
+                                              6-simplex
+
+
+         Table 2: LLM configuration (reasoning-enabled). Temperatures and topP are all provider defaults.
+
+     Model     Model ID                        Provider     Temp.  topP  Thinking         Max tokens out
+
+      GPT-5.4   gpt-5.4-2026-03-05 [47]      OpenAI              1.0   effort=medium     25,000
+      Sonnet 4.6  claude-sonnet-4-6[48]        Anthropic    1.0            thinking budget 25k  32,000
+     Kimi 2.5   moonshotai/kimi-k2.5[49]    OpenRouter  1.0     1.0    thinking budget 25k  25,000
+     Qwen3.5   qwen/qwen3.5-397b-a17b [50]  OpenRouter  1.0     1.0    thinking budget 25k  25,000
+     GLM-4.7   glm-4.7 [51]                  Z.AI         1.0     0.95  thinking            25,000
+
+
+
+4.3  Prompting modes
+
+All campaign prompts followed the same schema (Prompt SI-4.1). We ablated the LLM’s access to domain-relevant
+prior knowledge through three prompting modes:
+
+Default. The LLM received the full reaction description (e.g., “optimize the Pd-catalyzed direct arylation of imida-
+         zoles"), the identity of every search-space option (e.g., XPhos, CsOPiv, p-Xylene), along with generic but
+         relevant chemical descriptors (charge, size, pKa), and may freely use prior knowledge of similar systems. This
+       mode admits both legitimate transfer of chemical priors and inadvertent memorization-driven cheating.
+
+Alias. The reaction class is preserved (“optimize a chemical reaction") but specific component names in the search
+        space were replaced with generic labels (ligand_1, ligand_2, base_1, ...). Chemical descriptors
+        remained. This isolated the LLM’s general chemistry-strategy priors from compound-specific memorization.
+       The descriptors were general enough that reconstruction was rare.
+
+Blind. The optimization context was removed entirely. The LLM saw a one-hot combinatorial search space, described
+         in domain-agnostic terms (e.g., car, animal, tree), with options such as Lamborghini, birch, bird. The
+     LLM was tasked with optimizing an unknown function without knowledge of the underlying domain.
+
+Amino acids were easily reconstructed from any descriptors. We therefore left amino acids without any descriptors in
+both default and alias mode (ALDE and tripeptides). The amino acids were not replaced with an aliased “amino-acid1”
+label. When possible, we extracted chemical descriptors from the respective datasets (EDBO, OER, perovskites). We
+derived descriptors for NFA using rdkit 2026.3.2 (mass, Rg) and pySCF 2.13.0 (HOMO, LUMO, dipole). Final
+prompt examples are provided in the appendix (Section SI-4).
+
+To avoid position and name bias in the search space table, the order and alias/ blind new labels were shuffled between
+seeds.
+
+
+4.4  Reasoning and agent modes
+
+We ablated the LLM’s access to various capabilities informing its reasoning:
+
+
+                                              12
+
+=== PDF第13页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+No-reasoning. The LLM had reasoning turned off and was prompted to one-shot the proposed candidates. (Prompt
+         SI-4.7)
+
+Reasoning. Standard reasoning model, medium reasoning when that mode was possible.
+
+Agent. The model was equipped with a single domain-agnostic tool harness that wrapped the domain-specific statistical
+       model the LLMs were benchmarked against. The filter_candidates tool trained the domain-specific
+         prediction model, and the LLM selected an acquisition function (EI, UCB, or greedy) and relevant hyperpa-
+        rameters (ei-jitter, ucb-beta) for candidate filtering. A second filter across candidate parameters also allowed
+         including or excluding specific candidates or patterns simultaneously.
+
+
+4.5  Bayesian optimization campaigns
+
+Each (dataset, model, prompt-mode, reasoning-mode) condition was repeated over 15 independent seeds, after which
+the mean and variance converged. Statistical model baselines used 75 seeds to improve precision.
+
+
+4.6  Performance metrics
+
+Two trajectory-level metrics are computed at every step t:
+
+Best-yet fitness. f t = maxi≤t f(xi), the best observed objective value up to step t.
+
+Top-2% recall. The fraction of the dataset’s top-2% points discovered up to step t.
+
+For each metric, we computed the area under the trajectory curve (AUC). To reduce the variance from dataset difficulty,
+we normalized AUC against two baselines:
+
+        ]    AUC −AUCrandom                      AUC =                                           ,                                      (1)
+                                             AUCbest-stat −AUCrandom
+
+so that random selection scored 0 and the best statistical model scored 1. We defined the best statistical model as the
+one with the highest fitness AUC and, in case of ties, the highest recall AUC. Different acquisition functions performed
+best on different datasets. Values > 1 were admissible and indicated that the LLM outperformed the best statistical
+baseline on that dataset. We then averaged the normalized AUC across models within each dataset, and then across
+datasets. We could also average across LLM models or modes. We propagated variance at each step by bootstrapping
+on seeds (N=10,000).
+
+
+4.7  Hypothesis extraction
+
+To investigate the validity and development of hypotheses stated by the LLMs at different steps along the trajectories,
+we extracted hypotheses and grouped them into exploitative, exploratory, and avoiding. We used GPT-5-mini to extract a
+list of hypotheses in a structured schema, including which search-space labels each hypothesis targeted (Prompt SI-4.10).
+We limited extracted hypotheses to individual search-space labels rather than individual candidate combinations. For
+example, we considered the semantics of “ion=F” and “temperature=120”, but never the semantics of “ion=F and
+temperature=120”. We then computed how the LLMs’ actions and hypotheses developed across the campaigns in the
+different prompt modes, measuring:
+
+        • LLM hypothesis-selection behavior: P(selected | exploit-endorsed), P(selected | explore-endorsed),
+        and P(selected | avoid-warned).
+
+        • LLM hypothesis frequency: fraction of supporting hypotheses per selected sample, per hypothesis category.
+
+        • LLM grounding: fraction of labels referenced by hypotheses already in the validated set.
+
+Several limiting biases affected how the extraction model categorized hypotheses: many hypotheses were difficult
+to categorize or label; many affected a large number of candidates, so many candidates carried multiple overlapping
+hypotheses of different types; and cross-dimension effects were dropped, as noted above. For a hypothesis such as
+there seems to be an inverse correlation between temperature and aromatic compounds”, the extractor could extract the
+hypothesis but label it other”.
+
+
+                                              13
+
+=== PDF第14页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+4.8  Belief estimation from reasoning traces
+
+Throughout, we defined a belief” across labels as the marginalized probability the model assigns to a given label being
+part of the best” candidate, without making immediate assumptions about what that means to the model. We restricted
+the analysis to marginalized beliefs rather than full conditional beliefs over the combinatorial search space, to obtain a
+sufficiently dense signal, at the cost of losing cross-dimension interactions. To be explicit: we captured temperature 100
+is good, I is good, F is bad”, but not temperature 100 is good when paired with ion I but bad when paired with F”.
+
+We estimated the model’s belief using an LLM judge. Given a reasoning trace and LLM output for a step, GPT-5-mini is
+asked to assign a probability bi of each label i in a dimension being best”. This was repeated for each dimension in the
+search space at the given step. If the probabilities extracted across a dimension summed to within 5% of 1, we projected
+them to the simplex; if the error was larger, or there was a parsing issue, the judge was prompted again with a relevant
+rule restated at the end of the prompt (e.g. probabilities have to sum to 1”). The judge was told to act as an independent
+observer, and the prompt was inspired by Wang et al. [52]. The exact prompt is available in Section SI-4.10. One
+dataset (OER) had a search space that made LLM hypotheses extremely broad and difficult to measure with confidence;
+we therefore dropped OER from the belief analysis.
+
+We ran several tests to validate the judge:
+
+
+        • Judge-model ablation: the same extraction was performed using qwen3-8B and haiku-4.5, all without
+         reasoning, on all prompt modes for GPT-5.4 on one dataset (direct arylation). Correlations among the three
+        judges were measured using Pearson-ρ and Spearman-ρ. When computing correlations, we considered only
+          beliefs b > 0.02 to reduce noise near 0. Extracted beliefs should be consistent across judges.
+
+        • Belief validity against oracle: we computed Brier, ECE, and AUROC for the stated beliefs against the
+        ground-truth oracle. Because these metrics are binary, the fitness landscape varied across datasets, and we
+        marginalized beliefs per label, we defined a label as “good/strong” if the mean fitness of all candidates using
+          that label was in the top third of all label means. We gave such labels a score of 1, and the remaining two-thirds
+        a score of 0. Beliefs should correlate with strong labels.
+
+        • Uncertainty validity:  belief uncertainty was measured by the Gini index of the marginal probability
+         (1 −Pi b2i ). To test it, we correlated it with the variance of a ridge linear model fit to the history of
+         validated candidates Ht, h(x) = x⊤(H⊤t Ht + λI)−1x, with λ = 1. For comparison with the per-dimension
+         marginalized beliefs, we computed the expected variance over candidates sharing a label, ¯h(v) = Ev∈x[h(x)].
+        For very large search spaces such as ALDE (140k+), we evaluated a random subsample of 4000 data points.
+         Belief uncertainty should correlate with linear-model variance.
+
+        • Model acts on beliefs: we correlated belief with the action probability q(x) (described below). A firmer belief
+         in a label should increase its likelihood of selection.
+
+
+4.9  Belief estimation from actions
+
+Previous work has shown that LLMs tend not to fully verbalize their beliefs, leading to a discrepancy between reasoning
+and actions [53]. We therefore also derived a belief directly from the actions taken. Given that selections are sparse
+(typically less than 10% of the search space is explored) and multidimensional, we used a smoothed estimate of the
+marginalized acquisition distribution:
+
+
+
+                       N
+                                                       ni              b
+                         qt(x) = Y qit(xi),   qit(xi) =        U[ni] +           , ˆpi(xi),                         (2)                                                     ni + b,         b + ni                                                    i
+
+
+where N is the number of components, ni is the number of labels in component i, b is the batch size, U is a uniform
+prior, and ˆpi(ℓ) = Pbj ⊮[xij = ℓ] is the empirically estimated marginal, obtained by counting labels in the proposals.
+
+There are two limitations. First, with a large number of labels within a component (as in amino acid domains), the
+uniform prior may drown out the marginal signal. Second, we marginalized beliefs per component rather than per cell,
+which simplified comparison with stated beliefs and yielded a denser signal but lost important coupled relationships,
+e.g., at epistatic protein-binding sites.
+
+
+                                              14
+
+=== PDF第15页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+4.10  Belief dynamics
+
+Here, we tested whether an agent’s belief update used all the information already available to it, drawing on the property
+that a rational agent should not be able to predict the direction of its next belief update from what it already knows,
+since any such predictable updates should have been incorporated in the previous cycle (the "Martingale property").
+
+Consider BO steps t ∈1, . . . , T at which the agent observed a signal st = (xt, yt), which is added to the history
+Ht = (s1, . . . , st). Its belief πt is a probability vector over the values of one search-space dimension (prior π0). The
+coordinate bt ≡πt(c, v) is the marginal probability of value v of component c belonging to the best candidate. A
+rational (Bayesian) agent’s belief is a martingale with respect to the observation filtration Ft = σ(Ht) coordinate-wise,
+                   E[πt+1 | Ft] = πt   =⇒     E[∆bt | Ft] = 0,    ∆bt = bt+1 −bt,                    (3)
+with the implication of an equivalence when imposed on every coordinate (c, v) jointly. Simply put, the next belief
+update is not predictable from the information available at time t. We quantified departures from this null with two
+diagnostics.
+
+Martingale score (He et al.) We tested Eq. 3 directly via the slope of the update on the prior belief, ∆bt =
+β1bt + β0 + ϵt, with β1 = 0 under rational updating, β1 > 0 entrenchment, and β1 < 0 over-reaction [32].
+
+Belief movement (Augenblick–Rabin).  Define the belief movement m and uncertainty reduction r in Gini form over
+a window [ta, tb]:
+                                        tb
+          m = X ∥πτ −πτ−1∥2,     ut = 1 − X π2t,v,     r = uta −utb.                    (4)
+                        τ=ta+1                                v
+Conditioning on Fτ−1 and applying Eq. 3 we get
+          E ∥πτ −πτ−1∥2 | Fτ−1 = E ∥πτ∥2 | Fτ−1 −∥πτ−1∥2 = uτ−1 −E[uτ | Fτ−1],              (5)
+It then follows that E[m] = E[r], with no assumption on the signal distribution [28]. We considered the per-step
+excess-movement statistic Z = ¯m −¯r. E[Z] = 0 under the null, Z > 0 over-reaction, Z < 0 entrenchment.
+
+Measurement-noise correction.  Both diagnostics are computed from noisy belief estimates, whether from an LLM
+judge or from actions, introducing errors-in-variables biases that neither source corrects for. Augenblick and Rabin
+derive the resulting 2σ2ε inflation of excess movement but treat it as a calibration argument rather than a correction [28].
+He. et.al [32] does not mention any bias.
+We modelled the observed belief as bt = βt + εt with E[εt | β] = 0, εt ⊥εt′ (t ̸= t′), and noise energy σ2ε = E∥εt∥2.
+The corrections below require conditional mean-zero and no autocorrelation. The noise is also only an approximation
+near the boundary of the belief simplex, where bt ∈[0, 1] creates an artificial truncation. We probed the effect
+empirically on a rational actor.
+
+Noise biases the two diagnostics in the same direction. For the slope, the noise εt enters ∆bt = ∆βt + εt+1 −εt
+negatively and bt = βt + εt positively, so
+                                           Cov(∆βt, βt) −σ2
+                                  plim ˆβnaive1  =                                                              (6)
+                                                   Var(βt) + σ2
+                                                          −σ2Hence, for a rational agent withCov(∆βt, βt) = 0, plim ˆβnaive1  = Var(βt)+σ2 < 0
+For the belief movement, each step carries E∥ετ −ετ−1∥2 = 2σ2ε, whereas the common −σ2ε bias in u cancels in
+the endpoint difference r. Hence, Z is inflated by 2σ2ε per step. This means both metrics would assign over-reaction
+(β1 < 0, Z > 0) to a rational agent.
+
+Martingale slope. The lagged belief bt−1 was used as an instrument with the noise εt−1. This noise shares no index
+with the noise εt+1, or εt, in ∆bt:
+               Cov(∆bt, , bt−1) = Cov(∆βt, , βt−1),     Cov(bt, , bt−1) = Cov(βt, , βt−1).                 (7)
+We therefore reported the estimator M˜ = Cov(∆bt, bt−1)/Cov(bt, bt−1).
+Belief movement. Here the extra noise must be estimated and subtracted. We defined dτ = bτ −bτ−1 = δτ +(ετ −ετ−1)
+with latent increment δτ = βτ −βτ−1. As with the Martingale score, consecutive moves share exactly one noise draw,
+entering with opposite signs.
+                  Xτ = −2d⊤τ dτ−1,    E[Xτ] = −2 E[δ⊤τ δτ−1] −σε2) = 2σ2ε,                         (8)
+                                                          |=0 under{z  null}
+
+
+                                              15
+
+=== PDF第16页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+    Table 3: Rational-agent (null) validation. CI computed from bootstrap across N = 300 artificial campaigns.
+               Diagnostic   Estimator        Estimate      95% CI          Prediction
+
+               Martingale score
+                            naive M        −0.0352   [−0.0406, , −0.0301]  −0.0397 (Eq. 6)
+            M˜             +0.0021   [−0.0029, , +0.0068]  0
+                  M,˜  edge-heavy  +0.0003   [−0.0011, , +0.0016]  0
+
+                 Belief movement
+                            naive Z        +0.0241   [+0.0211, , +0.0271]  +0.0250 (2σ2ε)
+                                  ˆZ             −0.0013   [−0.0041, , +0.0015]  0
+                                    ˆZ, edge-heavy   −0.0005   [−0.0029, , +0.0020]  0
+
+
+We estimated the per-step bias as ˆc = max(0, ¯X). The floor guarantees the correction never moves ˆZ further from zero
+than the uncorrected Z. We reported ˆZ = Z −ˆc and ˆm = max(0, m −ˆc, nsteps).
+
+Rational-agent (null) validation.  We validated the corrections against a Bayes-optimal actor. Over a discrete space
+X = 1, . . . , V C we draw a truth x⋆∼Unif(X) per run and observe y = s(x, x⋆) + ν, ν ∼N(0, τ 2), at each x, where
+s simply counts agreeing components. The actor’s belief bt(c, v) = P(x⋆c = v | Ft) = E[⊮x⋆c = v | Ft] ensures Eq. 3
+holds exactly, and it acts on the same simplex domain as our LLM beliefs. We added readout noise bt = βt + εt,
+εt ∼N(0, σ2) i.i.d. per candidate, at a level so the synthetic ˆc matches the ˆc measured on the judged beliefs. Table 3
+reports the outcome, repeated in an edge-heavy regime to probe the additive-noise approximation. Noise corrections are
+needed in noise-heavy regimes.
+
+
+4.11  Decision decomposition
+
+To characterize the LLM’s decisions, we extended the two-armed-bandit decomposition of Gershman [30], which
+separates greedy, UCB, and Thompson behavior through
+
+                        P(x = 1 | w) = ϕ (w1V + w2U + w3V/TU) ,                                (9)
+
+with V = µ(1) −µ(2), U = σ(1) −σ(2), TU = p σ(1)2 + σ(2)2, and ϕ the standard normal CDF.
+
+We can model decisions on the multidimensional search space as a conditional logit [54] using a GP surrogate for µ and
+σ estimation:
+                                          exp (V µ(x) + Uσ(x))
+                         P(x | Ht) =                                                              (10)                   Py̸=x exp (V µ(y) + Uσ(y)),
+
+where µ, σ are z-standardized features for mean and standard deviation, derived from a surrogate GP. V captures
+value-seeking, and U captures uncertainty-seeking. Note that we adopt the (U/V) naming convention for the parameters
+here, as defined as functions in the original paper.
+
+We fit Eq. 10 by minimizing the ridge-penalized (λ = 1) conditional negative log-likelihood against all choices, pooled
+across datasets and seeds, for the reasoning, non-reasoning, agentic, and statistical models. During optimization, each
+Newton step was solved with Tikhonov jitter (10−8I) and accepted via backtrack binary search until the objective
+decreased, iterating until a tolerance of 10−9 was reached, or 50 iterations were performed. We used a fixed GP
+surrogate (scikit-learn 1.8.0) to derive µ, σ, with an RBF kernel, lengthscale 2, constant output 1, and white
+noise 0.1. Because our total budget was much smaller than the size of the search space across all domains, the total
+uncertainty (TU) was essentially constant throughout the campaign; we therefore dropped it and accepted that we could
+not guarantee we could distinguish a Thompson acquisition function from a UCB acquisition function. We retrained
+the GP at every step to obtain the mean and uncertainties. To estimate the denominator, we used negative sampling,
+drawing N = 64 negative candidates uniformly from all candidates not sampled in the batch. We treated every choice
+in a batch as a unique selection rather than a coupled batch selection, but removed all selected candidates from the
+negative pool. Note that the fixed GP was used across datasets and was distinct from all dataset-specific models.
+
+We obtained confidence bands via a nonparametric cluster bootstrap of whole campaigns (model×dataset×seed), with
+replacement and refitting on each of B = 10,000 replicates. Feature standardization was shared across all actors,
+making the resulting (V, U) coordinates directly comparable across language models and statistical policies.
+
+
+                                              16
+
+=== PDF第17页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+4.12  Exploration metrics
+
+Search-space coding.  Each search space is a discrete grid over N components, where component i takes one of ni
+labels; write ntot = Pi ni. A candidate is the label tuple x = (x1, . . . , xN), reusing the notation of Section 4.9. We
+characterized exploration of each batch by three simple metrics: how far it steps (novelty), how surprising it is (rarity),
+and how much of the space it opens (coverage). For each, we reported an excess over a random decision.
+
+Novelty.  The min-Hamming distance from a proposal to the evaluated history, normalized by the number of compo-
+nents,
+                                     N
+                                        1
+                               Novelty =   min X ⊮[xi ̸= hi] ∈[0, 1],                               (11)
+                        N h∈Ht
+                                                     i=1
+averaged over the batch. It is 0 for a re-proposal of an evaluated point and 1 when every component differs from every
+point tried so far.
+
+Rarity.  We define label counts in the history as cit(ℓ) = Px∈Ht ⊮[xi = ℓ] and empirical marginal ˆpit(ℓ) = cit(ℓ)/mt,
+giving a predictive metric
+
+                                            cit(ℓ) + 1      ni           mt                                qit(ℓ) =      =              , U[ni] +              , ˆpit(ℓ),                         (12)
+                           mt + ni   mt + ni       mt + ni
+
+which is exactly the action-belief in Eq. 2, with the count window widened from one batch to the full history. We define
+
+                                  N
+                                        1                                         −log qit(xi)              X                                 Rarity =                                                      ∈(0, 1],                                 (13)
+                        N    log(mt + ni)                                                 i=1
+
+so that, up to normalization, rarity is the surprisal −log qt(x) of the pick under the agent’s revealed belief. The counts
+exclude the batch being scored. The maximum attainable surprisal is log(mt + ni).
+
+Coverage gain.  Coverage gain is simply the increase in the fraction of all labels the agent has touched. With
+Si(t) = xi : x ∈Ht ∪Bt the distinct labels of component i seen through step t,
+
+                       N
+                          1
+                 Cov(t) =  X Si(t) ,    CoverageGain = cov(t) −cov(t −1) ≥0,                (14)
+                               ntot                                  i=1
+
+Excess over random decision  The history confounded all three quantities. With growing Ht, novelty and coverage
+gain fell mechanically, and rarity drifted as the prior weight in Eq. 12 decayed. We therefore reported each metric as an
+excess over a uniform draw from the remaining pool Pt = X \ Ht, given the same history, so 0 is chance behavior, > 0
+explores more than random, and < 0 explores less.
+
+
+4.13  Exploration intent
+
+Exploration intent was extracted from the reasoning trace by a GPT-5-mini judge for belief estimation, returning
+an explore fraction [0,1], an explicit / explore flag, and an explore/exploit/mixed stance (one call per cycle; traces
+<150 chars skipped). We validated the judge in two ways on edbo/direct-arylation: cross-judge agreement with
+claude-haiku-4-5 and qwen3-8b, and correlation with the hypothesis extractor’s explore share.
+
+
+4.14  Context ablation
+
+The agent could access context in two ways. The history method was the validated-candidates section table in the
+prompt. The tool provided additional information through statistical ranking and filters. When we removed the history
+table but kept the tool intact, the model would repeatedly apply the same priors through the tool’s include/exclude
+arguments, allowing the agent to restrict the ranked candidate set based on component values. This created an artificial
+failure since the agent could not see what filters had been imposed in previous cycles. For no-history runs, we also
+turned off the tool’s include/exclude argument, leaving the model with only the statistical filters.
+
+We ablate the two coupled actions (removing history and turning off the tool filters) in a 2 × 2 test. We ran each cell on
+GPT-5.4 and Sonnet-4.6 across 7 datasets in default and blind prompt modes, with 10 seeds per cell.
+
+
+                                              17
+
+=== PDF第18页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+4.15  Prompt ablation
+
+As a separate ablation, we defined a nudged prompt: a one-sentence exploration instruction inserted after the overview
+block each cycle (“You have to consider every candidate in the search space. Consider both how candidates can increase
+fitness and reduce uncertainty in the search space for following cycles.‘’). We ran 10 seeds in reasoning mode across all
+5 models on the 7 main datasets, in both default and blind modes.
+
+
+4.16   Statistical analysis
+
+Statistics in the main text were pooled across all 7 datasets, 5 models, 3 prompt modes, and 15 seeds unless otherwise
+stated. All errors were bootstrapped with 95% confidence intervals with 10,000 resamples unless stated otherwise.
+Bootstrapping standard errors ensures the resampling unit is honest. We drew samples first from the datasets, then
+from the model, then from prompt mode, and finally from the seed, with replacement. Specifically, we assessed
+significance in the main benchmark using a two-sided, hierarchical, BH-corrected bootstrap with 100,000 replicates; the
+resampling unit is the dataset. We compared each LLM capability and prompt mode against the mean normalized AUC
+of the statistical acquisition functions (TS, UCB, greedy, EI), pooling the 7 benchmark datasets and 5 LLM models
+(perovskites excluded).
+
+BH-correction: We controlled the false discovery rate across families of M simultaneous tests (e.g., metric × prompt
+mode × capability) using the Benjamini–Hochberg correction [55]. Ordering the family’s p-values as p(1) ≤p(2) ≤
+· · · ≤p(M), the BH-adjusted p-value (pBH) of the hypothesis at rank i is
+
+                           M
+                                   pBH,i =  min min  1,     , p(j)  ,                                   (15)
+                                          ,i≤j≤M         j
+
+computed by a single descending pass that enforces pBH,i ≤qBH,i+1.
+
+4.17  Use of Generative AI
+
+We used Claude Code and Cursor (Auto model) for all coding. The authors manually reviewed all scripts used in the
+final analysis. Claude Opus 4.8 detected noise bias in the belief movement and Martingale score papers during a bug
+search; however, the proposed solution was insufficient to correct all biases fully.
+
+
+4.18  Data availability
+
+All code used to analyze and generate data, along with all prompts and all LLM reasoning traces and outputs are
+available under an MIT license on Zenodo: 10.5281/zenodo.22984415
+
+References
+
+ [1] Jablonka, K. M., Schwaller, P., Ortega-Guerrero, A. & Smit, B. Leveraging large language models for predictive
+     chemistry. Nature Machine Intelligence 6, 161–169 (2024). URL https://www.nature.com/articles/
+    s42256-023-00788-1.
+
+ [2] Sun, K. et al. Synllama: Generating synthesizable molecules and their analogs with large language models. ACS
+     Central Science 11, 2108–2120 (2025). URL https://doi.org/10.1021/acscentsci.5c01285.
+
+ [3] Chaves, J. M. Z. et al. Tx-LLM: A Large Language Model for Therapeutics (2024). URL http://arxiv.org/
+    abs/2406.06316. ArXiv:2406.06316 [cs.CL].
+
+ [4] Thomas, M., Bou, A. & De Fabritiis, G. Test-time training scaling laws for chemical exploration in drug design.
+     Journal of Chemical Information and Modeling 65, 13178–13186 (2025). URL https://doi.org/10.1021/
+    acs.jcim.5c02316. PMID: 41363014.
+
+ [5] Sumers, T., Yao, S., Narasimhan, K. R. & Griffiths, T. L. Cognitive architectures for language agents. Transactions
+    on Machine Learning Research (2024). URL https://openreview.net/forum?id=1i6ZCvflQJ. Survey
+      Certification, Featured Certification.
+
+ [6] Fei, Y. et al. How do agents fail on autoresearch: End-to-end diagnostic evaluation on 100 real-world frontier
+     research tasks (2026). URL https://arxiv.org/abs/2608.14905. 2608.14905.
+
+ [7] Ghafarollahi, A. & Buehler, M. J. Sparks: Multi-Agent Artificial Intelligence Model Discovers Protein Design
+      Principles (2025). URL http://arxiv.org/abs/2504.19017. ArXiv:2504.19017 [cs.AI].
+
+
+                                              18
+
+=== PDF第19页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+ [8] Ghafarollahi, A. & Buehler, M. J. Automating alloy design and discovery with physics-aware multimodal
+     multiagent AI. Proceedings of the National Academy of Sciences 122, e2414074122 (2025). URL https:
+    //www.pnas.org/doi/10.1073/pnas.2414074122.
+
+ [9] Ghareeb, A. E. et al. Robin: A multi-agent system for automating scientific discovery (2025). URL http:
+    //arxiv.org/abs/2505.13400. ArXiv:2505.13400 [cs.AI].
+
+[10] Rankovi´c, B., Griffiths, R.-R. & Schwaller, P. Large language models as uncertainty-calibrated optimizers for
+     experimental discovery. Nature Machine Intelligence 8, 1466–1477 (2026). 2504.06265.
+
+[11] McDonald, M. A. et al. Bayesian Optimization over Multiple Experimental Fidelities Accelerates Automated
+     Discovery of Drug Molecules. ACS Central Science 11, 346–356 (2025). URL https://doi.org/10.1021/
+    acscentsci.4c01991.
+
+[12] Dang, T. et al. Preferential multi-objective bayesian optimization for drug discovery. In ICLR 2025 Workshop on
+     Generative and Experimental Perspectives for Biomolecular Design (2025). URL https://openreview.net/
+    forum?id=z9mxjhz8Nb.
+
+[13] Dave, A. et al. Autonomous optimization of non-aqueous Li-ion battery electrolytes via robotic experimentation
+    and machine learning coupling. Nature Communications 13, 5454 (2022). URL https://www.nature.com/
+    articles/s41467-022-32938-1.
+
+[14] Jenewein, K. J. et al. Navigating the unknown with AI: multiobjective Bayesian optimization of non-noble acidic
+   OER catalysts. Journal of Materials Chemistry A 12, 3072–3083 (2024). URL https://doi.org/10.1039/
+    d3ta06651g.
+
+[15] Tran, K. & Ulissi, Z. W. Active learning across intermetallics to guide discovery of electrocatalysts for CO2
+     reduction and H2 evolution. Nature Catalysis 1, 696–703 (2018). URL https://www.nature.com/articles/
+    s41929-018-0142-1.
+
+[16] Ghorbani, M., Boley, M., Nakashima, P. N. H. & Birbilis, N. An active machine learning approach for optimal
+     design of magnesium alloys using Bayesian optimisation.  Scientific Reports 14, 8299 (2024). URL https:
+    //www.nature.com/articles/s41598-024-59100-9.
+
+[17] Khan, A. et al.  Toward real-world automated antibody design with combinatorial Bayesian optimiza-
+      tion. Cell Reports Methods 3 (2023). URL https://www.cell.com/cell-reports-methods/abstract/
+    S2667-2375(22)00276-4.
+
+[18] Stanton, S. et al. Accelerating Bayesian Optimization for Biological Sequence Design with Denoising Autoen-
+     coders. In Proceedings of the 39th International Conference on Machine Learning, 20459–20478 (PMLR, 2022).
+   URL https://proceedings.mlr.press/v162/stanton22a.html.
+
+[19] Yang, C. et al. Large language models as optimizers. In Kim, B. et al. (eds.) International Conference on
+     Learning Representations, vol. 2024, 12028–12068 (2024). URL https://proceedings.iclr.cc/paper_
+    files/paper/2024/file/3339f19c5fcee3ad74502947a32be9e6-Paper-Conference.pdf.
+
+[20] Liu,  T., Astorga, N., Seedat, N. & van der Schaar, M.  Large language models to enhance bayesian
+     optimization.    In Kim,  B.  et  al.  (eds.) International Conference on Learning Representations,  vol.
+     2024, 31252–31284 (2024).  URL https://proceedings.iclr.cc/paper_files/paper/2024/file/
+    84b8d9fcb4e262fcd429544697e1e720-Paper-Conference.pdf.
+
+[21] Lu, J. et al. Generative Design of Functional Metal Complexes Utilizing the Internal Knowledge and Reasoning
+     Capability of Large Language Models. Journal of the American Chemical Society 147, 32377–32388 (2025).
+   URL https://doi.org/10.1021/jacs.5c02097.
+
+[22] Reinhart, W. F. & Statt, A. Large language models design sequence-defined macromolecules via evolutionary
+     optimization.  npj Computational Materials 10, 262 (2024). URL https://www.nature.com/articles/
+    s41524-024-01449-6.
+
+[23] Anthropic.    Introducing  Claude  3.5  Sonnet  (2024).   URL https://www.anthropic.com/news/
+    claude-3-5-sonnet.
+
+[24] Wang, Y. et al. Molecular active learning: How can llms help? (2025). URL https://openreview.net/
+    forum?id=kYg04pmX7i. Withdrawn submission (ICLR 2025).
+
+[25] Kristiadi, A. et al. A sober look at LLMs for material discovery: Are they actually good for Bayesian optimization
+     over molecules? In Salakhutdinov, R. et al. (eds.) Proceedings of the 41st International Conference on Machine
+     Learning, vol. 235 of Proceedings of Machine Learning Research, 25603–25622 (PMLR, 2024). URL https:
+    //proceedings.mlr.press/v235/kristiadi24a.html.
+
+
+                                              19
+
+=== PDF第20页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+[26] Gupta, R., Hartford, J. & Liu, B. Llms for bayesian optimization in scientific domains: Are we there yet? In
+     Christodoulopoulos, C., Chakraborty, T., Rose, C. & Peng, V. (eds.) Findings of the Association for Computational
+     Linguistics: EMNLP 2025, 15482–15510 (Association for Computational Linguistics, 2025). URL https:
+    //aclanthology.org/2025.findings-emnlp.838/.
+[27] Akke, M. et al. Bayesian optimization for biochemical discovery with LLMs. ChemRxiv preprint (2025). URL
+    https://doi.org/10.26434/chemrxiv-2025-w1wsh. Preprint, not peer-reviewed.
+[28] Augenblick, N. & Rabin, M. Belief movement, uncertainty reduction, and rational updating. The Quarterly
+     Journal of Economics 136, 933–985 (2021). URL https://doi.org/10.1093/qje/qjaa043.
+
+[29] Augenblick, N., Lazarus, E. & Thaler, M. Overinference from weak signals and underinference from strong signals.
+    The Quarterly Journal of Economics 140, 335–401 (2025). URL https://doi.org/10.1093/qje/qjae032.
+    https://academic.oup.com/qje/article-pdf/140/1/335/61032634/qjae032.pdf.
+[30] Gershman, S. J. Deconstructing the human algorithms for exploration. Cognition 173, 34–42 (2018). URL
+    https://www.sciencedirect.com/science/article/pii/S0010027717303359.
+[31] Falck, F., Wang, Z. & Holmes, C.  Is in-context learning in large language models bayesian? a martingale
+     perspective (2024). URL https://arxiv.org/abs/2406.00793. 2406.00793.
+[32] He, Z., Qiu, T., Shirado, H. & Sap, M. Martingale score: An unsupervised metric for bayesian rationality in
+     llm reasoning. In The Thirty-ninth Annual Conference on Neural Information Processing Systems (2025). URL
+    https://openreview.net/forum?id=BfO6od6JD6.
+[33] Bini, P., Cong, L. W., Huang, X. & Jin, L. J. Behavioral Economics of AI: LLM Biases and Corrections (2026).
+   URL http://arxiv.org/abs/2602.09362. ArXiv:2602.09362 [econ.GN].
+[34] Engländer, L., Althammer, S., Üstün, A., Gallé, M. & Sherborne, T. Agents Explore but Agents Ignore: LLMs
+    Lack Environmental Curiosity (2026). URL https://arxiv.org/abs/2604.17609v1.
+[35] Krishnamurthy, A., Harris, K., Foster, D. J., Zhang, C. & Slivkins, A. Can large language models explore
+     in-context? In Globerson, A. et al. (eds.) Advances in Neural Information Processing Systems, vol. 37, 120124–
+    120158 (Curran Associates, Inc., 2024). URL https://proceedings.neurips.cc/paper_files/paper/
+    2024/file/d951f73c521d069fefbb73396df01424-Paper-Conference.pdf.
+[36] Zhang, Z., Wang, D., Chen, N., Mansur, R. & Sarhangian, V. Comparing Exploration-Exploitation Strategies of
+   LLMs and Humans: Insights from Standard Multi-armed Bandit Experiments (2025). URL https://arxiv.
+    org/abs/2505.09901v3.
+[37] Schmied, T., Bornschein, J., Grau-Moya, J., Wulfmeier, M. & Pascanu, R. LLMs are Greedy Agents: Ef-
+      fects of RL Fine-tuning on Decision-Making Abilities (2025). URL http://arxiv.org/abs/2504.16078.
+     ArXiv:2504.16078 [cs.LG].
+[38] Nie, A. et al. EVOLvE: Evaluating and optimizing LLMs for in-context exploration. In Singh, A. et al. (eds.)
+     Proceedings of the 42nd International Conference on Machine Learning, vol. 267 of Proceedings of Machine
+     Learning Research, 46346–46376 (PMLR, 2025). URL https://proceedings.mlr.press/v267/nie25b.
+     html.
+[39] Han, D. et al. ChemBOMAS: Accelerated Bayesian optimization for scientific discovery in chemistry with LLM-
+     enhanced multi-agent system. Preprint (2026). URL https://openreview.net/forum?id=XEkQu1ZWGN.
+[40] Kim, Y. et al. Towards a science of scaling agent systems (2026). URL https://arxiv.org/abs/2512.08296.
+    2512.08296.
+[41] Shields, B. J. et al. Bayesian reaction optimization as a tool for chemical synthesis. Nature 590, 89–96 (2021).
+   URL https://doi.org/10.1038/s41586-021-03213-y.
+[42] Yang, J. et al.  Active learning-assisted directed evolution. Nature Communications 16, 714 (2025). URL
+    https://doi.org/10.1038/s41467-025-55987-8.
+[43] van Teijlingen, A. & Tuttle, T. Beyond tripeptides two-step active machine learning for very large data sets.
+     Journal of Chemical Theory and Computation 17, 3221–3232 (2021). URL https://doi.org/10.1021/acs.
+    jctc.1c00159.
+[44] Rohr, B. et al. Benchmarking the acceleration of materials discovery by sequential learning. Chem. Sci. 11,
+    2696–2706 (2020). URL http://dx.doi.org/10.1039/C9SC05999G.
+[45] Lopez, S. A., Sanchez-Lengeling, B., de Goes Soares, J. & Aspuru-Guzik, A.  Design principles and top
+     non-fullerene acceptor candidates for organic photovoltaics. Joule 1, 857–870 (2017). URL https://www.
+    sciencedirect.com/science/article/pii/S2542435117301307.
+
+
+                                              20
+
+=== PDF第21页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+[46] Häse, F., Aldeghi, M., Hickman, R. J., Roch, L. M. & Aspuru-Guzik, A. Gryffin: An algorithm for bayesian
+     optimization of categorical variables informed by expert knowledge. Applied Physics Reviews 8 (2021). URL
+    http://dx.doi.org/10.1063/5.0048164.
+[47] OpenAI.   GPT-5.4 thinking system card (2026).  URL https://deploymentsafety.openai.com/
+    gpt-5-4-thinking.
+[48] Anthropic.   System  card:  Claude sonnet  4.6  (2026).  URL https://www-cdn.anthropic.com/
+    78073f739564e986ff3e28522761a7a0b4484f84.pdf.
+[49] Moonshot AI. Kimi K2.5: visual agentic intelligence (2026). URL https://www.kimi.com/blog/kimi-k2-5.
+[50] Qwen Team. Qwen3.5: Towards native multimodal agents (2026). URL https://qwen.ai/blog?id=qwen3.5.
+[51] Z.AI. GLM-4.7 (2025). URL https://z.ai/blog/glm-4.7.
+[52] Wang, C., Szarvas, G., Balazs, G., Danchenko, P. & Ernst, P.  Calibrating verbalized probabilities for large
+     language models (2024). URL https://arxiv.org/abs/2410.06707. 2410.06707.
+[53] Yamin, K. et al. When agents say one thing and do another: Validating elicited beliefs from llms (2026). URL
+    https://arxiv.org/abs/2602.06286. 2602.06286.
+[54] McFadden, D. Conditional logit analysis of qualitative choice behavior. In Zarembka, P. (ed.) Frontiers in
+     Econometrics, 105–142 (Academic Press, New York, 1974).
+[55] Benjamini, Y. & Hochberg, Y.  Controlling the false discovery rate: A practical and powerful approach to
+     multiple testing. Journal of the Royal Statistical Society. Series B (Methodological) 57, 289–300 (1995). URL
+    http://www.jstor.org/stable/2346101.
+
+
+
+
+
+                                              21
+
+=== PDF第22页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+SI-1  Validations
+
+
+Here we present the validation of the beliefs derived using an LLM judge.
+
+
+SI-1.1  Hypothesis analysis
+
+We extracted hypotheses stated in the reasoning traces of the reasoning models using an LLM judge. We grouped the
+hypotheses into three tags: Exploit, Explore, and Avoid. There was also a fourth "other" tag that the judge could assign if
+the hypothesis was vague or did not fit squarely in either of the first options. For each hypothesis, the judge also extracted
+all elements that the hypothesis argued for/against. An exploit hypothesis could be: "F is a strong candidate", an explore
+could be "F is untested but could perhaps go well with W", an avoid would be "F is a generally poor candidate", and
+finally other-tagged hypotheses are of multiple valencies: "F is good when paired with W but not F and has an inverse
+correlation with G concentration". On average, each reasoning trace contained ∼7 hypotheses of clear valence and
+tag, of which ∼45% were exploitative, ∼40% exploratory, and ∼15% avoiding (Table SI-1). The fractions were
+constant across prompt modes, with limited differences between models. The probability of a model selecting a value
+supported by an exploitative hypothesis was greater than the probability of it selecting one supported by an exploratory
+hypothesis, and significantly smaller than the probability of selecting one it intended to avoid (Table SI-2). Again, the
+explore/exploit split is consistent across all models and prompt modes. 92% (CI95%[0.85, 0.96], N = 11, 081) of all
+traces invoked exploration. Further, 94% (CI95%[0.90, 0.96]) of all 26,920 exploration hypotheses referenced at least
+one value that was selected in the batch, and 78.2% (CI95%[0.763, 0.800]) referenced at least one value selected that
+was itself not referenced by any exploit-hypothesis. The models certainly intend to, and act to, explore.
+
+This analysis comes with several limitations, the most significant of which is the marginalization of all values. The
+judge can list only values supported by the hypothesis with the same valence. We therefore miss coupling between
+values and more complicated interactions. We also increase noise significantly. It is common for a value to be registered
+as supported by both an exploit and an avoid hypothesis as the judge attempts to consolidate cross interactions. It
+is therefore possible that the selection frequencies around 10% of values registered as "avoid" are an artificial floor.
+Relative comparisons still hold.
+
+
+Table SI-1: Fraction of hypotheses of different tags by model and prompt mode (exploit, explore, avoid). hyps/cycle:
+mean number of hypotheses per cycle. 95% CI only. N marks the total number of hypotheses extracted per model-
+prompt mode combination. We use only hypotheses from the first 5 cycles to highlight early-stage hypothesis dynamics.
+         Model                  Mode       exploit       explore        avoid      hyps/cycle   N
+
+                                             default   [0.45, 0.49]   [0.33, 0.37]   [0.17, 0.20]    [6.7, 7.7]    2,648
+         gpt-5-4-2026-03-05         alias      [0.44, 0.47]   [0.35, 0.38]   [0.16, 0.19]    [7.1, 7.8]    2,764
+                                           blind     [0.43, 0.46]   [0.36, 0.40]   [0.16, 0.19]    [6.9, 7.5]    2,510
+
+                                             default   [0.46, 0.49]   [0.35, 0.38]   [0.15, 0.18]    [8.0, 8.8]    3,188
+         claude-sonnet-4-6           alias      [0.45, 0.49]   [0.38, 0.41]   [0.12, 0.15]    [7.5, 8.2]    2,979
+                                           blind     [0.43, 0.47]   [0.38, 0.42]   [0.14, 0.17]    [6.3, 7.0]    2,399
+
+                                             default   [0.41, 0.45]   [0.41, 0.46]   [0.13, 0.15]    [7.1, 8.0]    2,494
+         moonshotai-kimi-k2-5      alias      [0.39, 0.43]   [0.41, 0.46]   [0.14, 0.17]    [7.4, 8.3]    2,580
+                                           blind     [0.40, 0.43]   [0.39, 0.44]   [0.15, 0.19]    [6.5, 7.3]    1,922
+
+                                             default   [0.42, 0.45]   [0.41, 0.44]   [0.13, 0.15]    [7.2, 8.0]    2,318
+         qwen-qwen3-5-397b-a17b    alias      [0.41, 0.44]   [0.41, 0.44]   [0.14, 0.16]    [7.4, 8.1]    2,362
+                                           blind     [0.45, 0.48]   [0.34, 0.38]   [0.16, 0.19]    [6.8, 7.6]    1,654
+
+                                             default   [0.41, 0.46]   [0.40, 0.45]   [0.13, 0.16]    [6.6, 7.6]    2,404
+         glm-4-7                         alias      [0.38, 0.41]   [0.43, 0.48]   [0.14, 0.16]    [7.0, 7.8]    2,538
+                                           blind     [0.40, 0.45]   [0.40, 0.46]   [0.13, 0.17]    [5.7, 6.5]    2,061
+
+
+
+
+SI-1.2  Belief judge ablation
+
+Table SI-3 shows cross-model judge alignment on the direct arylation dataset, GPT-5.4, pooled across prompt modes.
+We dropped points with less than 0.02 belief weight, as large search spaces introduce significant noise in Spearman
+around 0. Agreement is excellent (> 0.8 on both overall correlation and which-is-best).
+
+
+                                              22
+
+=== PDF第23页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+Table SI-2: Fraction of values backed by hypotheses which are later selected in the batch. The hypotheses are divided
+into three tags: exploitative, exploratory, and avoiding. Relative differences between the three tags highlight the model’s
+adherence to its own claims. 95% CI shown, bootstrapped from all extracted hypotheses (N). We use only hypotheses
+from the first 5 cycles to highlight early-stage hypothesis dynamics.
+              Model                     Tag           default          alias          blind     N
+
+             gpt-5-4-2026-03-05       exploit   [0.81, 0.86]   [0.79, 0.84]   [0.82, 0.88]   3,585
+                                      explore   [0.68, 0.74]   [0.69, 0.75]   [0.68, 0.74]   2,901
+                                      avoid      [0.12, 0.18]   [0.15, 0.21]   [0.15, 0.22]   1,436
+
+             claude-sonnet-4-6        exploit   [0.81, 0.86]   [0.86, 0.90]   [0.80, 0.87]   3,989
+                                      explore   [0.75, 0.81]   [0.74, 0.80]   [0.66, 0.73]   3,281
+                                      avoid      [0.12, 0.17]   [0.15, 0.23]   [0.10, 0.19]   1,296
+
+             moonshotai-kimi-k2-5     exploit   [0.82, 0.88]   [0.78, 0.87]   [0.88, 0.93]   2,924
+                                      explore   [0.67, 0.74]   [0.68, 0.78]   [0.65, 0.72]   3,002
+                                      avoid      [0.11, 0.19]   [0.14, 0.25]   [0.11, 0.19]   1,070
+
+             qwen-qwen3-5-397b-a17b   exploit   [0.82, 0.88]   [0.78, 0.85]   [0.87, 0.93]   2,762
+                                      explore   [0.71, 0.80]   [0.71, 0.79]   [0.69, 0.78]   2,599
+                                      avoid      [0.08, 0.15]   [0.16, 0.26]   [0.12, 0.23]    973
+
+             glm-4-7                  exploit   [0.82, 0.87]   [0.83, 0.89]   [0.86, 0.91]   2,883
+                                      explore   [0.82, 0.88]   [0.80, 0.87]   [0.78, 0.85]   3,076
+                                      avoid      [0.11, 0.19]   [0.11, 0.21]   [0.10, 0.19]   1,044
+
+
+
+Table SI-3: Cross-model judge agreement on the verbalized beliefs for GPT-5.4 on direct arylation across prompt
+modes, n = 7800 points. Each gpt-5-mini-vs-judge pair is reported in two ways: the ranked agreement (Spearman ρ)
+and the overall agreement (Pearson r).
+
+                                Judge pair                    Agreement    value
+
+                                   gpt-5-mini vs claude-haiku-4-5   Spearman ρ   0.886
+                                   gpt-5-mini vs claude-haiku-4-5   Pearson r     0.941
+                                   gpt-5-mini vs qwen3-8b        Spearman ρ   0.827
+                                   gpt-5-mini vs qwen3-8b         Pearson r     0.894
+
+
+
+SI-1.3  Belief quality
+
+To further validate the extracted beliefs, we correlate them with the model’s actions at the respective steps, compute
+Brier, ECE, and AUROC scores against the oracle (the full true fitness landscape), and compute the Gini score. Only
+a modest correlation is expected, as the LLM is exploring only a small subset of the full landscape and thus cannot
+be expected to predict overall fitness. Table SI-4 reports belief quality. All models tested perform similarly. There
+is strong agreement between stated beliefs and the model’s actions (ρ > 0.5), but the correlation with the oracle is
+modest (AUROC > 0.6). Poor or no calibration with uncertainty (ρ(Gini, hdata) ∼0.1) may reflect poor calibration
+of the judge, artifacts from marginalizing uncertainty, artifacts from the uncertainty estimation (ridge regression), or
+be yet another indicator of the LLM’s inability to identify high-information areas of the search space discussed in the
+main text. Finally, ECE and Brier scores > 0.25 indicate clear overconfidence in the model or judge. The same ECE
+and Brier values appear for all judges tested. However, we cannot determine whether this is a judge-wide issue in
+understanding hypotheses or the model overstating beliefs (likely both).
+
+
+Table SI-4: Belief quality (AUROC/Brier/ECE vs. oracle) and Spearman correlations, per judged agent model. Bootstrap
+95% CI shown (N=10,000). AUROC significant if CI excludes 0.5, correlations if CI excludes 0.
+          Agent model     AUROC           Brier        ECE        ρ(Gini, hdata)       ρ(b, Psel)
+
+           gpt-5            [0.586, 0.607]   [0.301, 0.307]   [0.284, 0.292]    [0.005, 0.222]    [0.730, 0.775]
+           sonnet-4-6       [0.602, 0.623]   [0.302, 0.308]   [0.289, 0.296]    [0.009, 0.214]    [0.694, 0.744]
+           kimi-k2         [0.611, 0.626]   [0.299, 0.304]   [0.284, 0.291]   [−0.013, 0.194]   [0.587, 0.641]
+          qwen3.5-397b   [0.609, 0.625]   [0.301, 0.306]   [0.285, 0.292]   [−0.008, 0.201]   [0.625, 0.676]
+          glm-4-7         [0.616, 0.631]   [0.298, 0.304]   [0.286, 0.293]    [0.013, 0.219]    [0.699, 0.741]
+
+
+
+                                              23
+
+=== PDF第24页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+Figure SI-1: Martingale score (lower) and belief movement (upper) graph from the main paper, pooled across prompt
+modes (stated belief). Here, we have also derived the same metrics using beliefs estimated directly from actions (action
+beliefs). Action beliefs and stated beliefs yield the same measured overreaction.
+
+
+We find a close correlation between the action belief and the stated beliefs (Pearson-ρ = 0.76 CI95%[+0.754, +0.764],
+Spearman-ρ = 0.55 CI95%[+0.529, +0.562], N = 13,484 reasoning traces, 6 datasets, 5 models, 3 prompt modes).
+This strong correlation may be due in part to the judge’s ability to see the final selections in the reasoning traces.
+However, the entropy is not collapsed onto only the selected candidates. For example, “I should likely choose
+0.1 or 0.153” is realized as b0.153 = 0.45 even though 0.153 was never selected in that batch.  In fact, in 35%
+(CI95%[+0.34, +0.36], N = 13,485 batches) of all batches, a highest-belief value was never selected.  Further,
+selections for which no hypothesis was extracted (18.8% of selections, 1014 campaigns, 107,348 labels without
+hypothesis) consistently receive less probability mass (mean 0.137, CI [0.130,0.145], n = 20,128) than selections with
+assigned hypotheses (mean 0.323, CI [0.317,0.329], n = 87,220) meaning the judge is not naively assigning mass to
+the selected candidates but is effectively assessing the hypotheses.
+
+Measuring Martingale score and belief movement using the action beliefs confirms the exact findings of using stated
+beliefs (Figure SI-1).
+
+SI-1.4  Exploration judge ablation
+
+We validated the exploration intent judge in the same way as we did the belief judge. First, we performed a judge
+ablation against claude-haiku-4.5 and qwen3-8b on one dataset (direct arylation) and one model (GPT-5.4) across all
+prompt modes (Table SI-5). The verdicts of all three models were well correlated. We then correlated the intentions
+against the hypotheses extracted using a different prompt method (Section 4.7). Higher exploration intent was indeed
+correlated with an increased number of exploratory hypotheses in the reasoning traces but not the number of exploitative
+hypotheses (Table SI-6).
+
+
+Table SI-5: Cross-judge agreement on explore_fraction, GPT-5.4 on direct arylation dataset, pooled over prompt
+modes, N = 447 reasoning traces.
+                              Judge pair                   Spearman ρ   Pearson r
+
+                                 gpt-5-mini vs claude-haiku-4-5       0.83         0.84
+                                 gpt-5-mini vs qwen3-8b             0.71         0.71
+                                 claude-haiku-4-5 vs qwen3-8b       0.75         0.72
+
+
+SI-2  Further results and failure modes
+
+In this section, we delve deeper into the benchmark results to identify and characterize variance in the model and dataset.
+In particular, we describe a series of detrimental failure modes that the population-level analysis averages over. The
+shared failure mode (overreaction, stickiness) is treated in the main text and is not revisited here.
+
+
+                                              24
+
+=== PDF第25页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+Table SI-6: Exploration judge (gpt-5-mini) against independently extracted hypotheses, which tags each stated
+hypothesis as explore/exploit/avoid. N = 448 reasoning traces. Greater intent to explore should correlate with the
+number of exploratory hypotheses, but not exploitative ones.
+                                               Target   Spearman ρ [95% CI]
+
+                                                            nexplore   +0.24 [+0.14, +0.33]
+                                                                nexploit   −0.19 [−0.27, −0.10]
+                                                                 ntotal    −0.04 [−0.13, +0.05]
+
+
+
+SI-2.1  Per-dataset and per-model performance
+
+Most variance in performance lies between seeds, then datasets, and then models. Figure SI-2 shows the benchmark
+results per dataset, with error bars marking standard deviation. Figure SI-4 shows a heatmap over each prompt-
+mode×LLM-model pair on each dataset, colored by relative AUC of max fitness. No single model is strictly better than
+any other. Moreover, priors often help but can occasionally lead to worse performance. All models are history sticky,
+exploring less than even greedy (Table SI-7), although GPT and Sonnet are significantly stickier than the other three
+models.
+
+We removed the perovskites dataset from the main analysis after running only 10 seeds for reasoning and non-reasoning
+models. All models consistently suggested one of the top three candidates in the search space (196 candidates total)
+in the first batch in default mode. Removing the explicit reagent names and explicit target interaction while keeping
+chemical descriptors (alias) completely removed this behavior, and the models started to reason generally. We consider
+this a positive control of the detection mechanisms of the default-alias split.
+
+
+Table SI-7: Per-model behavioral statistics, pooled across 7 datasets, 3 prompt modes, and all seeds (reasoning).
+Exploration metrics are measured as excess over uniform sampling. Higher U, Novelty, Rarity, or Coverage are more
+exploratory. Brackets are 95% CIs from a 10,000-resample campaign cluster bootstrap. 14,175 batches over 1,575
+campaigns. GREEDY-GP and UCB-GP are statistical acquisition functions run on the same datasets for reference.
+Exploration columns use 9,450 batches over 1,050 campaigns. V /U here subsample 10 seeds/dataset.
+       Model                   V         U           Novelty          Rarity         Coverage
+
+       gpt-5.4-2026-03-05     [+2.18, +2.47]   [-3.39, -2.95]   [-0.320, -0.293]  [-0.272, -0.251]  [-0.111, -0.096]
+       claude-sonnet-4-6      [+2.34, +2.63]   [-3.36, -2.86]   [-0.314, -0.289]  [-0.266, -0.249]  [-0.087, -0.073]
+       moonshotai/kimi-k2.5  [+2.00, +2.24]   [-2.88, -2.48]   [-0.291, -0.266]  [-0.240, -0.222]  [-0.064, -0.054]
+       qwen3.5-397b-a17b      [+1.92, +2.15]   [-3.14, -2.69]   [-0.288, -0.263]  [-0.243, -0.225]  [-0.072, -0.061]
+       glm-4.7                   [+1.89, +2.12]   [-2.97, -2.60]   [-0.284, -0.261]  [-0.238, -0.221]  [-0.070, -0.060]
+
+      GREEDY-GP               [+1.61, +2.44]   [-2.80, -1.93]   [-0.262, -0.242]  [-0.201, -0.189]  [-0.068, -0.063]
+      UCB-GP                  [+1.73, +2.45]  [-0.40, +0.92]  [-0.167, -0.141]  [-0.132, -0.116]  [-0.034, -0.027]
+
+
+
+SI-2.2  Characterized failure modes
+
+The investigation raised a series of individually interesting failure modes. Two of the failures below occur only in
+default prompt mode, not in alias mode, indicating that specifics about the exact dataset (such as target protein names or
+exact ligand names) are the culprit. Figures SI-6 and SI-7 show the per-model breakdown on those two datasets. A third
+failure (simple starts on OER) is described separately.
+
+Over-preference for well-cited ligands. We observed that for some models, alias or blind mode paradoxically
+performed better than the default mode on the direct arylation dataset (Figure SI-6), with the effect most pronounced
+for GPT-5.4. On the direct arylation dataset, the optimal ligand is “CgMe-PPh”. For the general class of reactions
+(Pd-catalyzed cross-coupling), however, “X-Phos” is the most widely cited strong ligand. Searching “X-Phos palladium
+” on Google Scholar yields 2,600 hits, compared with only 13 for CgMe-PPh. Similarly, X-Phos appears 435 times in
+the RedPajama and C4 pretraining corpora, compared with 0 instances of CgMe-PPh. In our setting, GPT-5.4 selects
+the optimal CgMe-PPh in just 5.6% of default-mode selections compared with 48.5% under blind (15 seeds), while it
+selects X-Phos in 63.3% of selections in default vs 12.3% in blind. Alias falls in between (22.3%). Qwen-3.5 exposes a
+similar pattern, sampling CgMe-PPh 12.7% in default mode vs 33.9% in blind mode. The remaining three models do
+not display significant undersampling (Mean difference between blind and default: CI95%[−0.09, +0.16], 3 models,
+15 seeds). Moreover, GPT-5.4 rarely even considers CgMe-PPh. It names X-Phos in 96.7% of cycles but CgMe-PPh
+
+
+                                              25
+
+=== PDF第26页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+                ALDE, GB1                                        ALDE, TrpB
+
+
+
+
+
+            EDBO, direct arylation                                 EDBO, aryl amination
+
+
+
+
+
+                       Tripeptides                                      OER
+
+
+
+
+
+                 NFA                                                             Perovskites
+
+
+Figure SI-2: Per-dataset normalized AUC across the five models, three prompt modes, Moreover, reasoning ablation
+(max fitness and recall merged per panel). Performance is normalized per dataset against the best statistical model
+(y = 1) and random selection (y = 0). Error bars are standard deviation, dominated by between-model variance.
+
+
+
+
+
+                                              26
+
+=== PDF第27页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+                     GPT-5.4                                                         Sonnet-4.6
+
+
+
+
+
+                           Kimi-2.5                                        Qwen-3.5
+
+
+
+
+
+                                             GLM-4.7
+
+Figure SI-3: Per-model normalized AUC across 7 datasets. No single model dominates: each is strong on a different
+subset of datasets and modes.
+
+
+
+in only 22.7%. Worse, in 20% of its campaigns it never states the name CgMe-PPh even once. Even when GPT-5.4
+or Qwen-3.5 does name CgMe-PPh, they select it far less often than the other models (frequencies 0.41 and 0.24 vs
+0.64–0.95). GPT-5.4 flags CgMe-PPh as “unknown, high risk”, but also often “may be high-value exploration target",
+yet then declines to use it.
+
+
+Overcommitment to aromatics in TrpB.  On ALDE TrpB, GPT-5.4 underperforms in default mode again (Figure SI-
+7). A quick analysis of the reasoning traces showed a strong preference for the amino acid W. However, it is highly
+underrepresented among the top candidates in the search space (W makes up only 0.2% of residues in the top 1% of
+candidates; the uniform rate is 5%).
+
+To isolate the probe if the target name (TrpB) triggers memorization, we compare the default prompt against the alias
+prompt, which keeps the real amino-acid list and the biochemist framing but removes the enzyme’s identity (TrpB” and
+tryptophan”). We pool all five models (15 seeds each) and apply a one-sided Welch t-test to the per-seed fraction of a
+given amino acid in selected residues. Comparing default and alias, the effect is modest, but multiple models (Kimi,
+GLM, GPT, Qwen) exhibit an increased preference for aromatics when “TrpB” appears in the prompt: on the first
+cycle, before any experimental feedback, the selected fraction of W rises from 0.048 to 0.065 (p ≈1 × 10−4). Sonnet
+is an exception, with a non-positive change. A simmilar effect appears for F (0.050 →0.060, p = 0.003), and but
+not significantly for Y (p = 0.17). The models frequently justify selections using biochemical reasoning (aromatic
+π-stacking with the indole substrate). The models partly adapt their priors as the campaign continues. Pooled over
+all cycles, the W enrichment is no longer significant (p = 0.38), yet the models never fully abandon W or F despite
+accumulating results that argue against aromatic residues.
+
+
+                                              27
+
+=== PDF第28页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+Figure SI-4: Heatmap with full breakdown of normalized AUC by best fitness for each dataset-model-prompt mode
+triplet. Yellow means better than the best statistical model; black means worse than random. The table to the right gives
+statistical models’ relative performance as a baseline. Colors do not mark statistical significance. No model performs
+significantly better or worse than others. Note: The best statistical model is defined by a combination of fitness and
+recall performance, whereby non-"best" statistical models can be assigned normalized fitness > 1 when performance is
+close to a tie on one metric.
+
+
+Simple starts in OER.  The failure of many models on the OER dataset stems from a tendency to start the searches
+with simple choices (selection rate CI95% [0.18, 0.25], 5 models x 3 modes x 3 capabilities, relative to a uniform rate of
+0.06) leading to a significant decrease in performance (Figure SI-8). The OER search space comprises six metal ions
+that should be combined in mixtures at different ratios, with increments of 0.1. All models tend to start simple, with
+mixtures of only two ions. The strategy would likely be advisable for a human as well. Unfortunately, the OER fitness
+landscape leans heavily towards mixtures of four different ions.
+
+SI-3  Ablations and robustness checks
+
+In this section, we report complementary ablation studies that support and validate the claims made in the main text. We
+find that the behavioral signal observed (history-stickiness) is a structural property rather than an artifact of a particular
+model, tool configuration, GP surrogate, or prompt. Each subsection is self-contained and points back to the relevant
+main-text figure.
+
+SI-3.0.1  Convergence traces
+
+We inspect the full best-fitness convergence to check that the experimental budget (15 seeds) is enough for an honest
+aggregate ranking. Figure SI-9 shows the direct arylation traces split by prompt mode, with the statistical baselines in a
+separate panel for reference. After ∼10 seeds, variance starts to converge and stabilizes by 15 seeds.
+
+
+SI-3.1  Context vs. tool: a history x filter 2x2
+
+The main text shows that only removing in-context data (no-history) fully frees the agent from sticking to the validated
+dataset (main-text Figure 4). In our no-history implementation, we removed two things at once — the in-context
+
+
+                                              28
+
+=== PDF第29页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+Figure SI-5: Heatmap with full breakdown of normalized AUC by recall (number of found high-value candidates) for
+each dataset-model-prompt mode triplet. Yellow means better than the best statistical model; black means worse than
+random. The table to the right gives statistical models’ relative performance as a baseline. Colors do not mark statistical
+significance. No one model is performing significantly better or worse than others. Best statistical model is defined by a
+combination of fitness and recall performance whereby non-"best" statistical models can be assigned normalized fitness
+> 1 when performance is close to a tie on one metric.
+
+
+validated table and the tool’s include/exclude arguments — so we could not uniquely identify the two contributions.
+Here, we cross them in a 2 × 2 table (Section 4.14) and report each cell’s performance across several metrics.
+
+The standard agent (history + filter) and the no-history agent (no-history, no-filter) were run against 7 datasets, 5 models,
+2 prompt modes (blind, default), and 15 seeds, matching the main benchmark. The two off-diagonal cells that isolate
+each contribution (history no-filter and no-history filter) were run on 7 datasets, 2 models (Sonnet-4.6 and GPT-5.4), 2
+prompt modes (blind, default), and 10 seeds. We made the 2×2 comparison on the shared GPT-Sonnet, 10-seed subset.
+
+
+Table SI-8: history×filter 2 × 2, reported in (V, U) coordinates, normalized AUC, DE-fraction, and the exploration
+triple (novelty, rarity, coverage gain). Standard agent: 95% bootstrap CI of the respective metric. Other configurations:
+∆vs. Standard (cell −Standard), bootstrap difference on joint dataset and model. Exploration metrics† are excess over
+the pooled null (0 = chance). 10,000 resamples; point estimates omitted. Pooled over 7 datasets, 2 models (Sonnet-4.6
+and GPT-5.4), and 10 seeds. Bold ∆CI excludes 0. Arrows mark increased exploration.
+
+ Mode     Configuration          V          U ↑             norm. AUC           DE-frac. ↓          Novelty† ↑           Rarity† ↑          Cov. gain† ↑
+
+            Standard agent       [+2.29, +2.92]   [−2.48, −1.86]      [0.66, 0.86]        [0.31, 0.54]     [−0.36, −0.23]   [−0.29, −0.20]   [−0.11, −0.06]
+            No-history, no filter   [−0.59, −0.15]  [+0.38, +1.16]   [−0.06, +0.02]   [−0.16, −0.00]  [+0.04, +0.06]  [+0.04, +0.07]  [+0.01, +0.03]
+  Default
+              history, no filter      [−0.42, +0.02]   [−0.11, +0.19]   [−0.04, +0.02]   [−0.01, +0.05]   [−0.00, +0.01]   [+0.00, +0.02]   [−0.00, +0.01]
+            No-history, full filter  [−0.76, −0.36]  [+0.19, +0.79]  [−0.09, −0.00]  [−0.18, −0.03]  [+0.03, +0.06]  [+0.04, +0.06]  [+0.00, +0.03]
+
+            Standard agent       [+2.23, +2.98]   [−2.09, −1.59]      [0.60, 0.82]        [0.32, 0.58]     [−0.32, −0.20]   [−0.24, −0.16]   [−0.07, −0.03]
+            No-history, no filter   [−0.86, −0.31]  [+0.48, +1.40]   [−0.02, +0.05]   [−0.21, −0.03]  [+0.03, +0.06]  [+0.03, +0.06]  [+0.00, +0.02]
+  Blind
+              history, no filter      [−0.21, +0.28]   [+0.04, +0.48]   [−0.03, +0.06]   [−0.11, +0.03]   [+0.00, +0.03]  [+0.00, +0.03]   [−0.01, +0.01]
+            No-history, full filter  [−0.83, −0.30]  [+0.43, +1.27]   [−0.02, +0.05]   [−0.23, −0.05]  [+0.03, +0.07]  [+0.03, +0.06]   [−0.00, +0.02]
+
+
+SI-3.2  Do no-history agents perform relatively better where local search performs relatively worse?
+
+To answer this question, we computed the difference in normalized AUC between the agent and the no-history agent
+for fitness and recall, respectively. We then correlated this difference with a diagnostic of the relative performance of
+
+
+                                              29
+
+=== PDF第30页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+                     GPT-5.4                                                       Kimi-2.5
+
+
+
+
+
+                    Qwen-3.5                                              GLM-4.7
+
+
+Figure SI-6: Summary statistics on the performance of GPT-5.4, Kimi-2.5, Qwen-3.5, and GLM on the direct arylation
+task. All models but GLM show some negative correlation between the default prompt mode and performance; the
+variance is large among models. Error bars are standard deviation. N = 15 seeds.
+
+
+
+
+
+local optimization (DE) against uncertainty-guided optimization (UCB): the DE-UCB difference. On 7 datasets, the
+correlation is positive, suggesting that history harms where uncertainty helps, but the 95% CI is wide and includes 0.
+More datasets are needed (Figure SI-10).
+
+
+
+
+
+SI-3.3  Surrogate sensitivity of the (V,U) decomposition
+
+
+
+The (V, U) channels are read off a single fixed GP surrogate (RBF kernel, lengthscale ℓ= 2, white noise 0.1) shared
+across datasets. Table SI-9 sweeps the GP hyperparameters and reports the rank correlation of the fitted U- and
+V -orderings against this reference. The U-channel ordering is essentially invariant (ρ = 1.00 everywhere except at the
+shortest lengthscale ℓ= 0.5, where ρ = 0.96). The V -channel is robust for ℓ≥2 and noise ≤0.5 and softens only at
+short length scales.
+
+
+                                              30
+
+=== PDF第31页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+                     GPT-5.4                                                       Kimi-2.5
+
+
+
+
+
+                    Qwen-3.5                                              GLM-4.7
+
+
+Figure SI-7: Summary statistics on the performance of GPT-5.4, Kimi-2.5, Qwen-3.5, and GLM on the TrpB task. GPT
+and Qwen show some negative correlation between default prompt mode and performance. Error bars are the standard
+error. N = 15 seeds.
+
+
+
+
+
+Table SI-9: (V, U) decomposition sensitivity analysis to the hyperparameters of the GP surrogate. Spearman-ρ of the
+policy ordering on each channel against the fixed GP (ℓ= 2, noise = 0.1, c = 1; RBF), with a paired-bootstrap 95% CI
+(2,000 resamples)
+                  GP hyperparameters               ρ(U)          ρ(V )
+
+                        Reference (ℓ= 2, noise = 0.1, c = 1)  1.00           1.00
+
+                          Lengthscale ℓ
+                ℓ= 0.5                           0.96 [0.64, 1.00]  0.79 [0.61, 0.96]
+                ℓ= 1                             1.00 [0.89, 1.00]  0.86 [0.61, 0.96]
+                ℓ= 4                             1.00 [0.89, 1.00]  1.00 [0.86, 1.00]
+                ℓ= 8                             1.00 [0.89, 1.00]  1.00 [0.86, 1.00]
+
+                         Noise
+                             noise = 0.01                      1.00 [0.93, 1.00]  0.93 [0.82, 1.00]
+                             noise = 0.5                       1.00 [0.96, 1.00]  1.00 [0.86, 1.00]
+                             noise = 1.0                       1.00 [0.89, 1.00]  1.00 [0.86, 1.00]
+
+                         Constant c
+                            c = 0.25                          1.00 [0.96, 1.00]  1.00 [0.86, 1.00]
+                            c = 4                             1.00 [0.96, 1.00]  0.93 [0.86, 1.00]
+
+
+
+                                              31
+
+=== PDF第32页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+                     GPT-5.4                                                       Kimi-2.5
+
+
+
+
+
+                    Qwen-3.5                                              GLM-4.7
+
+
+  Figure SI-8: Summary statistics on the performance of GPT-5.4, Kimi-2.5, Qwen-3.5, and GLM on the OER task.
+
+
+
+SI-3.4 A capability-nudge prompt does not remove the stickiness
+
+To test whether the stickiness is prompt-dependent rather than structural, we added a prompt variant that explicitly
+instructs the model to look for under-explored, high-uncertainty regions of the search space. If the bias is prompt-
+dependent, the nudge should shift the model toward higher U and higher novelty. We ran all 5 reasoning models for
+10 seeds with the added nudge across all 7 datasets, in both blind and default mode (Details in Sec 4). Table SI-10
+shows the effect of adding an exploration nudge, pooled across models and datasets for each of the exploration and
+performance metrics used in this report. We find that nudging the model to consider the entire search space incrementally
+alleviates anti-correlation with uncertainty (pBH < 0.05, bootstrap, 7 datasets, 5 models, 10 seeds), but does not
+significantly change any of the exploration metrics. The bias is not addressed by a direct prompt-level instruction to
+explore, consistent with a structural rather than instructional origin. However, we test only a single intervention, which
+is not sufficient for a stronger claim.
+
+
+Table SI-10: Capability-nudge ablation (all five reasoning LLMs), on the same battery as Table SI-8: (V, U) coordinates,
+normalized AUC, DE-fraction, and the exploration triple (novelty, rarity, coverage gain). Nudged: ∆vs. Baseline
+(nudged −baseline), bootstrap difference on shared dataset and model. Exploration metrics† are excess over the pool
+null (< 0 implies less exploration than random). All CIs are based on 10,000 resamples across 7 datasets, 5 models,
+and 10 seeds each. Bold ∆CI separated from 0.
+
+      Mode    Prompt       V          U              norm. AUC           DE-frac.           Novelty†             Rarity†            Cov. gain†
+
+                  Baseline  [+1.94, +2.14]   [−3.18, −2.74]     [0.66, 0.82]       [0.43, 0.58]    [−0.34, −0.26]  [−0.28, −0.23]   [−0.11, −0.07]
+        Default
+               Nudged   [−0.06, +0.21]   [−0.05, +0.31]   [−0.01, +0.05]  [−0.02, +0.02]  [−0.00, +0.01]  [−0.00, +0.01]  [+0.00, +0.01]
+
+                  Baseline  [+2.11, +2.41]   [−2.94, −2.60]     [0.63, 0.77]       [0.44, 0.60]    [−0.32, −0.24]  [−0.26, −0.21]   [−0.08, −0.04]
+        Blind
+               Nudged   [−0.11, +0.26]  [+0.04, +0.44]  [−0.01, +0.04]  [−0.01, +0.04]  [−0.00, +0.01]  [−0.00, +0.01]   [−0.00, +0.01]
+
+
+
+                                              32
+
+=== PDF第33页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+                        Default                                                              Alias
+
+
+
+
+
+                        Blind                                                                       Statistical
+
+
+Figure SI-9: Convergence of LLMs and statistical models on the EDBO direct arylation dataset (best-yet fitness). LLM
+panels use 15 seeds; statistical models use 75 seeds for tighter estimates, since these normalize the AUC across datasets                                              33
+and their variance propagates to all downstream metrics.
+
+=== PDF第34页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+Figure SI-10: Correlation between relative improvement of including the history in the agent prompt and the relative
+performance of a local optimizer (DE) over an uncertainty-driven optimizer (UCB). Measured over two metrics:
+normalized AUC of fitness and recall.
+
+
+SI-4 LLM prompt templates
+
+SI-4.1  Shared schema
+
+Sent on every API and agent turn; agent campaigns append a line requiring a tool call or <batch> block.
+
+You are assisting with batch selection for active learning optimization over a discrete search
+    space.
+You must propose only combinations that appear explicitly in the **SEARCH SPACE** section of the
+    user message (exact labels and component order for that task).
+After reasoning, follow the **OUTPUT FORMAT** section exactly---no extra markup outside the
+    required selection blocks.
+
+
+User prompt schema
+
+**BACKGROUND**
+{background}
+
+**CAMPAIGN OVERVIEW:**
+ - **Current cycle:** {cycle} of {max_cycles}
+ - **Total budget:** {total_budget} experimental validations
+ - **Batch size:** {batch_size} selections to validate from this round’s picks
+ - **Experiments with known outcomes so far:** {n_validated_so_far}
+ - **LLM-driven rounds already completed before this prompt:** {n_completed_llm_rounds}
+ - **Remaining validations in this campaign:** {remaining_budget} (= {total_budget} - {
+    n_validated_so_far})
+- **Candidate pool:** propose **{candidate_pool_size}** new valid tuples (ordered by priority). We
+    parse and keep the best valid unique proposals up to the batch size above; of these, **{
+    batch_size}** will be validated in the next cycle, depending on feasibility after parsing.
+
+ **STRATEGIC APPROACH:**
+ Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+
+                                              34
+
+=== PDF第35页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+ **OUTPUT REQUIREMENTS:**
+ 1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+ 2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+ 3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT
+    FORMAT**. Do not duplicate tuples.
+
+## VALIDATED REACTIONS SO FAR
+{validated}
+
+## SEARCH SPACE
+{search_space_tables}
+
+## OUTPUT FORMAT
+{expected_format}
+
+
+
+SI-4.2  Default mode user prompts
+
+Cycle-1 user message: domain background, search space, and output format with canonical labels.
+
+
+SI-4.2.1 EDBO direct-arylation
+
+Default prompt mode.
+
+## BACKGROUND
+You are an expert chemist steering an active-learning campaign for reaction optimization. Evaluate
+    the reaction conditions using well-reasoned mechanistic hypotheses and chemical logic to
+    maximize discovery potential, and end of campaign fitness (yield proxy).
+
+**Objective:** maximize the reported reaction fitness (yield proxy) by choosing ligand, base,
+    solvent, temperature, and concentration tuples from the tabulated search space.
+
+**Reaction:** Pd-catalyzed direct C-H arylation of an imidazole with an aryl bromide, forming a C-C
+     bond. Outcome is sensitive to ligand, base, solvent, temperature, and concentration. Exact
+    allowable reagent names and numeric settings are listed only in **SEARCH SPACE** below.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 10
+- **Total budget:** 50 experimental validations
+- **Batch size:** 5 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 50 (= 50 - 0)
+- **Candidate pool:** propose **5** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **5** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED REACTIONS SO FAR
+(none yet)
+
+## SEARCH SPACE
+List of base molecules and their properties:
+Base,Anion Type,Cation Type,Sterics
+
+
+                                              35
+
+=== PDF第36页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+KOAc,Acetate,K+,"Small, low sterics",
+CsOAc,Acetate,Cs+,"Small, low sterics"
+CsOPiv,Pivalate,Cs+,Bulky
+KOPiv,Pivalate,K+,Bulky,
+
+List of ligand molecules and their properties:
+ligand name,Sterics,Electronics,Key Features
+X-Phos,Very bulky,Electron-rich,Isopropyl + cyclohexyl
+BrettPhos,Very bulky,Electron-rich; low TEP,Isopropyl + cyclohexyl; OMe groups
+PCy3 HBF4,Bulky,pK_a 9.7; TEP 2056,High basicity; strong sigma-donor
+CgMe-PPh,Moderate bulky sterically hindered,Mixed,Cyclic backbone with oxygens
+PPhtBu2,Bulky,Moderate-strong donor,t-Bu groups
+GorlosPhos HBF4,Bulky,Electron-rich,Protonated salt; air-stable
+JackiePhos,Very bulky,Electron-poor; high TEP,CF3 substituents
+tBPh-CPhos,Bulky,Strongly donating,Dimethylamino groups on aryl
+PPh2Me,Small to moderate,Moderate donor,Transition between aryl/alkyl
+PPh3,Moderate,pK_a 2.73; TEP 2069,standard aryl
+PPhMe2,Small sterics,pK_a 10.3; TEP 2072,Strong donor
+P(fur)3,Small,Electron-withdrawing,Heteroaryl O-effect
+
+List of solvent molecules and their properties:
+Solvent,Class,Boiling Point ( degC),Dielectric Constant,Dipole Moment (D),Key Features
+BuOAc,Ester,126,5,1.8,"Aprotic, moderate polarity, linear chain"
+p-Xylene,Aromatic hydrocarbon,138,2.3,0.00,"Nonpolar, high BP, inert, symmetric"
+BuCN,Nitrile,118,21,3.5,"High dipole, stabilizes cations"
+DMAc,Amide,166,38,3.7,"Highly polar, strongly coordinating"
+
+List of temperatures:
+temp_c
+105
+120
+90
+
+List of concentrations:
+concentration
+0.100
+0.057
+0.153
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>base = XXX, ligand = XXX, solvent = XXX, temp_c = XXX, concentration = XXX</selection1>
+<selection2>base = XXX, ligand = XXX, solvent = XXX, temp_c = XXX, concentration = XXX</selection2>
+<selectionN>base = XXX, ligand = XXX, solvent = XXX, temp_c = XXX, concentration = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+SI-4.2.2 EDBO aryl-amination-2b
+
+Default prompt mode.
+
+
+## BACKGROUND
+You are an expert chemist steering an active-learning campaign for reaction optimization. Evaluate
+    the previosly validated reaction conditions using chemical logic and propose mechanistic
+    hypotheses to maximize discovery potential, and end of campaign fitness (yield proxy).
+
+
+
+                                              36
+
+=== PDF第37页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+**Objective:** maximize fitness (yield proxy) for this reaction. Propose tuples (aryl halide,
+    additive, base, ligand) using **only** names and ordering allowed in **SEARCH SPACE** and **
+    OUTPUT FORMAT**.
+
+**Reaction:** A palladium-catalyzed Buchwald-Hartwig amination that couples para-methoxy phenyl
+    with amines to form C-N bonds. The reaction requires a Pd source, a phosphine or carbene ligand
+    , a base, and a solvent, and is highly sensitive to the choice of these parameters.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 10
+- **Total budget:** 50 experimental validations
+- **Batch size:** 5 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 50 (= 50 - 0)
+- **Candidate pool:** propose **5** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **5** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED REACTIONS SO FAR
+(none yet)
+
+## SEARCH SPACE
+Halogens for oxidative addition; OMe substituents are electron-donating on the aryl ring.
+
+### Aryl halides:
+aryl_halide,SMILES
+1-bromo-4-methoxybenzene,COc1ccc(Br)cc1
+1-iodo-4-methoxybenzene,COc1ccc(I)cc1
+1-chloro-4-methoxybenzene,COc1ccc(Cl)cc1
+
+List of base molecules:
+base,Class,Basicity (qual.),Distinguishing Features
+P2Et,Non-nucleophilic superbase,Very strong (pKaH ~ 25-30 in MeCN),Multiple P=N centers; highly
+    hindered; minimal nucleophilicity
+MTBD,"Strong, non-nucleophilic bicyclic guanidine","Strong (pKaH ~ 25 in MeCN, approx)","Compact,
+    highly basic; low nucleophilicity"
+BTMG,"Strong, non-nucleophilic base",Strong (pKaH ~ 13-15 in MeCN),Bulky; low nucleophilicity; good
+     solubility
+
+List of ligand molecules:
+ligand name,Sterics,Electronics,Key Features
+AdBrettPhos,Most Bulky,Highly electron-rich,Two methoxy + di-adamantyl
+tBuBrettPhos,Massive bulky,Highly electron-rich,Isopropyl + Methoxy groups + Di-tert-butyl
+X-Phos,Very bulky,Electron-rich,Isopropyl + cyclohexyl
+tBuXPhos,Extremely bulky,Highly electron-rich,Isopropyl + Di-tert-butyl
+
+List of additive molecules:
+additive,Electronics,Sterics,Coordination Potential,Solvation
+3-phenylisoxazole,Weak Donor,Moderate,Monodentate via N,Moderate lipophilicity
+5-methylisoxazole,Weak Donor,Small,Monodentate via N,Moderate lipophilicity
+ethyl-3-methoxyisoxazole-5-carboxylate,Acceptor,Moderate,Monodentate via N,Polar
+methyl-5-(thiophen-2-yl)isoxazole-3-carboxylate,Acceptor,Moderate,Monodentate via N,Polar
+methyl-5-(furan-2-yl)isoxazole-3-carboxylate,Acceptor,Moderate,Monodentate via N,Polar
+5-(2,6-difluorophenyl)isoxazole,Acceptor,Moderate,Monodentate via N,Moderate lipophilicity
+"3,5-dimethylisoxazole",Weak Donor,Small,Monodentate via N,Moderate lipophilicity
+
+
+                                              37
+
+=== PDF第38页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+N,N-dibenzylisoxazol-5-amine,Donor,Bulky,Monodentate via N,High lipophilicity
+ethyl-3-methylisoxazole-5-carboxylate,Acceptor,Moderate,Monodentate via N,Polar
+5-phenylisoxazole,Weak Donor,Moderate,Monodentate via N,Moderate lipophilicity
+ethyl-isoxazole-3-carboxylate,Acceptor,Moderate,Monodentate via N,Polar
+methyl-isoxazole-5-carboxylate,Acceptor,Small to Moderate,Monodentate via N,Polar
+3-methyl-5-phenylisoxazole,Weak Donor,Moderate,Monodentate via N,Moderate lipophilicity
+benzo[d]isoxazole,Weak Acceptor,Compact,Monodentate via N/O,Moderate lipophilicity
+3-methylisoxazole,Weak Donor,Small,Monodentate via N,Moderate lipophilicity
+N,N-dibenzylisoxazol-3-amine,Donor,Bulky,Monodentate via N,High lipophilicity
+4-phenylisoxazole,Weak Donor,Moderate,Monodentate via N,Moderate lipophilicity
+ethyl-5-methylisoxazole-4-carboxylate,Acceptor,Moderate,Monodentate via N,Polar
+5-methyl-3-(1H-pyrrol-1-yl)isoxazole,Donor,Moderate,Monodentate via N,Moderate lipophilicity
+ethyl-isoxazole-4-carboxylate,Acceptor,Moderate,Monodentate via N,Polar
+benzo[c]isoxazole,Weak Acceptor,Compact,Monodentate via N/O,Moderate lipophilicity
+ethyl-5-methylisoxazole-3-carboxylate,Acceptor,Moderate,Monodentate via N,Polar
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>aryl_halide = XXX, additive = XXX, base = XXX, ligand = XXX</selection1>
+<selection2>aryl_halide = XXX, additive = XXX, base = XXX, ligand = XXX</selection2>
+<selectionN>aryl_halide = XXX, additive = XXX, base = XXX, ligand = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+SI-4.2.3 ALDE GB1
+
+Default prompt mode.
+
+## BACKGROUND
+You are an expert biochemist steering an active-learning campaign for optimizing a 4 amino acid
+    motif. Evaluate the previosly validated motifs using biochemical logic and propose mechanistic
+    hypotheses to maximize discovery potential, and end of campaign fitness.
+
+**Objective:** maximize fitness (proxy combining stability and binding affinity) for this motif.
+    Propose tuples (amino acids) by assigning an amino acid to each of the four positions in the
+    motif, see **OUTPUT FORMAT**. You may reuse the same amino acid across multiple positions.
+
+**Protein Context:** The target of the optimization campaign is a four-site epistatic region of the
+     56-residue protein G domain B1 (GB1), an immunoglobulin-binding domain from Streptococcal
+    bacteria. Variants were assessed for stability and IgG-Fc binding using mRNA display and high-
+    throughput sequencing, enabling detailed study of epistasis and adaptive accessibility.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 6
+- **Total budget:** 60 experimental validations
+- **Batch size:** 10 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 60 (= 60 - 0)
+- **Candidate pool:** propose **10** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **10** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+
+
+                                              38
+
+=== PDF第39页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED SO FAR
+(none yet)
+
+## SEARCH SPACE
+List of Amino Acids (there is no limit to the number of identical amino acids in a tuple / motif):
+amino_acids
+M
+W
+T
+R
+A
+V
+N
+D
+E
+L
+G
+I
+F
+Y
+H
+S
+K
+C
+Q
+P
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selection1>
+<selection2>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selection2>
+<selectionN>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+SI-4.2.4 ALDE TrpB
+
+Default prompt mode.
+
+## BACKGROUND
+You are an expert biochemist steering an active-learning campaign for optimizing a 4 amino acid
+    motif. Evaluate the previosly validated motifs using biochemical logic and propose mechanistic
+    hypotheses to maximize discovery potential, and end of campaign fitness.
+
+**Objective:** maximize fitness (proxy combining stability and binding affinity) for this motif.
+    Propose tuples (amino acids) by assigning an amino acid to each of the four positions in the
+    motif, see **OUTPUT FORMAT**. You may reuse the same amino acid across multiple positions.
+
+**Protein Context:** The optimization campaign targets the beta-subunit of tryptophan synthase, an
+    enzyme that catalyzes l-tryptophan synthesis from indole and l-serine. TrpB is highly conserved
+     across all life forms except animals and exhibits rich natural sequence diversity. Fitness
+    measured here is linked to enzyme activity via a growth-based selection in an E. coli Trp-
+
+
+                                              39
+
+=== PDF第40页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+    auxotroph, where more-active TrpB variants enable faster growth in the presence of exogenous
+    indole. Variant fitness is quantified by tracking mutant frequencies over time through deep
+    sequencing. The campaign is designed to optimise a 4 amino acid motif.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 6
+- **Total budget:** 60 experimental validations
+- **Batch size:** 10 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 60 (= 60 - 0)
+- **Candidate pool:** propose **10** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **10** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED SO FAR
+(none yet)
+
+## SEARCH SPACE
+List of Amino Acids (there is no limit to the number of identical amino acids in a tuple / motif):
+amino_acids
+M
+W
+T
+R
+A
+V
+N
+D
+E
+L
+G
+I
+F
+Y
+H
+S
+K
+C
+Q
+P
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selection1>
+<selection2>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selection2>
+<selectionN>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+                                              40
+
+=== PDF第41页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+
+SI-4.2.5  GRYFFIN perovskites
+
+Default prompt mode.
+
+## BACKGROUND
+You are an expert materials scientist steering an active-learning campaign to discover hybrid
+    organic-inorganic perovskite (HOIP) compositions with favorable electronic properties for light
+     harvesting.
+
+**Objective:** maximize the reported fitness score (higher is better). Propose complete HOIP
+    candidates by choosing one organic cation, one halide anion, and one group-IV metal cation from
+     the tabulated search space.
+
+**System:** Each candidate combines an organic cation, a halide anion, and a group-IV cation. The
+    search space lists physicochemical descriptors for each component option. Validated
+    combinations so far report measured fitness for completed tuples only.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 10
+- **Total budget:** 10 experimental validations
+- **Batch size:** 1 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 10 (= 10 - 0)
+- **Candidate pool:** propose **3** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **1** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED COMBINATIONS SO FAR
+(none yet)
+
+## SEARCH SPACE
+List of organic cations and their properties:
+Organic,HOMO (eV),LUMO (eV),Dipole (D),Atomization (eV),Radius of gyration,Total mass (amu)
+imidazolium,-0.46,-0.22,1.40,-1.84,1.26,69.09
+tetramethylammonium,-0.58,-0.16,0.00,-2.58,1.50,74.15
+ethylammonium,-0.55,-0.20,3.81,-1.51,1.24,46.09
+ammonium,-0.82,-0.23,0.00,-0.42,0.49,18.04
+hydroxylammonium,-0.59,-0.23,3.54,-0.61,0.91,34.04
+azetidinium,-0.54,-0.19,2.52,-1.82,1.20,58.10
+butylammonium,-0.46,-0.20,8.68,-2.60,1.96,74.15
+isopropylammonium,-0.53,-0.19,4.03,-2.06,1.42,60.12
+propylammonium,-0.50,-0.20,6.23,-2.05,1.60,60.12
+guanidinium,-0.49,-0.19,0.00,-1.58,1.29,60.08
+hydrazinium,-0.52,-0.22,2.87,-0.76,0.88,33.05
+dimethylammonium,-0.60,-0.20,1.49,-1.50,1.23,46.09
+acetamidinium,-0.50,-0.22,1.33,-1.73,1.34,59.09
+formamidinium,-0.51,-0.24,0.21,-1.17,1.13,45.06
+trimethylammonium,-0.58,-0.18,0.86,-2.05,1.39,60.12
+methylammonium,-0.62,-0.21,2.19,-0.96,0.92,32.07
+
+List of halide anions and their properties:
+Anion,Electron affinity (eV),Ionization energy (eV),Mass (amu),Electronegativity
+
+
+                                              41
+
+=== PDF第42页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+Cl,3.61,12.97,35.45,3.00
+I,3.06,10.45,126.90,2.50
+Br,3.36,11.81,79.90,2.80
+F,3.40,17.42,19.00,4.00
+
+List of metal cations and their properties:
+Cation,Electron affinity (eV),Ionization energy (eV),Mass (amu),Electronegativity
+Ge,1.23,7.90,72.63,1.80
+Pb,0.36,7.42,207.20,1.90
+Sn,1.11,7.34,118.71,1.80
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>organic = XXX, anion = XXX, cation = XXX</selection1>
+<selection2>organic = XXX, anion = XXX, cation = XXX</selection2>
+<selectionN>organic = XXX, anion = XXX, cation = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+
+SI-4.3  Alias mode user prompts
+
+Codenames for reagent values; component names unchanged. Seed fixes the alias draw.
+
+
+SI-4.3.1 EDBO direct-arylation
+
+Alias prompt mode.
+
+## BACKGROUND
+You are an expert chemist steering an active-learning campaign for reaction optimization. Evaluate
+    the reaction conditions using well-reasoned mechanistic hypotheses and chemical logic to
+    maximize discovery potential, and end of campaign fitness (yield proxy).
+
+**Objective:** maximize the reported reaction fitness (yield proxy) by choosing ligand, base,
+    solvent, temperature, and concentration tuples from the tabulated search space.
+
+**Reaction:** A palladium-catalyzed cross-coupling between an electron-deficient aryl halide and a
+    heterocyclic nucleophile. Outcome is sensitive to ligand, base, solvent, temperature, and
+    concentration. Exact allowable reagent names and numeric settings are listed only in **SEARCH
+    SPACE** below.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 10
+- **Total budget:** 50 experimental validations
+- **Batch size:** 5 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 50 (= 50 - 0)
+- **Candidate pool:** propose **5** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **5** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+
+
+                                              42
+
+=== PDF第43页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED REACTIONS SO FAR
+(none yet)
+
+## SEARCH SPACE
+List of base molecules and their properties:
+Base,Anion Type,Cation Type,Sterics
+base1,Acetate,K+,"Small, low sterics",
+base2,Acetate,Cs+,"Small, low sterics"
+base3,Pivalate,Cs+,Bulky
+base4,Pivalate,K+,Bulky,
+
+List of ligand molecules and their properties:
+ligand name,Sterics,Electronics,Key Features
+ligand1,Very bulky,Electron-rich,Isopropyl + cyclohexyl
+ligand2,Very bulky,Electron-rich; low TEP,Isopropyl + cyclohexyl; OMe groups
+ligand3,Bulky,pK_a 9.7; TEP 2056,High basicity; strong sigma-donor
+ligand4,Moderate bulky sterically hindered,Mixed,Cyclic backbone with oxygens
+ligand5,Bulky,Moderate-strong donor,t-Bu groups
+ligand6,Bulky,Electron-rich,Protonated salt; air-stable
+ligand7,Very bulky,Electron-poor; high TEP,CF3 substituents
+ligand8,Bulky,Strongly donating,Dimethylamino groups on aryl
+ligand9,Small to moderate,Moderate donor,Transition between aryl/alkyl
+ligand10,Moderate,pK_a 2.73; TEP 2069,standard aryl
+ligand11,Small sterics,pK_a 10.3; TEP 2072,Strong donor
+ligand12,Small,Electron-withdrawing,Heteroaryl O-effect
+
+List of solvent molecules and their properties:
+Solvent,Class,Boiling Point ( degC),Dielectric Constant,Dipole Moment (D),Key Features
+solvent1,Ester,126,5,1.8,"Aprotic, moderate polarity, linear chain"
+solvent2,Aromatic hydrocarbon,138,2.3,0.00,"Nonpolar, high BP, inert, symmetric"
+solvent3,Nitrile,118,21,3.5,"High dipole, stabilizes cations"
+solvent4,Amide,166,38,3.7,"Highly polar, strongly coordinating"
+
+List of temperatures:
+temp_c
+105
+120
+90
+
+List of concentrations:
+concentration
+0.1
+0.057
+0.153
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>base = XXX, ligand = XXX, solvent = XXX, temp_c = XXX, concentration = XXX</selection1>
+<selection2>base = XXX, ligand = XXX, solvent = XXX, temp_c = XXX, concentration = XXX</selection2>
+<selectionN>base = XXX, ligand = XXX, solvent = XXX, temp_c = XXX, concentration = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+
+                                              43
+
+=== PDF第44页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+SI-4.3.2 EDBO aryl-amination-2b
+
+Alias prompt mode.
+
+## BACKGROUND
+You are an expert chemist steering an active-learning campaign for reaction optimization. Evaluate
+    the previosly validated reaction conditions using chemical logic and propose mechanistic
+    hypotheses to maximize discovery potential, and end of campaign fitness (yield proxy).
+
+**Objective:** maximize fitness (yield proxy) for this reaction. Propose tuples (aryl halide,
+    additive, base, ligand) using **only** names and ordering allowed in **SEARCH SPACE** and **
+    OUTPUT FORMAT**.
+
+**Reaction:** A palladium-catalyzed reaction that couples para-methoxy phenyl with amines to form C
+    -N bonds. The reaction requires a Pd source, a phosphine or carbene ligand, a base, and a
+    solvent, and is highly sensitive to the choice of these parameters.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 10
+- **Total budget:** 50 experimental validations
+- **Batch size:** 5 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 50 (= 50 - 0)
+- **Candidate pool:** propose **5** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **5** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED REACTIONS SO FAR
+(none yet)
+
+## SEARCH SPACE
+Halogens for oxidative addition; OMe substituents are electron-donating on the aryl ring.
+
+### Aryl halides:
+aryl_halide,SMILES
+arylhalide1,COc1ccc(Br)cc1
+arylhalide2,COc1ccc(I)cc1
+arylhalide3,COc1ccc(Cl)cc1
+
+List of base molecules:
+base,Class,Basicity (qual.),Distinguishing Features
+base3,Non-nucleophilic superbase,Very strong (pKaH ~ 25-30 in MeCN),Multiple P=N centers; highly
+    hindered; minimal nucleophilicity
+base1,"Strong, non-nucleophilic bicyclic guanidine","Strong (pKaH ~ 25 in MeCN, approx)","Compact,
+    highly basic; low nucleophilicity"
+base2,"Strong, non-nucleophilic base",Strong (pKaH ~ 13-15 in MeCN),Bulky; low nucleophilicity;
+    good solubility
+
+List of ligand molecules:
+ligand name,Sterics,Electronics,Key Features
+ligand2,Most Bulky,Highly electron-rich,Two methoxy + di-adamantyl
+ligand4,Massive bulky,Highly electron-rich,Isopropyl + Methoxy groups + Di-tert-butyl
+ligand3,Very bulky,Electron-rich,Isopropyl + cyclohexyl
+ligand1,Extremely bulky,Highly electron-rich,Isopropyl + Di-tert-butyl
+
+
+
+                                              44
+
+=== PDF第45页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+List of additive molecules:
+additive,Electronics,Sterics,Coordination Potential,Solvation
+additive13,Weak Donor,Moderate,Monodentate via N,Moderate lipophilicity
+additive4,Weak Donor,Small,Monodentate via N,Moderate lipophilicity
+additive7,Acceptor,Moderate,Monodentate via N,Polar
+additive12,Acceptor,Moderate,Monodentate via N,Polar
+additive14,Acceptor,Moderate,Monodentate via N,Polar
+additive,Acceptor,Moderate,Monodentate via N,Moderate lipophilicity
+additive9,Weak Donor,Small,Monodentate via N,Moderate lipophilicity
+additive15,Donor,Bulky,Monodentate via N,High lipophilicity
+additive1,Acceptor,Moderate,Monodentate via N,Polar
+additive21,Weak Donor,Moderate,Monodentate via N,Moderate lipophilicity
+additive3,Acceptor,Moderate,Monodentate via N,Polar
+additive8,Acceptor,Small to Moderate,Monodentate via N,Polar
+additive22,Weak Donor,Moderate,Monodentate via N,Moderate lipophilicity
+additive18,Weak Acceptor,Compact,Monodentate via N/O,Moderate lipophilicity
+additive11,Weak Donor,Small,Monodentate via N,Moderate lipophilicity
+additive17,Donor,Bulky,Monodentate via N,High lipophilicity
+additive10,Weak Donor,Moderate,Monodentate via N,Moderate lipophilicity
+additive20,Acceptor,Moderate,Monodentate via N,Polar
+additive5,Donor,Moderate,Monodentate via N,Moderate lipophilicity
+additive16,Acceptor,Moderate,Monodentate via N,Polar
+additive6,Weak Acceptor,Compact,Monodentate via N/O,Moderate lipophilicity
+additive19,Acceptor,Moderate,Monodentate via N,Polar
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>aryl_halide = XXX, additive = XXX, base = XXX, ligand = XXX</selection1>
+<selection2>aryl_halide = XXX, additive = XXX, base = XXX, ligand = XXX</selection2>
+<selectionN>aryl_halide = XXX, additive = XXX, base = XXX, ligand = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+SI-4.3.3 ALDE GB1
+
+Alias prompt mode.
+
+## BACKGROUND
+You are an expert biochemist steering an active-learning campaign for optimizing a 4 amino acid
+    motif. Evaluate the previosly validated motifs using biochemical logic and propose mechanistic
+    hypotheses to maximize discovery potential, and end of campaign fitness. Explain your reasoning
+    , optimization strategy and biochemical hypotheses along with the proposed tuples.
+
+**Objective:** maximize fitness for this motif. Propose tuples (amino acids) by assigning an amino
+    acid to each of the four positions in the motif, see **OUTPUT FORMAT**. You may reuse the same
+    amino acid across multiple positions.
+
+**Protein Context:** The target of the optimization campaign is a four-site region in an protein-
+    binding domain.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 6
+- **Total budget:** 60 experimental validations
+- **Batch size:** 10 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 60 (= 60 - 0)
+
+
+                                              45
+
+=== PDF第46页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+- **Candidate pool:** propose **10** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **10** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED SO FAR
+(none yet)
+
+## SEARCH SPACE
+List of Amino Acids (there is no limit to the number of identical amino acids in a tuple / motif):
+amino_acids
+M
+W
+T
+R
+A
+V
+N
+D
+E
+L
+G
+I
+F
+Y
+H
+S
+K
+C
+Q
+P
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selection1>
+<selection2>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selection2>
+<selectionN>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+SI-4.3.4 ALDE TrpB
+
+Alias prompt mode.
+
+## BACKGROUND
+You are an expert biochemist steering an active-learning campaign for optimizing a 4 amino acid
+    motif. Evaluate the previosly validated motifs using biochemical logic and propose mechanistic
+    hypotheses to maximize discovery potential, and end of campaign fitness.
+
+
+
+                                              46
+
+=== PDF第47页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+**Objective:** maximize fitness for this motif. Propose tuples (amino acids) by assigning an amino
+    acid to each of the four positions in the motif, see **OUTPUT FORMAT**. You may reuse the same
+    amino acid across multiple positions.
+
+**Protein Context:** The optimization campaign targets the beta-subunit of an enzyme. The fitness
+    score is a proxy for enzyme activity.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 6
+- **Total budget:** 60 experimental validations
+- **Batch size:** 10 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 60 (= 60 - 0)
+- **Candidate pool:** propose **10** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **10** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED SO FAR
+(none yet)
+
+## SEARCH SPACE
+List of Amino Acids (there is no limit to the number of identical amino acids in a tuple / motif):
+amino_acids
+M
+W
+T
+R
+A
+V
+N
+D
+E
+L
+G
+I
+F
+Y
+H
+S
+K
+C
+Q
+P
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selection1>
+<selection2>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selection2>
+<selectionN>position_1 = XXX, position_2 = XXX, position_3 = XXX, position_4 = XXX</selectionN>
+
+
+                                              47
+
+=== PDF第48页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+SI-4.3.5  GRYFFIN perovskites
+
+Alias prompt mode.
+
+## BACKGROUND
+You are an expert materials scientist steering an active-learning campaign to discover hybrid
+    organic-inorganic perovskite compositions with favorable electronic properties for light
+    harvesting.
+
+**Objective:** maximize the reported fitness score (higher is better). Propose complete candidates
+    by choosing one organic cation, one halide anion, and one metal cation from the tabulated
+    search space.
+
+**System:** Each candidate combines an organic cation, a halide anion, and a metal cation. The
+    search space lists physicochemical descriptors for each component option (HOMO/LUMO, dipole,
+    atomization, radius of gyration, mass, electron affinity, ionization energy, electronegativity)
+    . Validated combinations so far report measured fitness for completed tuples only.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 10
+- **Total budget:** 10 experimental validations
+- **Batch size:** 1 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 10 (= 10 - 0)
+- **Candidate pool:** propose **3** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **1** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED COMBINATIONS SO FAR
+(none yet)
+
+## SEARCH SPACE
+List of organic cations and their properties:
+Organic,HOMO (eV),LUMO (eV),Dipole (D),Atomization (eV),Radius of gyration,Total mass (amu)
+organic1,-0.46,-0.22,1.40,-1.84,1.26,69.09
+organic2,-0.58,-0.16,0.00,-2.58,1.50,74.15
+organic3,-0.55,-0.20,3.81,-1.51,1.24,46.09
+organic4,-0.82,-0.23,0.00,-0.42,0.49,18.04
+organic5,-0.59,-0.23,3.54,-0.61,0.91,34.04
+organic6,-0.54,-0.19,2.52,-1.82,1.20,58.10
+organic7,-0.46,-0.20,8.68,-2.60,1.96,74.15
+organic8,-0.53,-0.19,4.03,-2.06,1.42,60.12
+organic9,-0.50,-0.20,6.23,-2.05,1.60,60.12
+organic10,-0.49,-0.19,0.00,-1.58,1.29,60.08
+organic11,-0.52,-0.22,2.87,-0.76,0.88,33.05
+organic12,-0.60,-0.20,1.49,-1.50,1.23,46.09
+organic13,-0.50,-0.22,1.33,-1.73,1.34,59.09
+organic14,-0.51,-0.24,0.21,-1.17,1.13,45.06
+organic15,-0.58,-0.18,0.86,-2.05,1.39,60.12
+organic16,-0.62,-0.21,2.19,-0.96,0.92,32.07
+
+
+                                              48
+
+=== PDF第49页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+List of halide anions and their properties:
+Anion,Electron affinity (eV),Ionization energy (eV),Mass (amu),Electronegativity
+anion1,3.61,12.97,35.45,3.00
+anion2,3.06,10.45,126.90,2.50
+anion3,3.36,11.81,79.90,2.80
+anion4,3.40,17.42,19.00,4.00
+
+List of metal cations and their properties:
+Cation,Electron affinity (eV),Ionization energy (eV),Mass (amu),Electronegativity
+cation1,1.23,7.90,72.63,1.80
+cation2,0.36,7.42,207.20,1.90
+cation3,1.11,7.34,118.71,1.80
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>organic = XXX, anion = XXX, cation = XXX</selection1>
+<selection2>organic = XXX, anion = XXX, cation = XXX</selection2>
+<selectionN>organic = XXX, anion = XXX, cation = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+
+SI-4.4  Blind mode user prompt (EDBO direct-arylation)
+
+Generic background, codenames for components and values, blind validated-section title.
+
+## BACKGROUND
+You are optimizing a combinatorial system with multiple interacting components. Each component
+    takes values from a discrete set listed in the search space below. The objective is a scalar
+    fitness value determined by an unknown function of the full combination. Your goal is to
+    propose candidate combinations that maximize fitness as efficiently as possible, using the
+    results of previously evaluated combinations to guide your choices. Use the component
+    identifiers and value labels from the search space exactly as written when proposing candidates
+    .
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 10
+- **Total budget:** 50 experimental validations
+- **Batch size:** 5 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 50 (= 50 - 0)
+- **Candidate pool:** propose **5** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **5** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**STRATEGIC APPROACH:**
+Test well-reasoned hypotheses to maximize discovery potential and fitness at end of campaign.
+
+**OUTPUT REQUIREMENTS:**
+1. **Reasoning**: Evaluate past cycles and explain your logic for the next cycle.
+2. **Strategy**: Describe your rationale for the campaign strategy at the current stage.
+3. **Final list**: End with the required candidate blocks in the format given under **OUTPUT FORMAT
+    **. Do not duplicate tuples.
+
+## VALIDATED COMBINATIONS SO FAR
+
+
+                                              49
+
+=== PDF第50页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+(none yet)
+
+## SEARCH SPACE
+List of available plants:
+plant
+Spruce
+Dogwood
+Kapok
+Reed
+
+List of available vehicles:
+vehicle
+Coupe
+Pickup
+Wagon
+Hauler
+Buggy
+Minivan
+Cabrio
+Scooter
+Limousine
+Targa
+Tanker
+Rig
+
+List of available animals:
+animal
+Dingo
+Manatee
+Aardvark
+Walrus
+
+List of available spans:
+span
+105
+120
+90
+
+List of available rates:
+rate
+0.100
+0.057
+0.153
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>plant = XXX, vehicle = XXX, animal = XXX, span = XXX, rate = XXX</selection1>
+<selection2>plant = XXX, vehicle = XXX, animal = XXX, span = XXX, rate = XXX</selection2>
+<selectionN>plant = XXX, vehicle = XXX, animal = XXX, span = XXX, rate = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+
+SI-4.5  Agent tool (filter-candidates)
+
+Tool schema bound on the first agent turn; identical across datasets.
+
+
+
+                                              50
+
+=== PDF第51页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+Tool name: filter_candidates
+
+Returns the top ‘top_k‘ highest-scoring not-yet-validated combinations in the campaign search space.
+      Uses validated combinations already submitted in this campaign and the SEARCH SPACE table from
+      the same prompt; validated rows are excluded automatically. Fits a surrogate regression model
+     on the validated candidates and predicts mean fitness and uncertainty across the search space.
+     Applies optional column include and exclude filters. Scores candidates using the policy
+     specified in ‘method‘. Read-only: does not modify campaign state. Returns plain text: eligible,
+      excluded_already_selected, and excluded_by_query counter lines; method=<policy> in lowercase;
+     then a markdown table with SEARCH SPACE columns plus mean, variance, and score for the top-
+     ranked rows.
+
+Parameters:
+- top_k: Number of top-ranked candidates to return, sorted by descending score. Defaults to 1.
+- include: Optional map from SEARCH SPACE column header to allowed cell values copied from that
+     column. Omitted columns allow any value.
+- exclude: Optional map from SEARCH SPACE column header to forbidden cell values copied from that
+     column. Omitted columns exclude nothing.
+- method: Scoring policy: ‘mean‘, ‘mean_plus_uncertainty‘, or ‘expected_improvement‘ (case-
+     insensitive). ‘mean‘ returns the surrogate’s predicted mean. ‘mean_plus_uncertainty‘ returns
+     mean plus ‘beta‘ times posterior standard deviation. ‘expected_improvement‘ returns the
+     standard-normal expected-improvement value computed from the mean and standard deviation,
+     relative to the best validated observation. Unknown methods raise an error listing the three
+     accepted values.
+- kwargs: Policy hyperparameters object; use {} for ‘mean‘; ‘mean_plus_uncertainty‘ reads ‘beta‘ (
+     default 2.0); ‘expected_improvement‘ reads ‘jitter‘ (default 0.01). Other keys are ignored.
+
+
+SI-4.6  Parse-retry feedback (EDBO direct-arylation)
+
+Appended after a failed parse; example valid/invalid tuples from the dataset oracle.
+
+---
+## FEEDBACK ON YOUR LAST PROPOSAL (READ THIS LAST)
+You selected:
+KOAc,BrettPhos,DMAc,105,0.1
+
+but the following were invalid for validation (invalid label, duplicate, out of search space, or
+     already scheduled):
+KOAc,PPhtBu2,DMAc,105,0.1
+KOAc,BrettPhos,DMAc,105,0.1
+
+Add **4** more distinct valid tuples so your full pool reaches **5** (1 already locked in for this
+     cycle). After filtering, we still need at least **5** more valid unique tuples for this cycle’s
+      **5** scheduled validations. You may send only the additional lines, or resend the full ranked
+      pool (we merge across attempts). Do not duplicate any tuple already listed above or already
+     shown in the validated-so-far section of the user message.
+
+**Output format**: Provide only the additional lines required by **OUTPUT FORMAT** above (you may
+     resend the full pool if you prefer). Every component value must come from the search space and
+     use the same component order as in **SEARCH SPACE**.
+
+
+SI-4.7  Non-reasoning user prompt (EDBO direct-arylation)
+
+–reasoning none: no strategic-approach block; stricter output requirements and suffix.
+
+## BACKGROUND
+You are an expert chemist steering an active-learning campaign for reaction optimization. Evaluate
+     the reaction conditions using well-reasoned mechanistic hypotheses and chemical logic to
+     maximize discovery potential, and end of campaign fitness (yield proxy).
+
+**Objective:** maximize the reported reaction fitness (yield proxy) by choosing ligand, base,
+     solvent, temperature, and concentration tuples from the tabulated search space.
+
+
+                                              51
+
+=== PDF第52页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+**Reaction:** Pd-catalyzed direct C-H arylation of an imidazole with an aryl bromide, forming a C-C
+     bond. Outcome is sensitive to ligand, base, solvent, temperature, and concentration. Exact
+    allowable reagent names and numeric settings are listed only in **SEARCH SPACE** below.
+
+**CAMPAIGN OVERVIEW:**
+- **Current cycle:** 1 of 10
+- **Total budget:** 50 experimental validations
+- **Batch size:** 5 selections to validate from this round’s picks
+- **Experiments with known outcomes so far:** 0
+- **LLM-driven rounds already completed before this prompt:** 0
+- **Remaining validations in this campaign:** 50 (= 50 - 0)
+- **Candidate pool:** propose **5** new valid tuples (ordered by priority). We parse and keep the
+    best valid unique proposals up to the batch size above; of these, **5** will be validated in
+    the next cycle, depending on feasibility after parsing.
+
+**OUTPUT REQUIREMENTS:**
+End with the required candidate blocks in the format given under **OUTPUT FORMAT**. Do not
+    duplicate tuples.
+
+## VALIDATED REACTIONS SO FAR
+(none yet)
+
+## SEARCH SPACE
+List of base molecules and their properties:
+Base,Anion Type,Cation Type,Sterics
+KOAc,Acetate,K+,"Small, low sterics",
+CsOAc,Acetate,Cs+,"Small, low sterics"
+CsOPiv,Pivalate,Cs+,Bulky
+KOPiv,Pivalate,K+,Bulky,
+
+List of ligand molecules and their properties:
+ligand name,Sterics,Electronics,Key Features
+X-Phos,Very bulky,Electron-rich,Isopropyl + cyclohexyl
+BrettPhos,Very bulky,Electron-rich; low TEP,Isopropyl + cyclohexyl; OMe groups
+PCy3 HBF4,Bulky,pK_a 9.7; TEP 2056,High basicity; strong sigma-donor
+CgMe-PPh,Moderate bulky sterically hindered,Mixed,Cyclic backbone with oxygens
+PPhtBu2,Bulky,Moderate-strong donor,t-Bu groups
+GorlosPhos HBF4,Bulky,Electron-rich,Protonated salt; air-stable
+JackiePhos,Very bulky,Electron-poor; high TEP,CF3 substituents
+tBPh-CPhos,Bulky,Strongly donating,Dimethylamino groups on aryl
+PPh2Me,Small to moderate,Moderate donor,Transition between aryl/alkyl
+PPh3,Moderate,pK_a 2.73; TEP 2069,standard aryl
+PPhMe2,Small sterics,pK_a 10.3; TEP 2072,Strong donor
+P(fur)3,Small,Electron-withdrawing,Heteroaryl O-effect
+
+List of solvent molecules and their properties:
+Solvent,Class,Boiling Point ( degC),Dielectric Constant,Dipole Moment (D),Key Features
+BuOAc,Ester,126,5,1.8,"Aprotic, moderate polarity, linear chain"
+p-Xylene,Aromatic hydrocarbon,138,2.3,0.00,"Nonpolar, high BP, inert, symmetric"
+BuCN,Nitrile,118,21,3.5,"High dipole, stabilizes cations"
+DMAc,Amide,166,38,3.7,"Highly polar, strongly coordinating"
+
+List of temperatures:
+temp_c
+105
+120
+90
+
+List of concentrations:
+concentration
+0.100
+0.057
+0.153
+
+
+
+                                              52
+
+=== PDF第53页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+## OUTPUT FORMAT
+Each candidate is one tuple with **one value per component** in the order shown in **SEARCH SPACE**.
+
+Wrap proposals in ‘<batch>...</batch>‘. Inside, emit one ‘<selectionk>...</selectionk>‘ block per
+    proposed tuple (k = 1, 2, ...).
+Use labeled fields so parsing is unambiguous, for example:
+
+<batch>
+<selection1>base = XXX, ligand = XXX, solvent = XXX, temp_c = XXX, concentration = XXX</selection1>
+<selection2>base = XXX, ligand = XXX, solvent = XXX, temp_c = XXX, concentration = XXX</selection2>
+<selectionN>base = XXX, ligand = XXX, solvent = XXX, temp_c = XXX, concentration = XXX</selectionN>
+</batch>
+
+Do not duplicate tuples. Use only labels that appear verbatim in **SEARCH SPACE** where applicable.
+
+DO NOT OUTPUT ANYTHING ELSE. ONLY THE FINAL SELECTTION
+
+
+
+SI-4.8  Fresh agent response
+
+Thinking example from qwen agent on the first step of a campaign
+
+This is cycle 1 of 10 in an active learning campaign for Pd-catalyzed C-N coupling optimization. No
+     experiments have been validated yet (0 known outcomes). I need to propose 5 diverse, well-
+    reasoned experimental conditions to explore the search space effectively.
+
+**Search Space Summary:**
+- **Bases (4):** KOAc, CsOAc, CsOPiv, KOPiv
+  - Acetates (KOAc, CsOAc): Small, low sterics
+  - Pivalates (CsOPiv, KOPiv): Bulky
+  - Cations: K+ vs Cs+ (Cs+ is larger, more polarizable)
+
+- **Ligands (12):** Range from small (PPhMe2, P(fur)3) to very bulky (X-Phos, BrettPhos, JackiePhos
+    )
+  - Electron-rich: X-Phos, BrettPhos, GorlosPhos HBF4, tBPh-CPhos, PPhMe2
+  - Electron-poor: JackiePhos, P(fur)3
+  - Mixed/moderate: PCy3 HBF4, CgMe-PPh, PPhtBu2, PPh2Me, PPh3
+
+- **Solvents (4):**
+  - BuOAc: Ester, moderate polarity (eps=5)
+  - p-Xylene: Nonpolar aromatic (eps=2.3)
+  - BuCN: Nitrile, high dipole (eps=21)
+  - DMAc: Amide, highly polar coordinating (eps=38)
+
+- **Temperatures (3):** 90, 105, 120 deg C
+
+- **Concentrations (3):** 0.057, 0.100, 0.153 M
+
+**Strategic Considerations for Cycle 1 (Exploration Phase):**
+
+Since we have no data yet, this is pure exploration. I should:
+1. Cover diverse regions of the search space
+2. Test hypotheses about what might work well for Pd-catalyzed C-N coupling
+3. Include some "safe" choices (known good conditions from literature) and some exploratory choices
+
+**Mechanistic Hypotheses for Pd-C-N Coupling:**
+
+1. **Ligand effects:** For C-N coupling with heteroaryl partners (pyrazole-type), bulky electron-
+    rich ligands are often preferred to facilitate reductive elimination and prevent catalyst
+    deactivation. BrettPhos and X-Phos are famous Buchwald ligands for such transformations.
+
+2. **Base effects:** The base needs to deprotonate the N-H of pyrazole. Bulky bases (pivalates) may
+     help with solubility and reduce side reactions. Cs+ salts often show enhanced reactivity due
+    to better solubility and weaker ion pairing.
+
+
+                                              53
+
+=== PDF第54页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+3. **Solvent effects:** Polar aprotic solvents often work well for Pd-catalyzed couplings. DMAc is
+    commonly used but may coordinate too strongly. BuCN could stabilize cationic intermediates. p-
+    Xylene is traditional for high-temperature couplings.
+
+4. **Temperature:** Higher temperatures (120 deg C) typically accelerate coupling but may cause
+    decomposition. Starting with moderate-high temps is reasonable.
+
+5. **Concentration:** Standard concentrations (0.1 M) are a good starting point, but varying this
+    can affect kinetics and catalyst stability.
+
+**Proposed 5 Conditions for Maximum Diversity and Discovery:**
+
+1. **"Standard Buchwald conditions"** - BrettPhos (proven ligand), CsOPiv (bulky Cs base), p-Xylene
+     (traditional high-BP solvent), 120 deg C (standard), 0.100 M (standard)
+
+2. **"Electron-rich bulky ligand with polar solvent"** - X-Phos, KOAc, DMAc (highly polar), 105 deg
+     C, 0.100 M
+
+3. **"Exploratory - electron-poor ligand"** - JackiePhos (electron-poor, very bulky), CsOAc, BuCN (
+    high dipole), 120 deg C, 0.153 M (higher conc)
+
+4. **"Small ligand variant"** - PPhMe2 (small, strong donor), KOPiv, BuOAc (ester, moderate), 90
+    deg C (lower temp), 0.057 M (lower conc)
+
+5. **"Traditional aryl phosphine"** - PPh3 (standard, well-known), CsOPiv, p-Xylene, 105 deg C,
+    0.153 M
+
+Let me verify all values are from the search space:
+
+Bases: KOAc (ok), CsOAc (ok), CsOPiv (ok), KOPiv (ok)
+Ligands: BrettPhos (ok), X-Phos (ok), JackiePhos (ok), PPhMe2 (ok), PPh3 (ok)
+Solvents: p-Xylene (ok), DMAc (ok), BuCN (ok), BuOAc (ok), p-Xylene (ok)
+Temps: 120 (ok), 105 (ok), 120 (ok), 90 (ok), 105 (ok)
+Concentrations: 0.100 (ok), 0.100 (ok), 0.153 (ok), 0.057 (ok), 0.153 (ok)
+
+This gives good diversity across:
+- Ligand sterics/electronics (very bulky electron-rich -> bulky electron-poor -> small donor ->
+    standard aryl)
+- Base types (acetate vs pivalate, K vs Cs)
+- Solvents (nonpolar -> highly polar -> high dipole -> ester -> nonpolar)
+- Temperatures (high -> medium-high -> high -> low -> medium-high)
+- Concentrations (medium -> medium -> high -> low -> high)
+
+This should provide excellent initial exploration data for the surrogate model.
+
+
+SI-4.9  Mid campaign agent response
+
+Thinking example from qwen agent at a later step of a campaign. Note that tool payloads and calls occured before this
+thinking session.
+
+Interesting - the filter_candidates tool is recommending PPhMe2 combinations with high uncertainty
+    (the mean is negative but variance is very high, giving high UCB scores). This makes sense
+    because PPhMe2 hasn’t been validated yet - it’s completely unexplored territory.
+However, I already have 2 PPhMe2 combinations locked in (with DMAc and BuOAc at 105 deg C, 0.1
+    concentration). The model is suggesting PPhMe2 with BuCN at various conditions.
+Given that:
+
+PPhMe2 is unexplored and showing high uncertainty (exploration value)
+I already have 2 PPhMe2 selections locked in
+I should balance exploration with exploitation
+
+My original plan still makes sense:
+
+
+                                              54
+
+=== PDF第55页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+
+CsOAc, X-Phos, p-Xylene, 120, 0.1 - exploits the known high-performing X-Phos ligand, tests
+    temperature effect
+KOAc, X-Phos, DMAc, 105, 0.1 - tests cation effect with the best ligand/solvent combo
+
+But I could also consider adding a PPhMe2/BuCN combination since the model is highlighting it as
+    high-uncertainty. However, I already have 2 PPhMe2 combos locked in, so adding a 3rd might be
+    over-committing to one ligand.
+Let me stick with my original 2 proposals which provide good chemical diversity:
+
+Temperature variation with X-Phos (known performer)
+Cation variation with X-Phos (known performer)
+
+These complement the 3 locked-in selections (2x PPhMe2 exploration, 1x CgMe-PPh temperature
+    variation).
+Final batch of 5:
+
+CsOAc, PPhMe2, DMAc, 105, 0.1 (locked)
+CsOAc, PPhMe2, BuOAc, 105, 0.1 (locked)
+CsOAc, CgMe-PPh, DMAc, 120, 0.1 (locked)
+CsOAc, X-Phos, p-Xylene, 120, 0.1 (my addition)
+KOAc, X-Phos, DMAc, 105, 0.1 (my addition)
+
+I’ll provide the full batch for clarity.
+The surrogate model highlights PPhMe2 combinations as high-uncertainty (unexplored ligand), which
+    aligns with my 2 locked-in PPhMe2 selections. The model also shows high variance across the
+    space, indicating good exploration opportunities remain.
+My 2 additional proposals complement the locked-in selections by:
+
+Exploiting the proven X-Phos ligand (0.83--0.88 fitness range) with temperature variation
+Testing cation effects (K+ vs Cs+) with the best-performing ligand/solvent combination
+
+This gives a balanced batch: 2x PPhMe2 exploration, 1x CgMe-PPh temperature probe, 2x X-Phos
+    optimization.
+
+
+
+SI-4.10  Extraction prompts
+
+Prompt used to extract hypotheses from reasoning
+
+You annotate the beliefs of a Bayesian-optimization agent from ONE reasoning transcript of one
+    round of a sequential experiment-design task. You are given the search-space  components (each
+    as c0,c1,... with a label and its EXACT allowed values), the search-space descriptors the agent
+     saw, and the agent’s transcript.
+
+Extract every distinct HYPOTHESIS / belief-bearing statement the agent makes about which values of
+    which components are good or bad to choose. For each hypothesis:
+- text: a <=160-char paraphrase of the claim (keep the agent’s own value names).
+- tag: ’exploit’ (commit to values it argues are good), ’explore’ (try values because untested/
+    uncertain, to gain information), ’avoid’ (steer away from values it argues are bad), ’other’ (
+    if no one label clearly fits).
+- filters: a list of {component, include, exclude} items. For each component the hypothesis
+    constrains, list the EXACT allowed values it covers. If the agent speaks of a PROPERTY or group
+     (’electron-rich ligands’, ’pivalate bases’, ’hydrophobic residues’), EXPAND it to every
+    allowed value that has that property, using the descriptors shown. exploit’/’explore’ values go
+     in include; ’avoid’ values go in exclude. Use ONLY values from the allowed lists, copied
+    verbatim.
+
+Report only belief-bearing statements about component values; ignore pure formatting/planning talk.
+     Merge duplicates. If the transcript makes no scientific claim, return an empty list.
+
+"COMPONENTS (c-index: label = allowed values):"
+{components to map}
+
+
+
+                                              55
+
+=== PDF第56页 ===
+                                            A PREPRINT - SEPTEMBER 29, 2026
+
+
+
+SEARCH-SPACE DESCRIPTORS (as shown to the agent):
+{search_space}
+
+AGENT TRANSCRIPT:
+{reasoning}
+
+
+Prompt used to extract beliefs from reasoning
+
+You are an INDEPENDENT OBSERVER. You are given (1) one experimental DIMENSION -- its name and the
+    exact list of candidate values it can take -- and (2) a REASONING CHAIN written by an
+    optimization agent searching for the best values. Read the chain and estimate, for THIS one
+    dimension, the agent’s BELIEF about which single value is the strongest (best) choice.
+
+Exactly ONE value can be the best, so you are distributing a probability across the candidate
+    values: for each value, the probability that the agent believes IT is the best choice for this
+    dimension. Because only one can be best, these probabilities are mutually exclusive and MUST
+    SUM TO 1 over exactly the candidate values given.
+
+Estimate the AGENT’s belief as expressed in its reasoning -- not your own opinion, and not the
+    ground truth. Put more probability on values the chain favours or argues for, less on values it
+     doubts, dismisses, or never supports; spread the probability when the chain is genuinely
+    unsure among several values.
+
+Output ONLY a single JSON object mapping each candidate value (copied verbatim) to its probability
+    -- nothing else: no prose, no markdown, no extra keys, no comments. Keys must be exactly the
+    given candidate values; values are non-negative numbers that sum to 1.
+
+DIMENSION: {label}
+CANDIDATE VALUES (use these EXACT strings as the JSON keys):
+{vlist}
+
+REASONING CHAIN:
+{reasoning}
+
+For the dimension \"{label}\", output the agent’s belief that each candidate value is the single
+    BEST choice. Only one value can be best, so the numbers form a probability distribution over
+    exactly the values listed above and MUST sum to 1. Output ONLY the JSON object {{\"<value>\": <
+    probability>, ...}} covering exactly those values - no other text.
+
+
+
+
+
+                                              56

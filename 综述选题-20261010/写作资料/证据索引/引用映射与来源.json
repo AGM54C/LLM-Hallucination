@@ -1,0 +1,650 @@
+[
+  {
+    "number": 1,
+    "stable_id": "1",
+    "old_number": 1,
+    "entry": "Qiguang Chen, Mingda Yang, Libo Qin, et al. AI4Research: A Survey of Artificial Intelligence for Scientific Research[EB/OL]. arXiv:2507.01903v2, 2025.",
+    "pdf": "AI4Research： A Survey of Artificial Intelligence for Scientific Research.pdf",
+    "url": "https://arxiv.org/abs/2507.01903v2",
+    "formatted_entry": "Qiguang Chen, Mingda Yang, Libo Qin, et al. AI4Research: A Survey of Artificial Intelligence for Scientific Research[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2507.01903v2."
+  },
+  {
+    "number": 2,
+    "stable_id": "8",
+    "old_number": 8,
+    "entry": "Shuo Ren, Can Xie, Pu Jian, et al. Towards Scientific Intelligence: A Survey of LLM-based Scientific Agents[EB/OL]. arXiv:2503.24047v3, 2026.",
+    "pdf": "Towards Scientific Intelligence： A Survey of LLM-based Scientific Agents.pdf",
+    "url": "https://arxiv.org/abs/2503.24047v3",
+    "formatted_entry": "Shuo Ren, Can Xie, Pu Jian, et al. Towards Scientific Intelligence: A Survey of LLM-based Scientific Agents[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2503.24047v3."
+  },
+  {
+    "number": 3,
+    "stable_id": "24",
+    "old_number": 24,
+    "entry": "Andres M Bran, Sam Cox, Oliver Schilter, et al. Augmenting large language models with chemistry tools[EB/OL]. arXiv:2304.05376v5, 2023.",
+    "pdf": "Augmenting large language models with chemistry tools.pdf",
+    "url": "https://arxiv.org/abs/2304.05376v5",
+    "formatted_entry": "Andres M Bran, Sam Cox, Oliver Schilter, et al. Augmenting large language models with chemistry tools[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2304.05376v5."
+  },
+  {
+    "number": 4,
+    "stable_id": "25",
+    "old_number": 25,
+    "entry": "Daniil A. Boiko, Robert MacKnight, Gabe Gomes. Emergent autonomous scientific research capabilities of large language models[EB/OL]. arXiv:2304.05332v1, 2023.",
+    "pdf": "Emergent autonomous scientific research capabilities of large language models.pdf",
+    "url": "https://arxiv.org/abs/2304.05332v1",
+    "formatted_entry": "Daniil A. Boiko, Robert MacKnight, Gabe Gomes. Emergent autonomous scientific research capabilities of large language models[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2304.05332v1."
+  },
+  {
+    "number": 5,
+    "stable_id": "3",
+    "old_number": 3,
+    "entry": "Chris Lu, Cong Lu, Robert Tjarko Lange, et al. The AI Scientist: Towards Fully Automated Open-Ended Scientific Discovery[EB/OL]. arXiv:2408.06292v3, 2024.",
+    "pdf": "The AI Scientist： Towards Fully Automated Open-Ended Scientific Discovery.pdf",
+    "url": "https://arxiv.org/abs/2408.06292v3",
+    "formatted_entry": "Chris Lu, Cong Lu, Robert Tjarko Lange, et al. The AI Scientist: Towards Fully Automated Open-Ended Scientific Discovery[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2408.06292v3."
+  },
+  {
+    "number": 6,
+    "stable_id": "4",
+    "old_number": 4,
+    "entry": "Lei Huang, Weijiang Yu, Weitao Ma, et al. A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions[EB/OL]. arXiv:2311.05232v2, 2024.",
+    "pdf": "A Survey on Hallucination in Large Language Models： Principles, Taxonomy, Challenges, and Open Questions.pdf",
+    "url": "https://arxiv.org/abs/2311.05232v2",
+    "formatted_entry": "Lei Huang, Weijiang Yu, Weitao Ma, et al. A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2311.05232v2."
+  },
+  {
+    "number": 7,
+    "stable_id": "CNH",
+    "entry": "刘泽垣, 王鹏江, 宋晓斌, 等. 大语言模型的幻觉问题研究综述[J]. 软件学报, 2025, 36(3): 1152-1185. DOI: 10.13328/j.cnki.jos.007242.\n\nLIU Zeyuan, WANG Pengjiang, SONG Xiaobin, et al. Survey on hallucinations in large language models[J]. Journal of Software, 2025, 36(3): 1152-1185.",
+    "url": "https://www.jos.org.cn/html/2025/3/7242.htm",
+    "local": "中文综述/JOS-幻觉-静态.html",
+    "formatted_entry": "刘泽垣, 王鹏江, 宋晓斌, 等. 大语言模型的幻觉问题研究综述[J]. 软件学报, 2025, 36(3): 1152-1185. DOI: 10.13328/j.cnki.jos.007242.\n\nLIU Zeyuan, WANG Pengjiang, SONG Xiaobin, et al. Survey on hallucinations in large language models[J]. Journal of Software, 2025, 36(3): 1152-1185."
+  },
+  {
+    "number": 8,
+    "stable_id": "91",
+    "old_number": 91,
+    "entry": "Uwe Peters, Benjamin Chin-Yee. Generalization bias in large language model summarization of scientific research[J]. Royal Society Open Science, 2025, 12(4): 241776. DOI: 10.1098/rsos.241776.",
+    "pdf": "Generalization bias in large language model summarization of scientific research.pdf",
+    "formatted_entry": "Uwe Peters, Benjamin Chin-Yee. Generalization bias in large language model summarization of scientific research[J]. Royal Society Open Science, 2025, 12(4): 241776. DOI: 10.1098/rsos.241776."
+  },
+  {
+    "number": 9,
+    "stable_id": "5",
+    "old_number": 5,
+    "entry": "Xixun Lin, Yucheng Ning, Jingwen Zhang, et al. LLM-based Agents Suffer from Hallucinations: A Survey of Taxonomy, Methods, and Directions[EB/OL]. arXiv:2509.18970v2, 2025.",
+    "pdf": "LLM-based Agents Suffer from Hallucinations： A Survey of Taxonomy, Methods, and Directions.pdf",
+    "url": "https://arxiv.org/abs/2509.18970v2",
+    "formatted_entry": "Xixun Lin, Yucheng Ning, Jingwen Zhang, et al. LLM-based Agents Suffer from Hallucinations: A Survey of Taxonomy, Methods, and Directions[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2509.18970v2."
+  },
+  {
+    "number": 10,
+    "stable_id": "33",
+    "old_number": 33,
+    "entry": "Guangzhi Xiong, Eric Xie, Corey Williams, et al. Toward Reliable Scientific Hypothesis Generation: Evaluating Truthfulness and Hallucination in Large Language Models[EB/OL]. arXiv:2505.14599v2, 2025.",
+    "pdf": "Toward Reliable Scientific Hypothesis Generation： Evaluating Truthfulness and Hallucination in Large Language Models.pdf",
+    "url": "https://arxiv.org/abs/2505.14599v2",
+    "formatted_entry": "Guangzhi Xiong, Eric Xie, Corey Williams, et al. Toward Reliable Scientific Hypothesis Generation: Evaluating Truthfulness and Hallucination in Large Language Models[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2505.14599v2."
+  },
+  {
+    "number": 11,
+    "stable_id": "36",
+    "old_number": 36,
+    "entry": "Zijian Wang, Hanqi Li, Ziyue Yang, et al. Making AI Scientists Auditable from Evidence to Claim[EB/OL]. arXiv:2606.18874v4, 2026.",
+    "pdf": "Making AI Scientists Auditable from Evidence to Claim.pdf",
+    "url": "https://arxiv.org/abs/2606.18874v4",
+    "formatted_entry": "Zijian Wang, Hanqi Li, Ziyue Yang, et al. Making AI Scientists Auditable from Evidence to Claim[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2606.18874v4."
+  },
+  {
+    "number": 12,
+    "stable_id": "7",
+    "old_number": 7,
+    "entry": "Juraj Vladika, Florian Matthes. Scientific Fact-Checking: A Survey of Resources and Approaches[C]//Findings of the Association for Computational Linguistics: ACL 2023. 2023: 6215-6230. DOI: 10.18653/v1/2023.findings-acl.387.",
+    "pdf": "Scientific Fact-Checking： A Survey of Resources and Approaches.pdf",
+    "formatted_entry": "Juraj Vladika, Florian Matthes. Scientific Fact-Checking: A Survey of Resources and Approaches[C]//Findings of the Association for Computational Linguistics: ACL 2023. 2023: 6215-6230. DOI: 10.18653/v1/2023.findings-acl.387."
+  },
+  {
+    "number": 13,
+    "stable_id": "6",
+    "old_number": 6,
+    "entry": "Tianyu Ding, Aditya Nannapaneni, Bingfan Liu, et al. Autonomous Research Agents: A Survey of AI Scientists and the Verification Gap[EB/OL]. arXiv:2608.05179v1, 2026.",
+    "pdf": "A Survey of AI Scientists.pdf",
+    "url": "https://arxiv.org/abs/2608.05179v1",
+    "formatted_entry": "Tianyu Ding, Aditya Nannapaneni, Bingfan Liu, et al. Autonomous Research Agents: A Survey of AI Scientists and the Verification Gap[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2608.05179v1."
+  },
+  {
+    "number": 14,
+    "stable_id": "CNT",
+    "entry": "刘晗, 李凯旋, 陈仪香. 人工智能系统可信性度量评估研究综述[J]. 软件学报, 2023, 34(8): 3774-3792. DOI: 10.13328/j.cnki.jos.006592.\n\nLIU Han, LI Kaixuan, CHEN Yixiang. Survey on trustworthiness measurement for artificial intelligence systems[J]. Journal of Software, 2023, 34(8): 3774-3792.",
+    "url": "https://www.jos.org.cn/html/2023/8/6592.htm",
+    "local": "中文综述/JOS-可信评估-全文.html",
+    "formatted_entry": "刘晗, 李凯旋, 陈仪香. 人工智能系统可信性度量评估研究综述[J]. 软件学报, 2023, 34(8): 3774-3792. DOI: 10.13328/j.cnki.jos.006592.\n\nLIU Han, LI Kaixuan, CHEN Yixiang. Survey on trustworthiness measurement for artificial intelligence systems[J]. Journal of Software, 2023, 34(8): 3774-3792."
+  },
+  {
+    "number": 15,
+    "stable_id": "48",
+    "old_number": 48,
+    "entry": "Guangzhi Xiong, Eric Xie, Amir Hassan Shariatmadari, et al. Improving Scientific Hypothesis Generation with Knowledge Grounded Large Language Models[EB/OL]. arXiv:2411.02382v1, 2024.",
+    "pdf": "Improving Scientific Hypothesis Generation with Knowledge Grounded Large Language Models.pdf",
+    "url": "https://arxiv.org/abs/2411.02382v1",
+    "formatted_entry": "Guangzhi Xiong, Eric Xie, Amir Hassan Shariatmadari, et al. Improving Scientific Hypothesis Generation with Knowledge Grounded Large Language Models[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2411.02382v1."
+  },
+  {
+    "number": 16,
+    "stable_id": "35",
+    "old_number": 35,
+    "entry": "Lezhi Yu, Xiaogang Xu, Yuhua Zhou, et al. Beyond Execution: Auditing Experimental Fidelity in LLM-Driven Scientific Research[EB/OL]. arXiv:2608.26753v1, 2026.",
+    "pdf": "Beyond Execution： Auditing Experimental Fidelity in LLM-Driven Scientific Research.pdf",
+    "url": "https://arxiv.org/abs/2608.26753v1",
+    "formatted_entry": "Lezhi Yu, Xiaogang Xu, Yuhua Zhou, et al. Beyond Execution: Auditing Experimental Fidelity in LLM-Driven Scientific Research[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2608.26753v1."
+  },
+  {
+    "number": 17,
+    "stable_id": "30",
+    "old_number": 30,
+    "entry": "David Wadden, Shanchuan Lin, Kyle Lo, et al. Fact or Fiction: Verifying Scientific Claims[EB/OL]. arXiv:2004.14974v6, 2020.",
+    "pdf": "Fact or Fiction： Verifying Scientific Claims.pdf",
+    "url": "https://arxiv.org/abs/2004.14974v6",
+    "formatted_entry": "David Wadden, Shanchuan Lin, Kyle Lo, et al. Fact or Fiction: Verifying Scientific Claims[EB/OL]. 2020[2026-10-15]. https://arxiv.org/abs/2004.14974v6."
+  },
+  {
+    "number": 18,
+    "stable_id": "2",
+    "old_number": 2,
+    "entry": "Guiyao Tie, Pan Zhou, Lichao Sun. A Survey of AI Scientists[EB/OL]. arXiv:2510.23045v5, 2026.",
+    "pdf": "A Survey of AI Scientists.pdf",
+    "url": "https://arxiv.org/abs/2510.23045v5",
+    "formatted_entry": "Guiyao Tie, Pan Zhou, Lichao Sun. A Survey of AI Scientists[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2510.23045v5."
+  },
+  {
+    "number": 19,
+    "stable_id": "37",
+    "old_number": 37,
+    "entry": "Bowen Liu, Shuo Nie, Bodong Du, et al. SCIRIGOR:Evaluating Open-Ended Scientific Analysis Beyond Final Scores[EB/OL]. arXiv:2609.06192v1, 2026.",
+    "pdf": "SCIRIGOR： Evaluating Open-Ended Scientific Analysis Beyond Final Scores.pdf",
+    "url": "https://arxiv.org/abs/2609.06192v1",
+    "formatted_entry": "Bowen Liu, Shuo Nie, Bodong Du, et al. SCIRIGOR:Evaluating Open-Ended Scientific Analysis Beyond Final Scores[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2609.06192v1."
+  },
+  {
+    "number": 20,
+    "stable_id": "10",
+    "old_number": 10,
+    "entry": "Naveen Lamba, Sanju Tiwari, Manas Gaur. Hallucinations in LLMs: A Lifecycle-Based Survey of Causes, Detection, Mitigation, and Prevention[EB/OL]. arXiv:2608.26168v1, 2026.",
+    "pdf": "Hallucinations in LLMs： A Lifecycle-Based Survey of Causes, Detection, Mitigation, and Prevention.pdf",
+    "url": "https://arxiv.org/abs/2608.26168v1",
+    "formatted_entry": "Naveen Lamba, Sanju Tiwari, Manas Gaur. Hallucinations in LLMs: A Lifecycle-Based Survey of Causes, Detection, Mitigation, and Prevention[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2608.26168v1."
+  },
+  {
+    "number": 21,
+    "stable_id": "55",
+    "old_number": 55,
+    "entry": "Alex Mallen, Akari Asai, Victor Zhong, et al. When Not to Trust Language Models: Investigating Effectiveness of Parametric and Non-Parametric Memories[C]//Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers). 2023: 9802-9822. DOI: 10.18653/v1/2023.acl-long.546.",
+    "pdf": "When Not to Trust Language Models： Investigating Effectiveness of Parametric and Non-Parametric Memories.pdf",
+    "formatted_entry": "Alex Mallen, Akari Asai, Victor Zhong, et al. When Not to Trust Language Models: Investigating Effectiveness of Parametric and Non-Parametric Memories[C]//Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers). 2023: 9802-9822. DOI: 10.18653/v1/2023.acl-long.546."
+  },
+  {
+    "number": 22,
+    "stable_id": "43",
+    "old_number": 43,
+    "entry": "Shayne Longpre, Kartik Perisetla, Anthony Chen, et al. Entity-Based Knowledge Conflicts in Question Answering[C]//Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing. 2021: 7052-7063. DOI: 10.18653/v1/2021.emnlp-main.565.",
+    "pdf": "Entity-Based Knowledge Conflicts in Question Answering.pdf",
+    "formatted_entry": "Shayne Longpre, Kartik Perisetla, Anthony Chen, et al. Entity-Based Knowledge Conflicts in Question Answering[C]//Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing. 2021: 7052-7063. DOI: 10.18653/v1/2021.emnlp-main.565."
+  },
+  {
+    "number": 23,
+    "stable_id": "44",
+    "old_number": 44,
+    "entry": "Ori Yoran, Tomer Wolfson, Ori Ram, et al. Making Retrieval-Augmented Language Models Robust to Irrelevant Context[EB/OL]. arXiv:2310.01558v2, 2024.",
+    "pdf": "Making Retrieval-Augmented Language Models Robust to Irrelevant Context.pdf",
+    "url": "https://arxiv.org/abs/2310.01558v2",
+    "formatted_entry": "Ori Yoran, Tomer Wolfson, Ori Ram, et al. Making Retrieval-Augmented Language Models Robust to Irrelevant Context[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2310.01558v2."
+  },
+  {
+    "number": 24,
+    "stable_id": "93",
+    "old_number": 93,
+    "entry": "Nelson F. Liu, Kevin Lin, John Hewitt, et al. Lost in the Middle: How Language Models Use Long Contexts[EB/OL]. arXiv:2307.03172v3, 2023.",
+    "pdf": "Lost in the Middle： How Language Models Use Long Contexts.pdf",
+    "url": "https://arxiv.org/abs/2307.03172v3",
+    "formatted_entry": "Nelson F. Liu, Kevin Lin, John Hewitt, et al. Lost in the Middle: How Language Models Use Long Contexts[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2307.03172v3."
+  },
+  {
+    "number": 25,
+    "stable_id": "41",
+    "old_number": 41,
+    "entry": "Ruijun Huang, Zhiqiao Kang, Yuxuan Zhu, et al. MeasHalu: Mitigation of Scientific Measurement Hallucinations for Large Language Models with Enhanced Reasoning[EB/OL]. arXiv:2604.16929v1, 2026.",
+    "pdf": "MeasHalu： Mitigation of Scientific Measurement Hallucinations for Large Language Models with Enhanced Reasoning.pdf",
+    "url": "https://arxiv.org/abs/2604.16929v1",
+    "formatted_entry": "Ruijun Huang, Zhiqiao Kang, Yuxuan Zhu, et al. MeasHalu: Mitigation of Scientific Measurement Hallucinations for Large Language Models with Enhanced Reasoning[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2604.16929v1."
+  },
+  {
+    "number": 26,
+    "stable_id": "31",
+    "old_number": 31,
+    "entry": "Yuji Zhang, Qingyun Wang, Cheng Qian, et al. Atomic Reasoning for Scientific Table Claim Verification[EB/OL]. arXiv:2506.06972v1, 2025.",
+    "pdf": "Atomic Reasoning for Scientific Table Claim Verification.pdf",
+    "url": "https://arxiv.org/abs/2506.06972v1",
+    "formatted_entry": "Yuji Zhang, Qingyun Wang, Cheng Qian, et al. Atomic Reasoning for Scientific Table Claim Verification[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2506.06972v1."
+  },
+  {
+    "number": 27,
+    "stable_id": "32",
+    "old_number": 32,
+    "entry": "Yash Kumar Lal, Manikanta Bandham, Mohammad Saqib Hasan, et al. MuSciClaims: Multimodal Scientific Claim Verification[EB/OL]. arXiv:2506.04585v2, 2025.",
+    "pdf": "MuSciClaims： Multimodal Scientific Claim Verification.pdf",
+    "url": "https://arxiv.org/abs/2506.04585v2",
+    "formatted_entry": "Yash Kumar Lal, Manikanta Bandham, Mohammad Saqib Hasan, et al. MuSciClaims: Multimodal Scientific Claim Verification[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2506.04585v2."
+  },
+  {
+    "number": 28,
+    "stable_id": "58",
+    "old_number": 58,
+    "entry": "Jun He, Deying Yu. Stored Is Not Supported: Typed Provenance and Assertion Guardrails for Persistent AI Agents[EB/OL]. arXiv:2609.02127v1, 2026.",
+    "pdf": "Stored Is Not Supported： Typed Provenance and Assertion Guardrails for Persistent AI Agents.pdf",
+    "url": "https://arxiv.org/abs/2609.02127v1",
+    "formatted_entry": "Jun He, Deying Yu. Stored Is Not Supported: Typed Provenance and Assertion Guardrails for Persistent AI Agents[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2609.02127v1."
+  },
+  {
+    "number": 29,
+    "stable_id": "94",
+    "old_number": 94,
+    "entry": "Jie Huang, Xinyun Chen, Swaroop Mishra, et al. Large Language Models Cannot Self-Correct Reasoning Yet[EB/OL]. arXiv:2310.01798v2, 2024.",
+    "pdf": "Large Language Models Cannot Self-Correct Reasoning Yet.pdf",
+    "url": "https://arxiv.org/abs/2310.01798v2",
+    "formatted_entry": "Jie Huang, Xinyun Chen, Swaroop Mishra, et al. Large Language Models Cannot Self-Correct Reasoning Yet[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2310.01798v2."
+  },
+  {
+    "number": 30,
+    "stable_id": "63",
+    "old_number": 63,
+    "entry": "Diandian Guo, Cong Cao, Fangfang Yuan, et al. Self-Authored Verification Is Unreliable in Heuristic Self-Improving Agents[EB/OL]. arXiv:2607.24300v1, 2026.",
+    "pdf": "Self-Authored Verification Is Unreliable in Heuristic Self-Improving Agents.pdf",
+    "url": "https://arxiv.org/abs/2607.24300v1",
+    "formatted_entry": "Diandian Guo, Cong Cao, Fangfang Yuan, et al. Self-Authored Verification Is Unreliable in Heuristic Self-Improving Agents[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2607.24300v1."
+  },
+  {
+    "number": 31,
+    "stable_id": "11",
+    "old_number": 11,
+    "entry": "Zhaxi Zerong, Chenxi Li, Xinyi Liu, et al. A Systematic Survey of Claim Verification: Corpora, Systems, and Case Studies[C]//Findings of the Association for Computational Linguistics: EMNLP 2025. 2025: 21452-21474. DOI: 10.18653/v1/2025.findings-emnlp.1170.",
+    "pdf": "A Systematic Survey of Claim Verification： Corpora, Systems, and Case Studies.pdf",
+    "formatted_entry": "Zhaxi Zerong, Chenxi Li, Xinyi Liu, et al. A Systematic Survey of Claim Verification: Corpora, Systems, and Case Studies[C]//Findings of the Association for Computational Linguistics: EMNLP 2025. 2025: 21452-21474. DOI: 10.18653/v1/2025.findings-emnlp.1170."
+  },
+  {
+    "number": 32,
+    "stable_id": "12",
+    "old_number": 12,
+    "entry": "Alphaeus Dmonte, Roland R Oruche, Marcos Zampieri, et al. Claim Verification in the Age of Large Language Models: A Survey[C]//Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (Volume 4: Student Research Workshop). 2026: 15-29. DOI: 10.18653/v1/2026.acl-srw.2.",
+    "pdf": "Claim Verification in the Age of Large Language Models： A Survey.pdf",
+    "formatted_entry": "Alphaeus Dmonte, Roland R Oruche, Marcos Zampieri, et al. Claim Verification in the Age of Large Language Models: A Survey[C]//Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (Volume 4: Student Research Workshop). 2026: 15-29. DOI: 10.18653/v1/2026.acl-srw.2."
+  },
+  {
+    "number": 33,
+    "stable_id": "28",
+    "old_number": 28,
+    "entry": "Khashayar Khajavi, Shaghayegh Sadeghi, Rise Adhikari, et al. CiteCheck: Retrieval-Grounded Detection of LLM Citation Hallucinations in Scientific Text[EB/OL]. arXiv:2605.27700v2, 2026.",
+    "pdf": "CiteCheck： Retrieval-Grounded Detection of LLM Citation Hallucinations in Scientific Text.pdf",
+    "url": "https://arxiv.org/abs/2605.27700v2",
+    "formatted_entry": "Khashayar Khajavi, Shaghayegh Sadeghi, Rise Adhikari, et al. CiteCheck: Retrieval-Grounded Detection of LLM Citation Hallucinations in Scientific Text[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2605.27700v2."
+  },
+  {
+    "number": 34,
+    "stable_id": "29",
+    "old_number": 29,
+    "entry": "Shaghayegh Sadeghi, Khashayar Khajavi, Rise Adhikari, et al. DeepSciVerify: Verifying Scientific Claim--Citation Alignment via LLM-Driven Evidence Escalation[EB/OL]. arXiv:2605.27710v1, 2026.",
+    "pdf": "DeepSciVerify： Verifying Scientific Claim–Citation Alignment via LLM-Driven Evidence Escalation.pdf",
+    "url": "https://arxiv.org/abs/2605.27710v1",
+    "formatted_entry": "Shaghayegh Sadeghi, Khashayar Khajavi, Rise Adhikari, et al. DeepSciVerify: Verifying Scientific Claim--Citation Alignment via LLM-Driven Evidence Escalation[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2605.27710v1."
+  },
+  {
+    "number": 35,
+    "stable_id": "34",
+    "old_number": 34,
+    "entry": "Bhanu Prakash Vangala, Sajid Mahmud, Pawan Neupane, et al. HalluMat: Detecting Hallucinations in LLM-Generated Materials Science Content Through Multi-Stage Verification[EB/OL]. arXiv:2512.22396v1, 2025.",
+    "pdf": "HalluMat： Detecting Hallucinations in LLM-Generated Materials Science Content Through Multi-Stage Verification.pdf",
+    "url": "https://arxiv.org/abs/2512.22396v1",
+    "formatted_entry": "Bhanu Prakash Vangala, Sajid Mahmud, Pawan Neupane, et al. HalluMat: Detecting Hallucinations in LLM-Generated Materials Science Content Through Multi-Stage Verification[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2512.22396v1."
+  },
+  {
+    "number": 36,
+    "stable_id": "49",
+    "old_number": 49,
+    "entry": "Dominic Okonkwo, Adetayo Okunoye, Ismailcem Budak Arpinar. HypoKG: Evidence-Disciplined Biomedical Hypothesis Generation Beyond Endpoint Knowledge[EB/OL]. arXiv:2609.12260v1, 2026.",
+    "pdf": "HypoKG： Evidence-Disciplined Biomedical Hypothesis Generation Beyond Endpoint Knowledge.pdf",
+    "url": "https://arxiv.org/abs/2609.12260v1",
+    "formatted_entry": "Dominic Okonkwo, Adetayo Okunoye, Ismailcem Budak Arpinar. HypoKG: Evidence-Disciplined Biomedical Hypothesis Generation Beyond Endpoint Knowledge[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2609.12260v1."
+  },
+  {
+    "number": 37,
+    "stable_id": "38",
+    "old_number": 38,
+    "entry": "Ninghan Zhong, Ahmet Ege Tanriverdi, Kaan Kale, et al. VeryTrace: Verifying Reasoning Traces through Compilable Formalism and Structured Verification[EB/OL]. arXiv:2606.24124v1, 2026.",
+    "pdf": "VeryTrace： Verifying Reasoning Traces through Compilable Formalism and Structured Verification.pdf",
+    "url": "https://arxiv.org/abs/2606.24124v1",
+    "formatted_entry": "Ninghan Zhong, Ahmet Ege Tanriverdi, Kaan Kale, et al. VeryTrace: Verifying Reasoning Traces through Compilable Formalism and Structured Verification[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2606.24124v1."
+  },
+  {
+    "number": 38,
+    "stable_id": "39",
+    "old_number": 39,
+    "entry": "Zhongxiang Sun, Jiahao Yan, Hongkang Zhao, et al. What Did the Agent Actually Do? Evidence-Grounded Oversight for Long-Horizon Agents[EB/OL]. arXiv:2610.06406v1, 2026.",
+    "pdf": "What Did the Agent Actually Do？ Evidence-Grounded Oversight for Long-Horizon Agents.pdf",
+    "url": "https://arxiv.org/abs/2610.06406v1",
+    "formatted_entry": "Zhongxiang Sun, Jiahao Yan, Hongkang Zhao, et al. What Did the Agent Actually Do? Evidence-Grounded Oversight for Long-Horizon Agents[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2610.06406v1."
+  },
+  {
+    "number": 39,
+    "stable_id": "40",
+    "old_number": 40,
+    "entry": "Potsawee Manakul, Adian Liusie, Mark J. F. Gales. SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models[EB/OL]. arXiv:2303.08896v3, 2023.",
+    "pdf": "SelfCheckGPT： Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models.pdf",
+    "url": "https://arxiv.org/abs/2303.08896v3",
+    "formatted_entry": "Potsawee Manakul, Adian Liusie, Mark J. F. Gales. SelfCheckGPT: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2303.08896v3."
+  },
+  {
+    "number": 40,
+    "stable_id": "42",
+    "old_number": 42,
+    "entry": "Akari Asai, Zeqiu Wu, Yizhong Wang, et al. Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection[EB/OL]. arXiv:2310.11511v1, 2023.",
+    "pdf": "Self-RAG： Learning to Retrieve, Generate, and Critique through Self-Reflection.pdf",
+    "url": "https://arxiv.org/abs/2310.11511v1",
+    "formatted_entry": "Akari Asai, Zeqiu Wu, Yizhong Wang, et al. Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2310.11511v1."
+  },
+  {
+    "number": 41,
+    "stable_id": "45",
+    "old_number": 45,
+    "entry": "Aviral Kumar, Vincent Zhuang, Rishabh Agarwal, et al. Training Language Models to Self-Correct via Reinforcement Learning[EB/OL]. arXiv:2409.12917v2, 2024.",
+    "pdf": "Training Language Models to Self-Correct via Reinforcement Learning.pdf",
+    "url": "https://arxiv.org/abs/2409.12917v2",
+    "formatted_entry": "Aviral Kumar, Vincent Zhuang, Rishabh Agarwal, et al. Training Language Models to Self-Correct via Reinforcement Learning[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2409.12917v2."
+  },
+  {
+    "number": 42,
+    "stable_id": "46",
+    "old_number": 46,
+    "entry": "Ayush Rajesh Jhaveri, Anthony GX-Chen, Ilia Sucholutsky, et al. Failing to Falsify: Evaluating and Mitigating Confirmation Bias in Language Models[EB/OL]. arXiv:2604.02485v1, 2026.",
+    "pdf": "Failing to Falsify： Evaluating and Mitigating Confirmation Bias in Language Models.pdf",
+    "url": "https://arxiv.org/abs/2604.02485v1",
+    "formatted_entry": "Ayush Rajesh Jhaveri, Anthony GX-Chen, Ilia Sucholutsky, et al. Failing to Falsify: Evaluating and Mitigating Confirmation Bias in Language Models[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2604.02485v1."
+  },
+  {
+    "number": 43,
+    "stable_id": "52",
+    "old_number": 52,
+    "entry": "Jakub Lála, Odhran O'Donoghue, Aleksandar Shtedritski, et al. PaperQA: Retrieval-Augmented Generative Agent for Scientific Research[EB/OL]. arXiv:2312.07559v2, 2023.",
+    "pdf": "PaperQA： Retrieval-Augmented Generative Agent for Scientific Research.pdf",
+    "url": "https://arxiv.org/abs/2312.07559v2",
+    "formatted_entry": "Jakub Lála, Odhran O'Donoghue, Aleksandar Shtedritski, et al. PaperQA: Retrieval-Augmented Generative Agent for Scientific Research[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2312.07559v2."
+  },
+  {
+    "number": 44,
+    "stable_id": "51",
+    "old_number": 51,
+    "entry": "Akari Asai, Jacqueline He, Rulin Shao, et al. OpenScholar: Synthesizing Scientific Literature with Retrieval-augmented LMs[EB/OL]. arXiv:2411.14199v1, 2024.",
+    "pdf": "OpenScholar： Synthesizing Scientific Literature with Retrieval-augmented LMs.pdf",
+    "url": "https://arxiv.org/abs/2411.14199v1",
+    "formatted_entry": "Akari Asai, Jacqueline He, Rulin Shao, et al. OpenScholar: Synthesizing Scientific Literature with Retrieval-augmented LMs[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2411.14199v1."
+  },
+  {
+    "number": 45,
+    "stable_id": "53",
+    "old_number": 53,
+    "entry": "Michael D. Skarlinski, Sam Cox, Jon M. Laurent, et al. Language agents achieve superhuman synthesis of scientific knowledge[EB/OL]. arXiv:2409.13740v2, 2024.",
+    "pdf": "Language agents achieve superhuman synthesis of scientific knowledge.pdf",
+    "url": "https://arxiv.org/abs/2409.13740v2",
+    "formatted_entry": "Michael D. Skarlinski, Sam Cox, Jon M. Laurent, et al. Language agents achieve superhuman synthesis of scientific knowledge[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2409.13740v2."
+  },
+  {
+    "number": 46,
+    "stable_id": "47",
+    "old_number": 47,
+    "entry": "Bing Yan, Gregory Wolfe, Stefano Martiniani, et al. AskChem: Claim-Centered Infrastructure for Chemistry Literature Synthesis[EB/OL]. arXiv:2607.28618v1, 2026.",
+    "pdf": "AskChem： Claim-Centered Infrastructure for Chemistry Literature Synthesis.pdf",
+    "url": "https://arxiv.org/abs/2607.28618v1",
+    "formatted_entry": "Bing Yan, Gregory Wolfe, Stefano Martiniani, et al. AskChem: Claim-Centered Infrastructure for Chemistry Literature Synthesis[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2607.28618v1."
+  },
+  {
+    "number": 47,
+    "stable_id": "54",
+    "old_number": 54,
+    "entry": "Weijia Shi, Xiaochuang Han, Mike Lewis, et al. Trusting Your Evidence: Hallucinate Less with Context-aware Decoding[EB/OL]. arXiv:2305.14739v1, 2023.",
+    "pdf": "Trusting Your Evidence： Hallucinate Less with Context-aware Decoding.pdf",
+    "url": "https://arxiv.org/abs/2305.14739v1",
+    "formatted_entry": "Weijia Shi, Xiaochuang Han, Mike Lewis, et al. Trusting Your Evidence: Hallucinate Less with Context-aware Decoding[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2305.14739v1."
+  },
+  {
+    "number": 48,
+    "stable_id": "50",
+    "old_number": 50,
+    "entry": "Shrinidhi Kumbhar, Venkatesh Mishra, Kevin Coutinho, et al. Hypothesis Generation for Materials Discovery and Design Using Goal-Driven and Constraint-Guided LLM Agents[EB/OL]. arXiv:2501.13299v2, 2025.",
+    "pdf": "Hypothesis Generation for Materials Discovery and Design Using Goal-Driven and Constraint-Guided LLM Agents.pdf",
+    "url": "https://arxiv.org/abs/2501.13299v2",
+    "formatted_entry": "Shrinidhi Kumbhar, Venkatesh Mishra, Kevin Coutinho, et al. Hypothesis Generation for Materials Discovery and Design Using Goal-Driven and Constraint-Guided LLM Agents[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2501.13299v2."
+  },
+  {
+    "number": 49,
+    "stable_id": "56",
+    "old_number": 56,
+    "entry": "Jie Ma, Binfei Chu, Jie Gao, et al. One Reflection Is Not Enough: Self-Correcting Autonomous Research via Multi-Hypothesis Failure Attribution[EB/OL]. arXiv:2606.31478v1, 2026.",
+    "pdf": "One Reflection Is Not Enough： Self-Correcting Autonomous Research via Multi-Hypothesis Failure Attribution.pdf",
+    "url": "https://arxiv.org/abs/2606.31478v1",
+    "formatted_entry": "Jie Ma, Binfei Chu, Jie Gao, et al. One Reflection Is Not Enough: Self-Correcting Autonomous Research via Multi-Hypothesis Failure Attribution[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2606.31478v1."
+  },
+  {
+    "number": 50,
+    "stable_id": "57",
+    "old_number": 57,
+    "entry": "Enjun Du, Hange Zhou, Chenxu Du, et al. LedgerMind: A Structured Evidence Runtime for Auditable Multimodal Agent Trajectories[EB/OL]. arXiv:2607.28374v1, 2026.",
+    "pdf": "LedgerMind： A Structured Evidence Runtime for Auditable Multimodal Agent Trajectories.pdf",
+    "url": "https://arxiv.org/abs/2607.28374v1",
+    "formatted_entry": "Enjun Du, Hange Zhou, Chenxu Du, et al. LedgerMind: A Structured Evidence Runtime for Auditable Multimodal Agent Trajectories[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2607.28374v1."
+  },
+  {
+    "number": 51,
+    "stable_id": "60",
+    "old_number": 60,
+    "entry": "Luyu Gao, Zhuyun Dai, Panupong Pasupat, et al. RARR: Researching and Revising What Language Models Say, Using Language Models[EB/OL]. arXiv:2210.08726v3, 2023.",
+    "pdf": "RARR： Researching and Revising What Language Models Say, Using Language Models.pdf",
+    "url": "https://arxiv.org/abs/2210.08726v3",
+    "formatted_entry": "Luyu Gao, Zhuyun Dai, Panupong Pasupat, et al. RARR: Researching and Revising What Language Models Say, Using Language Models[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2210.08726v3."
+  },
+  {
+    "number": 52,
+    "stable_id": "59",
+    "old_number": 59,
+    "entry": "Bohan Su, Pengze Li, Yuchen Lu, et al. PEARL: Auditable Repair for Scientific Reasoning Graph Extraction[EB/OL]. arXiv:2607.17917v1, 2026.",
+    "pdf": "PEARL： Auditable Repair for Scientific Reasoning Graph Extraction.pdf",
+    "url": "https://arxiv.org/abs/2607.17917v1",
+    "formatted_entry": "Bohan Su, Pengze Li, Yuchen Lu, et al. PEARL: Auditable Repair for Scientific Reasoning Graph Extraction[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2607.17917v1."
+  },
+  {
+    "number": 53,
+    "stable_id": "61",
+    "old_number": 61,
+    "entry": "Akash Bonagiri, Devang Borkar, Gerard Janno Anderias, et al. CausalFlow: Causal Attribution and Counterfactual Repair for LLM Agent Failures[EB/OL]. arXiv:2605.25338v1, 2026.",
+    "pdf": "CausalFlow： Causal Attribution and Counterfactual Repair for LLM Agent Failures.pdf",
+    "url": "https://arxiv.org/abs/2605.25338v1",
+    "formatted_entry": "Akash Bonagiri, Devang Borkar, Gerard Janno Anderias, et al. CausalFlow: Causal Attribution and Counterfactual Repair for LLM Agent Failures[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2605.25338v1."
+  },
+  {
+    "number": 54,
+    "stable_id": "62",
+    "old_number": 62,
+    "entry": "Caili Yu, Yiqi Wang, Jiaqi Zhang, et al. From Faulty Memories to Corrected Actions: Dependency-Guided Rollback Repair for Memory-Augmented Agents[EB/OL]. arXiv:2608.10502v1, 2026.",
+    "pdf": "From Faulty Memories to Corrected Actions： Dependency-Guided Rollback Repair for Memory-Augmented Agents.pdf",
+    "url": "https://arxiv.org/abs/2608.10502v1",
+    "formatted_entry": "Caili Yu, Yiqi Wang, Jiaqi Zhang, et al. From Faulty Memories to Corrected Actions: Dependency-Guided Rollback Repair for Memory-Augmented Agents[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2608.10502v1."
+  },
+  {
+    "number": 55,
+    "stable_id": "82",
+    "old_number": 82,
+    "entry": "Irene Testini, José Hernández-Orallo, Lorenzo Pacchiardi. Measuring Data Science Automation: A Survey of Evaluation Tools for AI Assistants and Agents[EB/OL]. arXiv:2506.08800v2, 2025.",
+    "pdf": "Measuring Data Science Automation： A Survey of Evaluation Tools for AI Assistants and Agents.pdf",
+    "url": "https://arxiv.org/abs/2506.08800v2",
+    "formatted_entry": "Irene Testini, José Hernández-Orallo, Lorenzo Pacchiardi. Measuring Data Science Automation: A Survey of Evaluation Tools for AI Assistants and Agents[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2506.08800v2."
+  },
+  {
+    "number": 56,
+    "stable_id": "64",
+    "old_number": 64,
+    "entry": "Deepa Tilwani, Yash Saxena, Seyedali Mohammadi, et al. Abstention vs. Hallucination: Benchmarking LLM Source Attribution for Scientific Citations[EB/OL]. arXiv:2405.02228v5, 2026.",
+    "pdf": "Abstention vs. Hallucination： Benchmarking LLM Source Attribution for Scientific Citations.pdf",
+    "url": "https://arxiv.org/abs/2405.02228v5",
+    "formatted_entry": "Deepa Tilwani, Yash Saxena, Seyedali Mohammadi, et al. Abstention vs. Hallucination: Benchmarking LLM Source Attribution for Scientific Citations[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2405.02228v5."
+  },
+  {
+    "number": 57,
+    "stable_id": "65",
+    "old_number": 65,
+    "entry": "Patrik Reizinger, Wieland Brendel. HALLMARK: Diagnosing Three Failure Modes in LLM Citation Verifiers[EB/OL]. arXiv:2607.18360v1, 2026.",
+    "pdf": "HALLMARK： Diagnosing Three Failure Modes in LLM Citation Verifiers.pdf",
+    "url": "https://arxiv.org/abs/2607.18360v1",
+    "formatted_entry": "Patrik Reizinger, Wieland Brendel. HALLMARK: Diagnosing Three Failure Modes in LLM Citation Verifiers[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2607.18360v1."
+  },
+  {
+    "number": 58,
+    "stable_id": "67",
+    "old_number": 67,
+    "entry": "Cheng Niu, Yuanhao Wu, Juno Zhu, et al. RAGTruth: A Hallucination Corpus for Developing Trustworthy Retrieval-Augmented Language Models[EB/OL]. arXiv:2401.00396v2, 2024.",
+    "pdf": "RAGTruth： A Hallucination Corpus for Developing Trustworthy Retrieval-Augmented Language Models.pdf",
+    "url": "https://arxiv.org/abs/2401.00396v2",
+    "formatted_entry": "Cheng Niu, Yuanhao Wu, Juno Zhu, et al. RAGTruth: A Hallucination Corpus for Developing Trustworthy Retrieval-Augmented Language Models[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2401.00396v2."
+  },
+  {
+    "number": 59,
+    "stable_id": "66",
+    "old_number": 66,
+    "entry": "Tzu-Ling Lin, Dong-Ting Yao, Teng-Fang Hsiao, et al. HalluPeer: A Taxonomy-driven Benchmark for Detecting Hallucinations in Scientific Peer Reviews[EB/OL]. arXiv:2609.03580v1, 2026.",
+    "pdf": "HalluPeer： A Taxonomy-driven Benchmark for Detecting Hallucinations in Scientific Peer Reviews.pdf",
+    "url": "https://arxiv.org/abs/2609.03580v1",
+    "formatted_entry": "Tzu-Ling Lin, Dong-Ting Yao, Teng-Fang Hsiao, et al. HalluPeer: A Taxonomy-driven Benchmark for Detecting Hallucinations in Scientific Peer Reviews[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2609.03580v1."
+  },
+  {
+    "number": 60,
+    "stable_id": "68",
+    "old_number": 68,
+    "entry": "Fuyi Yang, Chenchen Ye, Mingyu Derek Ma, et al. BioVerge: A Comprehensive Benchmark and Study of Self-Evaluating Agents for Biomedical Hypothesis Generation[EB/OL]. arXiv:2511.08866v1, 2025.",
+    "pdf": "BioVerge： A Comprehensive Benchmark and Study of Self-Evaluating Agents for Biomedical Hypothesis Generation.pdf",
+    "url": "https://arxiv.org/abs/2511.08866v1",
+    "formatted_entry": "Fuyi Yang, Chenchen Ye, Mingyu Derek Ma, et al. BioVerge: A Comprehensive Benchmark and Study of Self-Evaluating Agents for Biomedical Hypothesis Generation[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2511.08866v1."
+  },
+  {
+    "number": 61,
+    "stable_id": "83",
+    "old_number": 83,
+    "entry": "Kexin Huang, Ying Jin, Ryan Li, et al. Automated Hypothesis Validation with Agentic Sequential Falsifications[EB/OL]. arXiv:2502.09858v1, 2025.",
+    "pdf": "Automated Hypothesis Validation with Agentic Sequential Falsifications.pdf",
+    "url": "https://arxiv.org/abs/2502.09858v1",
+    "formatted_entry": "Kexin Huang, Ying Jin, Ryan Li, et al. Automated Hypothesis Validation with Agentic Sequential Falsifications[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2502.09858v1."
+  },
+  {
+    "number": 62,
+    "stable_id": "85",
+    "old_number": 85,
+    "entry": "Abbi Abdel-Rehim, Hector Zenil, Oghenejokpeme Orhobor, et al. Scientific Hypothesis Generation by Large Language Models: Laboratory Validation in Breast Cancer Treatment[EB/OL]. arXiv:2405.12258v3, 2025.",
+    "pdf": "Scientific Hypothesis Generation by Large Language Models： Laboratory Validation in Breast Cancer Treatment.pdf",
+    "url": "https://arxiv.org/abs/2405.12258v3",
+    "formatted_entry": "Abbi Abdel-Rehim, Hector Zenil, Oghenejokpeme Orhobor, et al. Scientific Hypothesis Generation by Large Language Models: Laboratory Validation in Breast Cancer Treatment[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2405.12258v3."
+  },
+  {
+    "number": 63,
+    "stable_id": "86",
+    "old_number": 86,
+    "entry": "Gilles Wainrib, Barbara Bodinier, Haitem Dakhli, et al. Can AI Scientist Agents Learn from Lab-in-the-Loop Feedback? Evidence from Iterative Perturbation Discovery[EB/OL]. arXiv:2603.26177v1, 2026.",
+    "pdf": "Can AI Scientist Agents Learn from Lab-in-the-Loop Feedback？ Evidence from Iterative Perturbation Discovery.pdf",
+    "url": "https://arxiv.org/abs/2603.26177v1",
+    "formatted_entry": "Gilles Wainrib, Barbara Bodinier, Haitem Dakhli, et al. Can AI Scientist Agents Learn from Lab-in-the-Loop Feedback? Evidence from Iterative Perturbation Discovery[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2603.26177v1."
+  },
+  {
+    "number": 64,
+    "stable_id": "73",
+    "old_number": 73,
+    "entry": "Odhran O'Donoghue, Aleksandar Shtedritski, John Ginger, et al. BioPlanner: Automatic Evaluation of LLMs on Protocol Planning in Biology[EB/OL]. arXiv:2310.10632v1, 2023.",
+    "pdf": "BioPlanner： Automatic Evaluation of LLMs on Protocol Planning in Biology.pdf",
+    "url": "https://arxiv.org/abs/2310.10632v1",
+    "formatted_entry": "Odhran O'Donoghue, Aleksandar Shtedritski, John Ginger, et al. BioPlanner: Automatic Evaluation of LLMs on Protocol Planning in Biology[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2310.10632v1."
+  },
+  {
+    "number": 65,
+    "stable_id": "76",
+    "old_number": 76,
+    "entry": "Jon M. Laurent, Joseph D. Janizek, Michael Ruzo, et al. LAB-Bench: Measuring Capabilities of Language Models for Biology Research[EB/OL]. arXiv:2407.10362v3, 2024.",
+    "pdf": "LAB-Bench： Measuring Capabilities of Language Models for Biology Research.pdf",
+    "url": "https://arxiv.org/abs/2407.10362v3",
+    "formatted_entry": "Jon M. Laurent, Joseph D. Janizek, Michael Ruzo, et al. LAB-Bench: Measuring Capabilities of Language Models for Biology Research[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2407.10362v3."
+  },
+  {
+    "number": 66,
+    "stable_id": "74",
+    "old_number": 74,
+    "entry": "Bodhisattwa Prasad Majumder, Harshit Surana, Dhruv Agarwal, et al. DiscoveryBench: Towards Data-Driven Discovery with Large Language Models[EB/OL]. arXiv:2407.01725v1, 2024.",
+    "pdf": "DiscoveryBench： Towards Data-Driven Discovery with Large Language Models.pdf",
+    "url": "https://arxiv.org/abs/2407.01725v1",
+    "formatted_entry": "Bodhisattwa Prasad Majumder, Harshit Surana, Dhruv Agarwal, et al. DiscoveryBench: Towards Data-Driven Discovery with Large Language Models[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2407.01725v1."
+  },
+  {
+    "number": 67,
+    "stable_id": "75",
+    "old_number": 75,
+    "entry": "Peter Jansen, Marc-Alexandre Côté, Tushar Khot, et al. DISCOVERYWORLD: A Virtual Environment for Developing and Evaluating Automated Scientific Discovery Agents[EB/OL]. arXiv:2406.06769v2, 2024.",
+    "pdf": "DISCOVERYWORLD： A Virtual Environment for Developing and Evaluating Automated Scientific Discovery Agents.pdf",
+    "url": "https://arxiv.org/abs/2406.06769v2",
+    "formatted_entry": "Peter Jansen, Marc-Alexandre Côté, Tushar Khot, et al. DISCOVERYWORLD: A Virtual Environment for Developing and Evaluating Automated Scientific Discovery Agents[EB/OL]. 2024[2026-10-15]. https://arxiv.org/abs/2406.06769v2."
+  },
+  {
+    "number": 68,
+    "stable_id": "77",
+    "old_number": 77,
+    "entry": "Ziru Chen, Shijie Chen, Yuting Ning, et al. ScienceAgentBench: Toward Rigorous Assessment of Language Agents for Data-Driven Scientific Discovery[EB/OL]. arXiv:2410.05080v3, 2025.",
+    "pdf": "ScienceAgentBench： Toward Rigorous Assessment of Language Agents for Data-Driven Scientific Discovery.pdf",
+    "url": "https://arxiv.org/abs/2410.05080v3",
+    "formatted_entry": "Ziru Chen, Shijie Chen, Yuting Ning, et al. ScienceAgentBench: Toward Rigorous Assessment of Language Agents for Data-Driven Scientific Discovery[EB/OL]. 2025[2026-10-15]. https://arxiv.org/abs/2410.05080v3."
+  },
+  {
+    "number": 69,
+    "stable_id": "70",
+    "old_number": 70,
+    "entry": "Xinshun Feng, Ziqi Miao, Lijun Li, et al. Tracing the Cascade: A Topology-Aware Evaluation Framework for Scientific Agent Hallucinations[EB/OL]. arXiv:2608.00711v1, 2026.",
+    "pdf": "Tracing the Cascade： A Topology-Aware Evaluation Framework for Scientific Agent Hallucinations.pdf",
+    "url": "https://arxiv.org/abs/2608.00711v1",
+    "formatted_entry": "Xinshun Feng, Ziqi Miao, Lijun Li, et al. Tracing the Cascade: A Topology-Aware Evaluation Framework for Scientific Agent Hallucinations[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2608.00711v1."
+  },
+  {
+    "number": 70,
+    "stable_id": "71",
+    "old_number": 71,
+    "entry": "TruthInsight-AI. TruthInsightBench: An Evidence-Grounded Benchmark for Automated Evaluation of Open-Ended Scientific Discovery Agents[EB/OL]. arXiv:2609.05079v2, 2026.",
+    "pdf": "TruthInsightBench： An Evidence-Grounded Benchmark for Automated Evaluation of Open-Ended Scientific Discovery Agents.pdf",
+    "url": "https://arxiv.org/abs/2609.05079v2",
+    "formatted_entry": "TruthInsight-AI. TruthInsightBench: An Evidence-Grounded Benchmark for Automated Evaluation of Open-Ended Scientific Discovery Agents[EB/OL]. 2026[2026-10-15]. https://arxiv.org/abs/2609.05079v2."
+  },
+  {
+    "number": 71,
+    "stable_id": "79",
+    "old_number": 79,
+    "entry": "Sewon Min, Kalpesh Krishna, Xinxi Lyu, et al. FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation[EB/OL]. arXiv:2305.14251v2, 2023.",
+    "pdf": "FActScore： Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation.pdf",
+    "url": "https://arxiv.org/abs/2305.14251v2",
+    "formatted_entry": "Sewon Min, Kalpesh Krishna, Xinxi Lyu, et al. FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2305.14251v2."
+  },
+  {
+    "number": 72,
+    "stable_id": "78",
+    "old_number": 78,
+    "entry": "Tianyu Gao, Howard Yen, Jiatong Yu, et al. Enabling Large Language Models to Generate Text with Citations[EB/OL]. arXiv:2305.14627v2, 2023.",
+    "pdf": "Enabling Large Language Models to Generate Text with Citations.pdf",
+    "url": "https://arxiv.org/abs/2305.14627v2",
+    "formatted_entry": "Tianyu Gao, Howard Yen, Jiatong Yu, et al. Enabling Large Language Models to Generate Text with Citations[EB/OL]. 2023[2026-10-15]. https://arxiv.org/abs/2305.14627v2."
+  },
+  {
+    "number": 73,
+    "stable_id": "CNC",
+    "entry": "叶旭明, 周健, 柏澍晗, 等. 大语言模型推理优化方法综述[J/OL]. 计算机研究与发展, 2026(2026-08-19)[2026-10-15]. https://crad.ict.ac.cn/article/doi/10.7544/issn1000-1239.202660068. DOI: 10.7544/issn1000-1239.202660068.\n\nYE Xuming, ZHOU Jian, BAI Shuhan, et al. Survey on inference optimization for large language models[J/OL]. Journal of Computer Research and Development, 2026(2026-08-19)[2026-10-15]. https://crad.ict.ac.cn/article/doi/10.7544/issn1000-1239.202660068.",
+    "url": "https://crad.ict.ac.cn/article/doi/10.7544/issn1000-1239.202660068",
+    "local": "中文综述/CRAD-推理优化.pdf",
+    "formatted_entry": "叶旭明, 周健, 柏澍晗, 等. 大语言模型推理优化方法综述[J/OL]. 计算机研究与发展, 2026(2026-08-19)[2026-10-15]. https://crad.ict.ac.cn/article/doi/10.7544/issn1000-1239.202660068. DOI: 10.7544/issn1000-1239.202660068.\n\nYE Xuming, ZHOU Jian, BAI Shuhan, et al. Survey on inference optimization for large language models[J/OL]. Journal of Computer Research and Development, 2026(2026-08-19)[2026-10-15]. https://crad.ict.ac.cn/article/doi/10.7544/issn1000-1239.202660068."
+  }
+]

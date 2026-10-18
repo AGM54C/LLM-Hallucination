@@ -1,0 +1,1806 @@
+
+=== PDF第1页 ===
+            Submitted to ML4H 2026: Proceedings Track                                      Machine Learning for Health (ML4H) 2026
+
+
+
+      Hindsight Bias in Clinical Temporal Reasoning: How Future Data
+            Exposure Affects Large Language Model Judgment
+
+
+         Misaki Matsuura 1 and Sayantan Kumar2 and Ojas Kadam3 and Jeremy C. Weiss2
+          1Case School of Engineering, Case Western Reserve University, USA
+           2National Library of Medicine, National Institutes of Health, USA
+           3Rice University University, USA
+
+
+
+
+                     Abstract                     Institutional Review Board (IRB)  This study2026                                                                uses publicly available case reports and involves no
+                  Clinical decisions are prospective, but clinical
+                                                                  participant recruitment, intervention, or access to
+               language models are often evaluated on retro-
+                                                                  private identifiable data.                 spective records that reveal the final diagnosis,Sep
+               treatment response, and outcome. Such evalua-
+                 tions may reward the use of future information11                rather than reasoning under the uncertainty      1. Introduction
+                present at the decision point. We introduce
+                                                                     Clinical decision-making is inherently prospective. A               a paired benchmark for measuring outcome-
+                conditioned shifts consistent with hindsight bias       clinician deciding whether to admit, treat, escalate,
+                  in  clinical temporal reasoning.    It contains       or discharge a patient must act using only the ev-
+               171 case reports from the PubMed Central       idence available at that moment, before the subse-[cs.CL]         Open Access Subset—40 sepsis and 131 GLP-      quent trajectory and outcome are known.  Clinical
+                1/diabetes cases—represented as both textual        artificial intelligence systems inherit the same infor-
+                 narratives and human-annotated and LLM-      mation constraint: a model intended to support a
+                generated textual time series (TTS). For each       decision at time t should be evaluated using infor-
+                  case, questions are tied to a clinically meaning-                                                         mation available by time t, rather than information
+                   ful cutoff and paired with a prospective refer-
+                                                       documented later in the episode.
+                ence answer and an outcome-consistent hind-
+                                                             This evaluation setting creates the conditions for                  sight trap. Models answer each question using
+                  either a TTS truncated at the cutoffor the com-       hindsight bias, in which knowledge of an outcome
+                 plete timeline; additional conditions vary the      changes judgments about what was knowable or pre-
+                 narrative source (original or synthetic) and TTS       dictable beforehand (Fischhoff, 1975). Hindsight bias
+                annotation source (human or LLM). We evalu-      has been observed in physicians estimating diagnostic
+                 ate accuracy (Acc), hindsight trap rate (HTR),       probabilities (Arkes et al., 1981; Dawson et al., 1988)
+               answer instability rate (AIR), and hindsight      and evaluating earlier care. In a randomized vignette
+                 bias rate (HBR), each of which captures differ-       study, clinicians judged identical antecedent care to
+                ent signals of hindsight bias. Across GPT 5.6                                                                recovery or mortality outcomes more harshly after aarXiv:2609.13454v1             Sol, Gemma 4, GLM 5.2, and Opus 5, full time-                                                           death outcome in two of three cases, and greater se-
+                   line exposure produces consistent hindsight-
+                                                                      niority did not eliminate the effect (Banham-Hall and                  sensitive shifts, while temporal masking reduces
+                                                                 Stevens, 2019).                 bias without lowering accuracy.
+                                                            However, not every answer change after additional
+            Keywords:  hindsight bias; clinical temporal
+                                                              evidence is a bias.  If the task asks for the final di-
+                 reasoning; large language models; clinical ques-
+                                                                    agnosis, later evidence should appropriately update
+                 tion answering, benchmark evaluation
+                                                              the answer. The narrower failure mode studied here
+                                                                        arises when later information changes a judgment
+        Data and Code Availability  The source case  whose intended target  is what was supportable at
+           reports are publicly available through the PubMed  an earlier reference point. Measuring this failure re-
+          Central Open Access Subset. Code will be provided  quires holding the clinical question and antecedent
+           as supplementary material.                          evidence fixed while varying access to post-reference
+
+
+
+     © M.M. , S. Kumar, O. Kadam & J.C. Weiss.
+
+=== PDF第2页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+Figure 1: Benchmark pipeline for measuring hindsight-sensitive clinical reasoning. Models answer the same
+          question using masked and complete case trajectories, and response changes are evaluated for
+          correctness, instability, and movement toward an outcome-consistent hindsight trap.
+
+information.  Prior paired clinical vignette studies  suring directional hindsight-sensitive changes; and
+have shown that general and reasoning-focused LLMs  (3) a cross-model evaluation across two clinical co-
+can exhibit hindsight bias when outcome cues are ma-  horts and multiple input representations showing
+nipulated, but these evaluations are based on indi-  that temporal masking reduces hindsight bias with-
+vidual vignettes rather than a corpus of longitudinal  out reducing accuracy.
+clinical cases (Wang and Redelmeier, 2024; Degany
+et al., 2025). ExAnte evaluates temporal leakage in  2. Related Work
+general domain QA by imposing explicit temporal                                                    Here, we present an overview of related works. A
+cutoffs (Liu et al., 2026), but its objective differs from                                                        detailed version can be found in Appendix A.
+ours. It evaluates whether answers are supported by
+information available before a specified time, whereas  General    temporal     reasoning. TRAM,
+we ask whether exposure to a patient’s subsequent  TimeBench,  Test  of Time,  and TimE  evaluate
+clinical trajectory changes a model’s judgment about  event ordering, temporal arithmetic, duration, and
+what was supportable at an earlier decision point.  multistep reasoning in synthetic or general domain
+This requires paired full–masked evaluation with a  settings (Wang and Zhao, 2024; Chu et  al., 2024;
+fixed prospective reference answer and an outcome-  Fatemi et al., 2025; Wei et al., 2025). ExAnte is clos-
+consistent hindsight trap, allowing us to measure not  est to our temporal setup. It imposes explicit cutoffs
+only correctness but the direction of within-question  and measures leakage from post-cutoff knowledge,
+answer changes. To the best of our knowledge, no  but its tasks are non-clinical (Liu et al., 2026). Our
+existing clinical benchmark applies this design across  benchmark instead tests whether later events in a
+a corpus of real longitudinal case trajectories.         patient trajectory shift a judgment about an earlier
+                                                               clinical point toward the hindsight trap.Contributions. We introduce (1) a paired bench-
+mark for clinical hindsight bias that compares masked  Clinical question answering over longitudinal
+and complete trajectories using prospective reference  records.  MedAlign, MIMIC-Instr, EHRNoteQA,
+answers and predefined hindsight traps; (2) comple-  and EHRSQL evaluate instruction following or ques-
+mentary metrics (∆HTR, AIR, and HBR) for mea-  tion answering over longitudinal notes and struc-
+
+
+                                                  2
+
+=== PDF第3页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+tured EHR data (Fleming et al., 2024; Wu et al.,   Case:  58-year-old male admitted with septic shock sec-
+2024; Kweon et al., 2024; Lee et al., 2022).  More   ondary to pneumonia.  [...]
+recent benchmarks  target temporal reasoning  di-   Cutoff time: 24 hours post-admission
+rectly.  TIMER grounds  instructions to  patient-                                                          Visible to answering model:
+specific timestamps, ASCENT evaluates diagnosis as                                                             Question: What probability range best represents the like-
+evidence accumulates, and RealICU evaluates win-    lihood of requiring mechanical ventilation within 48 hours,
+dowed ICU decisions using hindsight-informed labels    given the patient’s current respiratory status and haemo-
+(Cui et al., 2025; Choi et al., 2026; Shen et al., 2026).   dynamic profile?
+These tasks measure temporal grounding or stepwise   Format: Multiple choice (ordinal)
+reasoning. We pair the same question and pre-cutoff   Options: [A.] <10%, [B.] 10–30%, [C.] 31–60%, [D.] >60%
+evidence with complete and masked timelines, allow-
+                                               Hidden evaluation metadata:
+ing measurement of whether the answer changes and                                                      a∗(reference answer): A. <10%
+whether it moves in an outcome-consistent direction.
+                                                                    atrap (hindsight trap): D. >60%
+Reasoning from  clinical case reports.  Med-   Trap explanation: The patient was intubated at 36 hours;
+CaseReasoning evaluates diagnostic answers and rea-   a model with access to the full trajectory may inflate the
+soning derived from open access case reports, while    prospective probability estimate in light of this outcome.
+MedR-Bench  covers  examination,  diagnosis,  and   Eval target: both
+treatment planning (Wu et al., 2025; Qiu et al., 2025).   Cutoff event:  Arterial blood gas showing mild hypox-
+                                                             aemia; vasopressor requirement stable.
+Prior work also reconstructs time-localized sepsis tra-
+jectories from PubMed Central case reports as tex-
+                                                   Figure 2: Representative benchmark question. The
+tual time series (Noroozizadeh and Weiss, 2026). We
+                                                                        visible component (above the divider)  is
+build on this representation but study a different
+                                                     shown to the answering model; the hidden
+question: not only whether a model reaches the final
+                                                       metadata (below) is used only for evalua-
+conclusion, but whether that conclusion was support-
+                                                                       tion. The reference answer a∗is what was
+able before later events were known.
+                                                                   defensible at the cutoff, while the hindsight
+                                                              trap answer atrap is what may seem more
+3. Methods
+                                                             compelling once the eventual outcome  is
+The overall pipeline is illustrated in Figure 1, and all          known.
+prompts used are listed in Appendix C.                                     H
+                                               (TTS): a human-annotated TTS Ti and an indepen-
+                                                     dently generated LLM TTS TiL . A TTS is a sequence
+3.1. Study design and data source                    s                         i                                         T i = {(esij, tsij)}nsj=1,     s ∈{H, L}, where esij  is a
+Case reports were drawn from the PubMed Central   clinical event and tsij  is its relative time in hours.
+Open Access (PMC OA) Subset provided by National  This representation preserves the distinction between
+Library of Medicine (2025). We used two cohorts  narrative order and clinical event order, which may
+comprising 171 case reports: 40 sepsis cases and 131  diverge in retrospectively written case reports.
+cases of type 2 diabetes patients taking Glucagon-like
+Peptide Receptor Agonists (GLP1-RA) medications.  3.3. Question construction
+The sepsis and GLP1-RA cohorts build on previously  Questions were generated with GPT 5.6 Sol with
+published works (Noroozizadeh and Weiss, 2026; Ku-  the default medium reasoning effort from the origi-
+mar and Weiss, 2026), which provide independently  nal narrative Ni and human TTS TiH . For each case,
+constructed timelines from clinically trained annota-  the generator returned ten questions as a schema-
+tors and LLM extractors. The two cohorts were se-  constrained JSON array; outputs that failed valida-
+lected to evaluate the benchmark across contrasting  tion received one repair attempt. Across 171 cases,
+clinical trajectories: comparatively dense, acute care  this yielded 1,710 questions. Figure 2 shows a rep-
+episodes in sepsis and more heterogeneous longitudi-  resentative item, including the fields visible to the
+nal trajectories in GLP-1/diabetes.                  answering model and the hidden metadata used for
+                                                        evaluation.
+3.2. Clinical representations                       Questions   were    assigned    to   accuracy,
+Each case i was represented by its original case re-  hindsight bias, or both. accuracy items targeted
+port narrative Ni and by two textual time series   verifiable answers with low  hindsight  sensitivity;
+
+
+                                                  3
+
+=== PDF第4页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+hindsight bias items targeted subjective judgments
+                                                  Table 1: Input  conditions.    H/L-TTS  denotesuch as  likelihood and treatment appropriateness
+                                                    human/LLM-generated textual time series;that could shift after later evidence; and both items
+                                         F/M denotes full/masked variants.required a prospectively supported answer and a
+plausible trap.  Each case targeted a 2/3/5  split   Condition Model input
+across these categories.
+                                                     0       Original narrative
+  The benchmark included free response, true/false,        1.1      Original narrative + H-TTS (F/M)
+                                                             1.2      Original narrative + L-TTS (F/M)and four-option multiple choice questions, with mul-
+                                                             2.1    H-TTS only (F/M)
+tiple  choice items  labeled  categorical  or  ordinal.        2.2    L-TTS only (F/M)
+Ordinal options used explicit ranges, with a∗q and        3.1      Synthetic narrative + H-TTS (F/M)
+atrapq   placed at maximally separated positions. The        3.2      Synthetic narrative + L-TTS (F/M)
+prompt limited each reasoning type to two questions
+per case to maximize diversity.  It also omitted ex-  3.5. Answer generation
+plicit temporal references from visible question text We evaluated GPT-5.6 Sol, Gemma-4-31B, GLM-
+so that prospective reasoning depended on the sup-  5.2-FP8, and Opus 5. Each model answered every
+plied context rather than an overt instruction.        question independently and received only the visible
+                                                     question fields—question, format, and options—
+                                                     together with the context specified by Table 1. The
+3.4. Temporal masking and cutoff position      rest were withheld; see Figure 2. Responses contained
+                                             an answer and brief supporting evidence. No model
+For each question q, the generator supplied a numeric                                             had access to external retrieval, tools, or the web.
+cutoff cq in the time coordinate of the human TTS.
+Given a TTS Tis , we retained events at or before the  Hindsight warning sensitivity analysis. We re-
+cutoff:                                            peated the Sepsis experiments for GPT and GLM
+      T iq,maskeds    = {(esij, tsij) ∈Tis : tsij ≤cq}     (1)  after appending explicit instructions to use only con-
+         s          s                                 temporaneously available information and disregard
+while T i,full = T i  retained the complete trajectory.
+                                                    the final outcome.  All other procedures were un-The same numeric cutoff was applied to the human
+                                                  changed.and LLM TTS.
+
+  After sorting valid rows by numeric time and pre-                                                      3.6. Experimental conditions
+serving source order within ties, let kq ∈{1, . . . , ni}                                   We evaluated seven input conditions (Table 1, Ap-
+denote the chronological index matching the cutoff.
+                       kq−1                       pendix B) using the same question set throughout.
+We define RelPos(q) = ni−1, where 0 and 1 denote  Condition 0 provided the complete original narrative
+the first and last recorded events, respectively.
+                                                      as an unpaired retrospective baseline. Conditions 1.x
+                                              combined that narrative with full or masked human-
+Constructing synthetic case reports.  To test  or LLM-generated TTS; only the TTS differed within
+whether our results depended on the original case re-  each pair, so the narrative could  still reveal post-
+port prose or persisted under an independently re-  cutoff information.  Conditions 2.x used TTS alone
+constructed narrative representation, we generated  and therefore directly isolated the effect of tempo-
+synthetic narratives from the TTS. A separate nar-   ral masking. Conditions 3.x paired each TTS with a
+rative was generated for every question q, cutoff ciq,  synthetic narrative generated from the corresponding
+and annotation source s ∈{H, L}: each was derived  masked or full information scope.
+from the masked TTS T iqs,mask rather than the full    Condition 0  is unpaired and therefore supports
+TTS, so no post-cutoff information could leak into  only Acc and HTR. Conditions 1.x, 2.x, and 3.x pro-
+the narrative seen by the answering model. A single  vide matched masked and full responses and addi-
+case report i with Qi questions and two annotation  tionally support ∆Acc, ∆HTR, AIR, and HBR.
+sources therefore yields up to 2Qi distinct synthetic
+narratives, guaranteeing strict temporal alignment  3.7. Evaluation
+between the narrative and the TTS in each paired  Let aq,z denote the model answer to question q under
+condition. For each condition, narratives were gener-   visibility condition z ∈{full, masked}. We compare
+ated with the same model used for answering.        each answer with the prospective reference a∗q and
+
+
+                                                  4
+
+=== PDF第5页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+the hindsight trap atrapq    . Metrics were computed per   1]. Then
+question and then averaged.  Structured responses          HBRq = IMq   · HTRq(aq,full),          (6)
+were scored by exact match.  Free responses were                                                      so HBR is nonzero only when the masked answer is
+scored by a GPT-5.6 Sol judge against the prospective                                                          correct.
+reference and hindsight-trap answers using {0, 0.5, 1}
+semantic-agreement scores.                                                       3.7.3. Statistical analyses
+3.7.1. Individual metrics
+                                   We estimated 95% confidence intervals using a case-
+Accuracy (Acc). Acc measures agreement with the  clustered bootstrap with 2,000 replicates. Cases were
+prospective reference answer a∗q and  is defined for  sampled with replacement, and  all questions and
+accuracy and both questions, which comprise 70%  paired responses from each sampled case were re-
+of the dataset.  For true/false and multiple choice  tained.  Sepsis and GLP-1/diabetes were analyzed
+questions, Accq(a) = 1[a = a∗q] ∈{0, 1}, whereas free  separately.  For metrics evaluated relative to zero,
+response questions receive Accq(a) ∈{0, 0.5, 1} from   effects were considered statistically significant when
+the judge, with 0.5 denoting partial correctness.      the 95% bootstrap confidence interval excluded zero.
+Hindsight  trap  rate (HTR). HTR measures
+agreement with  the  outcome-consistent  hindsight                                                      3.8. Human validation
+trap atrapq   and  is defined for hindsight bias and
+both questions, which comprise 80% of the dataset.  Four  clinical annotators (one physician and three
+For true/false and categorical multiple choice ques-  medical or physician assistant trainees) reviewed an
+tions,                                                  error-enriched 10% sample of cases, split into two
+        HTRq(a) = 1[a = atrapq    ] ∈{0, 1},       (2)  non-overlapping subsets with two annotators each.
+                                                 Annotators assessed whether each question was clini-whereas free response questions receive HTRq(a) ∈
+                                                           cally reasonable and whether they agreed with the{0, 0.5, 1} from the judge. For ordinal multiple choice
+                                                      prospective  reference and  hindsight-trap answers.questions, HTR is graded by movement from a∗q to-
+                                               Sampling and validation details are provided in Ap-ward atrapq    .  In Figure 2, for example, answers B,
+                    1  2                             pendix G.
+C, and D receive 3, 3, and 1, respectively, yielding
+HTRq(a) ∈{0, 13, 23, 1}.                                              4. Results
+3.7.2. Paired metrics                                                   Figure 3 summarizes Accuracy and Hindsight Trap
+Delta accuracy (∆Acc).                        Rate (HTR) for GPT-5.6 Sol on the GLP and Sepsis
+     ∆Accq = Accq(aq,masked) −Accq(aq,full).   (3)  datasets. Condition 0 serves as the full information
+                                                          baseline, while Conditions 1.1–3.2 allow direct com-A positive ∆Accq indicates greater correctness under
+                                                     parison between the full and masked settings. Resultsmasking, meaning post-cutoff information reduces
+                                                            for Gemma 4, GLM 5.2, and Opus 5 are provided inaverage accuracy.
+                                             Appendix E.Delta hindsight trap rate (∆HTR).
+  ∆HTRq = HTRq(aq,full) −HTRq(aq,masked).   (4)  Naive narrative answering already shows sub-
+A positive ∆HTRq indicates greater trap attraction  stantial hindsight bias.  Before considering the
+under full exposure, meaning post-cutoffinformation  paired masking experiments, condition 0 establishes
+increases hindsight bias.                             that hindsight bias is already a meaningful problem
+Answer instability rate (AIR). AIR records any  when the model answers questions directly from the
+answer change, regardless of direction:                   clinical narrative. As shown in Figure 3C and Fig-
+                                                    ure 3D, in both datasets, the hindsight trap rate      AIRq = 1[aq,full ̸≡aq,masked] ∈{0, 1}.     (5)
+                                        (HTR) is significantly greater than zero. 14–15% of
+AIR upper-bounds any bias effect because a model
+                                                     responses are hindsight-biased when naively answer-
+answer must change to exhibit hindsight bias.
+                                                      ing questions based on narratives.
+Hindsight bias rate (HBR). HBR captures the
+joint event that a model is fully correct under mask-  Paired masking reveals robust hindsight bias
+ing and moves toward the trap under full exposure. It  effects.  The paired conditions (1.x–3.x) allow hind-
+is defined only for both questions, for which both a∗q   sight bias to be quantified directly using three com-
+and atrapq   are available. Let IMq = 1[Accq(aq,masked) =  plementary metrics: ∆HTR, AIR, and HBR. As seen
+
+
+                                                  5
+
+=== PDF第6页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+                                             Individual Metrics by Condition
+    (A)                    GLP                              (B)                       Sepsis
+      1.00                                                                              1.00
+      0.97                                                                              0.97
+      0.94                                                                              0.94
+      0.91                                                                              0.91
+      0.88                                                                              0.88     Accuracy
+      0.85                                                                              0.85
+                        Full                                                                                                       Full      0.82                                                                              0.82                Masked                                                                  Masked
+      0.79                                                                              0.79
+    (C)                                                          (D)
+      0.25                                                                              0.25
+   (HTR) 0.20                                                                              FullMasked           0.20          FullMasked
+   Rate 0.15                                                                              0.15
+   Trap      0.10                                                                              0.10
+
+      0.05                                                                              0.05      Hindsight
+      0.00                                                                              0.00
+            0        1.1        1.2        2.1*        2.2*        3.1*        3.2*                 0        1.1        1.2        2.1*        2.2*        3.1*        3.2*
+                                   Condition                                                               Condition
+
+                                                   *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+
+Figure 3: Accuracy and Hindsight Trap Rate (HTR) across experimental conditions for GPT for the GLP
+        and sepsis datasets. Condition 0 represents the full information setting. For Conditions 1.1–3.2,
+           results are shown for both the full and masked settings. Points indicate observed values and error
+          bars indicate 95% bootstrap confidence intervals.
+
+in Figure 4, across both datasets, AIR and HBR are  Condition 1 provides weaker temporal isola-
+significantly greater than zero in every paired con-  tion.  In conditions 1.1 and 1.2, ∆HTR remains
+dition, indicating that access to future information  small and non-significant despite significant AIR and
+systematically changes model responses and, more HBR (Figure 4). Unlike conditions 2.x and 3.x, the
+stringently, can shift initially correct prospective an-  masked variant in condition 1 retains the complete
+swers toward predefined hindsight traps. This is par-  original  narrative, which may contain post-cutoff
+ticularly notable for HBR, which is a strict subset  or outcome-relevant information. Consequently, the
+of AIR and therefore distinguishes hindsight-biased  full–masked comparison isolates only the effect of
+shifts from general answer instability. The evidence  masking the TTS, not the effect of removing future
+is strongest under strict temporal masking (Condi-  information from the model’s entire input. The sig-
+tions 2.x and 3.x), where all three metrics are signif-  nificant AIR and HBR nevertheless show that chang-
+icantly positive across both datasets. For example,  ing TTS access can alter responses, including shifts
+AIR reaches 16.0% in Sepsis Condition 2.2, while  from prospectively correct answers toward hindsight
+HBR reaches 5.5% in the same condition, demon-  traps, even when the retrospective narrative remains
+strating that a meaningful subset of responses not  available.
+only changed after future information was revealed
+but shifted specifically from a prospectively correct Human versus LLM TTS.  Across both datasets,
+answer toward the hindsight trap. Overall, the con-  the human-TTS variants generally achieve slightly
+sistency of ∆HTR, AIR, and HBR under strict mask-  higher absolute accuracy than the corresponding
+ing shows that the observed effects are not merely  LLM-TTS variants. This comparison should be in-
+general response instability: access to future clinical  terpreted in light of the benchmark construction: the
+information systematically shifts model judgments  human TTS was used as the reference representa-
+toward hindsight-consistent answers.                   tion during question generation.  Discrepancies in
+
+
+                                                  6
+
+=== PDF第7页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+                                              Paired Metrics by Condition
+                                                   ΔHTR         AIR       HBR
+     (A)                                                            (B)                        GLP                                                 Sepsis
+
+        0.25
+
+        0.20
+
+        0.15
+   Rate  0.10
+
+        0.05
+
+        0.00
+
+      −0.05
+                 1.1         1.2          2.1*         2.2*         3.1*         3.2*                      1.1         1.2          2.1*         2.2*         3.1*         3.2*
+                                     Condition                                                               Condition
+                                                     *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+
+Figure 4: Hindsight bias metrics across paired experimental conditions for GPT for the GLP and sepsis
+          datasets. We report ∆HTR, AIR, and HBR for Conditions 1.1–3.2.  Points indicate observed
+          values and error bars indicate 95% bootstrap confidence intervals.
+
+the LLM-reconstructed TTS—including differences  model’s answers, but not meaningfully helping it an-
+in event content or timing—may therefore omit in-  swer correctly. This strengthens the case for tempo-
+formation needed to answer a question or place infor-   rally masked evaluation as a way to reduce hindsight
+mation on the wrong side of its masking cutoff.        bias while preserving task performance.
+
+The synthetic narrative conditions support  Explicit  hindsight  warning  attenuates  but
+the masking interpretation.  Conditions 3.x are  does not eliminate the effect.  As a sensitiv-
+especially informative because they retain a narra-   ity analysis, we repeated the Sepsis evaluation for
+tive style prompt while restoring temporal control GPT and GLM with explicit instructions to avoid
+through a synthetic narrative. Their results closely  hindsight. The warning generally reduced hindsight-
+track the strict masking pattern seen in 2.x: all hind-  related metrics, particularly under strict masking,
+sight bias metrics are significantly positive, and their  while accuracy remained broadly similar. However,
+magnitudes are much closer to 2.x than to the atten-  AIR and HBR remained positive across paired con-
+uated 1.x conditions. This suggests that the weaker  ditions, indicating that hindsight-sensitive response
+effects in 1.x are not due to narrative prompting per  changes persisted despite the  explicit instruction.
+se, but to leakage from the original unmasked nar-  Full results are reported in Appendix F.
+rative. The synthetic narrative therefore appears to                                Human  validation supports benchmark  la-
+preserve the benefits of a narrative format without                                               bel validity.  Human review of the error-enriched
+undermining the masking manipulation.                                                        validation sample found that 95.9%  of questions
+                                                 were judged  clinically reasonable, with agreementBias reduction does not come at the cost of
+                                                         rates of 98.7% for the prospective reference answersaccuracy.  In contrast to the consistent hindsight
+                                             and 97.1% for the hindsight-trap answers.   Inter-bias signal, Figure 3A and Figure 3B highlight that
+                                                  annotator agreement was 91.8% for question rea-∆Acc is not significant in any paired condition in
+                                                      sonableness, 99.2% for the prospective answer, andeither dataset.  Although some point estimates are
+                                              94.1% for the hindsight trap.  Detailed results arepositive and others negative, there is no reliable evi-
+                                                    reported in Appendix G.dence that access to the full case improves accuracy
+relative to the masked version.  This  is a central
+                                              5. Discussionresult that masking reduces hindsight bias without
+imposing a detectable accuracy penalty. Put differ-  Principal findings.  Across both cohorts, exposure
+ently, future information is systematically biasing the  to the complete timeline shifted model responses to-
+
+
+                                                  7
+
+=== PDF第8页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+ward outcome-consistent alternatives.   In the un-  components: AIR requires only an answer change,
+paired narrative only baseline, the hindsight trap rate  Acc depends on the prospective reference answer,
+was 14–15%; because this condition has no masked HTR depends on the hindsight-trap answer, and
+counterpart,  it  is best interpreted as a descriptive HBR combines both. Convergence across these com-
+baseline rate rather than a causal estimate of hind-  plementary measures, particularly under strict mask-
+sight bias. The paired conditions provide stronger  ing, makes it less likely that the observed hindsight-
+evidence.  AIR and HBR were positive across  all  bias signal is an artifact of any single annotation label
+paired input settings, and strict temporal masking  or metric definition.
+(conditions 2.x and 3.x) produced the largest changes                                                Limitations.  Our studies have several limitations.
+in trap attraction, with ∆HTR ranging from 5.8%                                                     First, the reference time was hidden and questions
+to 9.6% and HBR from 3.3% to 5.5%.  By con-                                                 were intentionally unanchored, so some full–masked
+trast, ∆Acc was statistically insignificant.  Thus,                                                          differences may reflect changes in task interpretation
+later information changed a subset of answers in the                                                      rather than hindsight bias. Explicitly specifying the
+outcome-consistent direction without a correspond-                                                        reference time and allowable evidence could reduce
+ing improvement in overall accuracy.                                                           this ambiguity, but such tightly structured questions
+  The condition comparisons clarify the role of in-                                       may not reflect real clinical deployments, where mod-
+formation control.  In conditions 1.x, the original                                                                els may need to infer the relevant temporal context
+narrative remained complete in both variants, so fu-                                               from available information.  Second, free-response
+ture information was shared across the pair and the                                                       scoring relies on an LLM judge and may be sensitive
+masked–full contrast was attenuated. Conditions 2.x                                                      to paraphrase or judge-specific variation. However,
+removed the narrative, while conditions 3.x paired                                                    the judge only compares responses with predefined
+each TTS with a synthetic narrative generated from                                                        reference and hindsight-trap answers, and most ques-
+the corresponding information scope. The larger ef-                                                         tions use structured formats, reducing reliance on
+fects in these strictly controlled settings suggest that                                            LLM-based scoring. Third, published case reports
+the information boundary, rather than narrative for-                                                      overrepresent unusual and educational cases, limit-
+mat alone, drives the measured difference. Human-                                                      ing generalizability to routine clinical practice. We
+and LLM-generated TTS produced the same quali-                                                    use these datasets because they are publicly avail-
+tative pattern, although effect sizes varied by cohort                                                      able and, importantly, provide manually annotated
+and condition. While our experiments do not iden-                                          TTS, enabling controlled evaluation of temporal rea-
+tify the source of the observed bias, its persistence                                                    soning with high-quality representations of the clin-
+after explicit hindsight warning prompting suggests                                                                ical trajectories.  Fourth, temporal masking relies
+that instructions alone may be insufficient to elimi-                                             on recorded timestamps, which may be imprecise or
+nate it. This result suggests that input level temporal                                                   misplace information relative to a cutoff. Moreover,
+control may be more reliable than instruction alone                                                     observation time may not reflect the true onset or
+when evaluating judgments about an earlier clinical                                                   duration of a clinical state.
+state.
+                                           Future directions.  Evaluations of earlier clinical
+Validity of benchmark labels.  Human review
+                                                        decisions should restrict model inputs to information
+provides additional support for the validity of the
+                                                         available at the decision point and report directional
+GPT-generated questions, prospective reference an-
+                                                measures of outcome-sensitive change alongside ac-
+swers, and hindsight traps (Section 3.8; Appendix G).
+                                                       curacy.  Future work should extend the benchmark
+Importantly, the validation set was intentionally en-
+                                                      to routine longitudinal EHRs, larger expert-reviewed
+riched for cases in which models made errors or ex-
+                                                    samples, and counterfactual outcome controls, while
+hibited hindsight-sensitive behavior—the same cases
+                                                        investigating training  strategies and model  archi-
+that contribute most directly to our evidence of hind-
+                                                        tectures that better enforce prospective information
+sight bias.  Positive human validation on this chal-
+                                                    boundaries.
+lenging subset therefore strengthens confidence that
+the benchmark’s central findings are not driven by
+                                              6. Conclusioninvalid questions or labels.
+  Furthermore, our various metrics provide robust- We  introduced  a  paired benchmark  for  testing
+ness to annotation error by examining hindsight bias  whether later clinical information changes LLM judg-
+from different angles that rely on different annotation  ments about an earlier decision point.  Across two
+
+
+                                                  8
+
+=== PDF第9页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+clinical cohorts and four models, complete trajecto-    Proceedings of the 62nd Annual Meeting of the As-
+ries increased movement toward outcome-consistent     sociation for Computational Linguistics (Volume 1:
+hindsight traps, whereas temporal masking reduced    Long Papers), pages 1204–1228, Bangkok, Thai-
+these shifts without a detectable loss in accuracy.     land, August 2024. Association for Computational
+These findings show that retrospective clinical eval-     Linguistics.  doi: 10.18653/v1/2024.acl-long.66.
+uation can overstate prospective reasoning perfor-   URL https://aclanthology.org/2024.acl-long.66/.
+mance and motivate evaluation protocols that restrict
+                                                      Hejie Cui, Alyssa Unell, Bowen Chen, Jason Alanmodel inputs to information available at the target
+                                                                Fries,  Emily  Alsentzer,  Sanmi  Koyejo,  anddecision time.
+                                            Nigam H. Shah.  TIMER: Temporal instruction
+                                                  modeling and evaluation for longitudinal clinical
+Acknowledgements                                records.  npj Digital Medicine, 8:577, 2025.  doi:
+                                                    10.1038/s41746-025-01965-9. URL https://www.
+This research was supported by the Intramural Re-    nature.com/articles/s41746-025-01965-9.
+search Program of the National Institutes of Health
+(NIH) and utilized the computational resources of the  Neal V. Dawson,  Hal R.  Arkes,  Carl  Siciliano,
+NIH HPC Biowulf cluster. The contributions of the    Richard Blinkhorn, Mark Lakshmanan, and Mary
+NIH author(s) are considered Works of the United     Petrelli.  Hindsight bias: An impediment to ac-
+States Government.  The findings and conclusions    curate probability estimation in clinicopathologic
+presented in this paper are those of the author(s) and     conferences.  Medical Decision Making, 8(4):259–
+do not necessarily reflect the views of the NIH or the    264, 1988. doi: 10.1177/0272989X8800800406.
+U.S. Department of Health and Human Services.
+                                         Or Degany, Sahar Laros, Daphna Idan, and Sharon
+                                                      Einav. Evaluating the o1 reasoning large language
+References                                   model for cognitive bias: a vignette study. Critical
+                                                     Care, 29(1):376, 2025. doi: 10.1186/s13054-025-0
+H. R. Arkes, R. L. Wortmann, P. D. Saville, and                                                       5591-5.
+  A. R. Harkness.   Hindsight bias among physi-
+  cians weighing the likelihood of diagnoses. Journal  Bahare Fatemi, Seyed Mehran Kazemi, Anton Tsit-
+  of Applied Psychology, 66(2):252–254, 1981.  doi:     sulin,  Karishma Malkan,  Jinyeong Yim,  John
+  10.1037/0021-9010.66.2.252.                          Palowitch, Sungyong Seo, Jonathan Halcrow, and
+                                               Bryan Perozzi.  Test of time: A benchmark for
+Edward Banham-Hall and Sian Stevens.  Hindsight    evaluating LLMs on temporal reasoning. In Inter-
+  bias critically impacts on clinicians’ assessment of     national Conference on Learning Representations,
+  care quality in retrospective case note review. Clin-    2025. URL https://proceedings.iclr.cc/paper files
+   ical Medicine, 19(1):16–21, 2019. doi: 10.7861/clin    /paper/2025/hash/eb7295a8bc613b375726659c2ec
+  medicine.19-1-16.                                   d6f14-Abstract-Conference.html.
+
+Yera Choi, Yeong Hwa Kim, JaeDeok Lee, Taekang  Baruch Fischhoff. Hindsight is not equal to foresight:
+  Kim, Sangdoo Yun, and Seong-Eun Moon.  AS-   The effect of outcome knowledge on judgment un-
+  CENT: A benchmark for evaluating and advanc-    der uncertainty. Journal of Experimental Psychol-
+  ing stepwise diagnostic reasoning in large language     ogy: Human Perception and Performance, 1(3):
+  models on common clinical scenarios. In Proceed-    288–299, 1975. doi: 10.1037/0096-1523.1.3.288.
+  ings of the 7th Conference on Health, Inference,
+  and Learning, volume 333 of Proceedings of Ma-  Scott L. Fleming,  Alejandro Lozano, William  J.
+  chine Learning Research, pages 404–426. PMLR,    Haberkorn, Jenelle A. Jindal, Eduardo Reis, Rahul
+  2026. URL https://proceedings.mlr.press/v333/c    Thapa,  Louis Blankemeier,  Julian Z. Genkins,
+  hoi26a.html.                                   Ethan  Steinberg,  Ashwin Nayak,  Birju  Patel,
+                                               Chia-Chun Chiang, Alison Callahan, Zepeng Huo,
+Zheng Chu, Jingchang Chen, Qianglong Chen, Wei-     Sergios Gatidis, Scott Adams, Oluseyi Fayanju,
+  jiang Yu, Haotian Wang, Ming Liu, and Bing Qin.    Shreya J. Shah, Thomas Savage, Ethan Goh, Ak-
+  TimeBench: A comprehensive evaluation of tempo-    shay S. Chaudhari, Nima Aghaeepour, Christo-
+   ral reasoning abilities in large language models. In    pher  Sharp,  Michael A.  Pfeffer,  Percy  Liang,
+
+
+                                                  9
+
+=== PDF第10页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+  Jonathan H. Chen, Keith E. Morse, Emma P.    tadiscovery.nlm.nih.gov/Literature/PubMed-Cen
+  Brunskill, Jason A. Fries, and Nigam H. Shah.    tral-Open-Access-Subset-PMC-OA-/qbit-hxvw.
+  MedAlign: A clinician-generated dataset for in-    Last updated June 18, 2025; accessed August 8,
+  struction following with electronic medical records.    2026.
+  In Proceedings of the AAAI Conference on Arti-
+                                                   Shahriar Noroozizadeh and Jeremy Weiss.  Recon-   ficial Intelligence, volume 38, pages 22021–22030,
+                                                          structing sepsis trajectories from clinical case re-  2024.  doi:  10.1609/aaai.v38i20.30205. URL
+                                                       ports using LLMs: The textual time series corpus  https://ojs.aaai.org/index.php/AAAI/article/
+                                                               for sepsis.  In Proceedings of the 7th Conference  view/30205.
+                                               on Health, Inference, and Learning, volume 333 of
+Sayantan Kumar and Jeremy C. Weiss. Temporally    Proceedings of Machine Learning Research, pages
+  phenotyping GLP-1RA case reports with large lan-    10–51. PMLR, 2026. URL https://proceedings.ml
+  guage models: A textual time series corpus and risk    r.press/v333/noroozizadeh26a.html.
+  modeling. medRxiv, 2026. doi: 10.64898/2026.04.0
+  5.26350197. Preprint.                          Pengcheng Qiu, Chaoyi Wu, Shuyu Liu, Yanjie Fan,
+                                                Weike Zhao, Zhuoxia Chen, Hongfei Gu, Chuanjin
+Sunjun  Kweon,  Jiyoun  Kim,  Heeyoung  Kwak,    Peng, Ya Zhang, Yanfeng Wang, and Weidi Xie.
+  Dongchul Cha, Hangyul Yoon, Kwanghyun Kim,    Quantifying the reasoning abilities of LLMs on clin-
+  Jeewon Yang, Seunghyun Won, and Edward Choi.     ical cases. Nature Communications, 16:9799, 2025.
+  EHRNoteQA: An LLM benchmark for real-world     doi: 10.1038/s41467-025-64769-1. URL https:
+   clinical practice using discharge summaries. In Ad-    //www.nature.com/articles/s41467-025-64769-1.
+  vances in Neural Information Processing Systems,
+  volume 37, 2024. doi: 10.52202/079017-3958. URL  Chengzhi Shen, Weixiang Shen, Tobias Susetzky,
+  https://proceedings.neurips.cc/paper files/paper    Chen Chen, Jun Li, Yuyuan Liu, Xuepeng Zhang,
+  /2024/hash/e15c4afff22f12c4986c1fcb4e941e03    Zhenyu Gong, Daniel Rueckert, and Jiazhen Pan.
+  -Abstract-Datasets and Benchmarks Track.html.    RealICU: Do LLM agents understand long-context
+  Datasets and Benchmarks Track.                ICU data?  a benchmark beyond behavior im-
+                                                               itation.  arXiv preprint arXiv:2605.13542, 2026.
+Gyubok Lee, Hyeonji Hwang, Seongsu Bae, Yeonsu     doi: 10.48550/arXiv.2605.13542. URL https:
+  Kwon, Woncheol Shin, Seongjun Yang, Minjoon    //arxiv.org/abs/2605.13542.
+  Seo, Jong-Yeup Kim, and Edward Choi. EHRSQL:
+ A practical text-to-SQL benchmark for electronic  Jonathan Wang and Donald A. Redelmeier. Cogni-
+  health records. In Advances in Neural Information     tive biases and artificial intelligence. NEJM AI, 1
+  Processing Systems, volume 35, 2022. doi: 10.522    (12):AIcs2400639, 2024. doi: 10.1056/AIcs240063
+  02/068431-1134. URL https://proceedings.neurip     9.
+  s.cc/paper files/paper/2022/hash/643e347250cf9
+                                               Yuqing Wang and Yun Zhao. TRAM: Benchmarking  289e5a2a6c1ed5ee42e-Abstract-Datasets and Ben
+                                                   temporal reasoning for large language models. In  chmarks.html. Datasets and Benchmarks Track.
+                                                     Findings of the Association for Computational Lin-
+Yachuan Liu, Xiaochun Wei, Lin Shi, Xinnuo Li, Bo-     guistics: ACL 2024, pages 6389–6415, Bangkok,
+  han Zhang, Paramveer Dhillon, and Qiaozhu Mei.    Thailand, August 2024. Association for Computa-
+  ExAnte: A benchmark for ex-ante inference in     tional Linguistics. doi: 10.18653/v1/2024.finding
+  large language models. In Proceedings of the 19th     s-acl.382. URL https://aclanthology.org/2024.fin
+  Conference of the European Chapter of the Asso-     dings-acl.382/.
+  ciation for Computational Linguistics (Volume 1:
+                                             Shaohang Wei, Wei Li, Feifan Song, Wen Luo, Tianyi  Long Papers), pages 1551–1571, Rabat, Morocco,
+                                                  Zhuang, Haochen Tan, Zhijiang Guo, and Houfeng  March 2026. Association for Computational Lin-
+                                             Wang. TimE: A multi-level benchmark for tem-   guistics. doi: 10.18653/v1/2026.eacl-long.72. URL
+                                                       poral reasoning of LLMs in real-world scenarios.  https://aclanthology.org/2026.eacl-long.72/.
+                                                      In Advances in Neural Information Processing Sys-
+National Library of Medicine. Pubmed central open    tems, volume 38, 2025. doi: 10.52202/085713-3082.
+  access subset (PMC OA).  National Library of   URL https://papers.neurips.cc/paper files/paper
+  Medicine Open Data Portal, 2025. URL https://da    /2025/hash/84f1e188c2be52f89f6e206bc37d092
+
+
+                                                  10
+
+=== PDF第11页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+  d-Abstract-Datasets and Benchmarks Track.htm
+    l. Datasets and Benchmarks Track.
+
+Kevin Wu, Eric Wu, Rahul Thapa, Kevin Wei, An-
+  gela Zhang, Arvind Suresh, Jacqueline  J. Tao,
+  Min Woo Sun, Alejandro Lozano, and James Zou.
+  MedCaseReasoning: Evaluating and learning diag-
+  nostic reasoning from clinical case reports. arXiv
+  preprint arXiv:2505.11733, 2025. doi: 10.48550/a
+  rXiv.2505.11733. URL https://arxiv.org/abs/2505
+  .11733.
+
+Zhenbang Wu, Anant Dadu,  Mike  Nalls,  Faraz
+  Faghri, and Jimeng Sun. Instruction tuning large
+  language models to understand electronic health
+  records. In Advances in Neural Information Pro-
+  cessing Systems, volume 37, 2024.  doi: 10.52202
+  /079017-1737. URL https://proceedings.neurips.
+  cc/paper files/paper/2024/hash/62986e0a78780
+  fe5f17b495aeded5bab-Abstract-Datasets and Ben
+  chmarks Track.html.  Datasets and Benchmarks
+  Track.
+
+
+
+
+
+                                                  11
+
+=== PDF第12页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+                                                  Clinical  question  answering  over  longitu- Supplementary Material
+                                                dinal records.  Clinical benchmarks increasingly
+                                                           test LLMs on realistic or longitudinal EHR tasks.This supplementary material provides detailed infor-
+                                             MedAlign contains clinician-generated instructionsmation organized as follows:
+                                               grounded in longitudinal records (Fleming et  al.,
+                                                      2024); MIMIC-Instr provides large-scale instruction-  • Appendix A: Detailed literature review.
+                                                       following examples derived from MIMIC-IV (Wu
+                                                          et al., 2024); and EHRNoteQA evaluates questions  • Appendix B: Experimental conditions and in-
+                                                 spanning one or more discharge summaries (Kweon    put configurations.
+                                                          et  al., 2024). EHRSQL tests text-to-SQL reason-
+                                                      ing over structured EHR databases, including time-  • Appendix C: Prompts used for question con-
+                                                           sensitive questions and temporal expressions (Lee     struction, answer generation,  evaluation, and
+                                                          et al., 2022). TIMER explicitly links instructions to     synthetic narrative generation.
+                                                timestamps and evaluates temporal boundary adher-
+                                                       ence, trend detection, and chronological precision in  • Appendix D: Distribution of temporal masking
+                                                       longitudinal EHRs (Cui et al., 2025). ASCENT eval-     cutoffs across the clinical trajectories.
+                                                     uates stepwise diagnostic reasoning as evidence accu-
+                                                  mulates under incomplete information (Choi et al.,  • Appendix E: Complete results across other
+                                                      2026).  RealICU evaluates windowed ICU decision    models (Gemma, GLM, Opus).
+                                                  support using  prefix-only observations and  labels
+                                                produced after physicians review the full trajectory  • Appendix F: Sensitivity analysis with explicit
+                                                (Shen et al., 2026); unlike our paired design, it uses    hindsight warning.
+                                                      hindsight to construct reference labels rather than
+                                                measuring how a model’s own answer changes after  • Appendix G: Human validation of benchmark
+                                              outcome exposure.  These works evaluate retrieval,     questions, prospective answers, and hindsight
+                                                 temporal synthesis, instruction following, evolving     traps.
+                                                         diagnosis, or prospective performance against retro-
+                                                        spectively informed labels. We instead hold the ques-
+                                                        tion and prospective reference target fixed and com-Appendix A. Detailed Literature
+                                                   pare masked with complete-record exposure to mea-
+            Review                                                      sure the directional effect of later information on the
+                                                   model’s response.General  temporal  reasoning  Several  bench-
+marks evaluate temporal reasoning in general do-
+main LLMs. TRAM covers event order, arithmetic,
+frequency, and duration (Wang and Zhao, 2024);  Reasoning from clinical case reports.  Clinical
+TimeBench provides a hierarchical evaluation across  case reports have also been used to construct chal-
+a broad range of temporal phenomena (Chu et al.,  lenging reasoning benchmarks.  MedCaseReasoning
+2024); Test of Time uses controlled synthetic tasks  pairs diagnostic cases with detailed reasoning state-
+to study temporal logic and sensitivity to problem  ments derived from open-access case reports and
+structure (Fatemi et al., 2025); and TimE evaluates  evaluates both final diagnosis and reasoning recall
+multi-level reasoning over Wikipedia, news, and di-  (Wu et al., 2025). MedR-Bench structures case re-
+alogue scenarios (Wei et al., 2025). Most closely re-  ports into examination recommendation, diagnostic
+lated, ExAnte evaluates inference under explicit tem-  decision-making, and treatment-planning tasks (Qiu
+poral cutoffs and measures leakage from post-cutoff  et al., 2025). Related work has reconstructed time-
+knowledge across several non-clinical tasks (Liu et al.,  localized sepsis trajectories from PubMed Open Ac-
+2026).  These benchmarks establish that temporal  cess case reports as textual time series (Noroozizadeh
+constraints remain difficult for LLMs, but they do  and Weiss, 2026). These resources improve the real-
+not study clinical judgments or quantify whether ex-  ism and granularity of clinical reasoning evaluation,
+posing the later course of the same patient trajectory  but primarily assess whether a model reaches or ex-
+moves an answer toward a clinically defined hindsight  plains a final clinical conclusion. Our benchmark in-
+trap.                                                stead asks when a conclusion was supportable and
+
+
+                                                  12
+
+=== PDF第13页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+measures how the same answer changes when post-  desiderata by supplying a narrative that is simultane-
+cutoff events become visible.                          ously present and strictly temporally controlled. The
+                                                       synthetic narrative presented to the answering model
+                                                                       is derived from the same masked TTS used in that
+Appendix B. Experimental conditions   condition variant, as described in Section 3.2.  Be-
+                                                   cause the synthetic narrative is generated from pre-
+We evaluated seven input conditions (Table 1), each
+                                                    cutoff input, it cannot contain implicit references to
+defining what information the answering model has
+                                                  subsequent events. Paired with a masked TTS, con-
+access to when responding to a question. The ques-
+                                                         ditions 3.x ensure that all information available to the
+tion set itself was identical across all conditions:  all
+                                                  answering model — both narrative and temporal —
+questions were generated from the original narrative
+                            H                    is strictly limited to what was observable before the
+Ni paired with the full human TTS Ti  , and the an-                                                            cutoff, a guarantee that conditions 1.x cannot pro-
+swering model never sees the generation inputs or the
+                                                          vide.
+hidden evaluation metadata.
+
+Condition 0  Condition 0 serves as a naive baseline
+representing the setting most common in current clin-
+ical QA systems, where the model is given a complete
+retrospective case report and asked to answer ques-
+tions without any temporal masking. Because case
+reports are written retrospectively and may reference
+diagnoses, treatments, and outcomes in any order re-
+gardless of when they occurred, there is no reliable
+way to mask post-cutoff information from a narra-
+tive. Condition 0 therefore reflects the upper bound
+of potential hindsight exposure under narrative-only
+input.
+
+Condition 1.x  Conditions 1.x address this limita-
+tion partially by pairing the original narrative with
+a temporally masked TTS. The narrative component
+is held fixed and complete across the full and masked
+variants; only the TTS is truncated at the cutoff.
+While masking the TTS removes explicit post-cutoff
+temporal data, the original narrative may still im-
+plicitly contain outcome information, meaning that
+conditions 1.x achieve only partial information con-
+trol.
+
+Condition 2.x  Conditions 2.x remove the narra-
+tive entirely, providing the TTS alone.  This yields
+the cleanest paired comparison between prefix-only
+and complete temporal information, as the TTS is
+the sole information source and can be precisely trun-
+cated at cq.
+
+Condition 3.x  Conditions 3.x also achieve rigor-
+ous temporal control. Conditions 3.x are motivated
+by the complementary limitations of conditions 1.x
+and 2.x: while condition 1.x retains a narrative but
+cannot fully mask it, and condition 2.x achieves strict
+masking but strips away the clinical context that
+a narrative provides, conditions 3.x combine both
+
+
+                                                  13
+
+=== PDF第14页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+Appendix C. Prompts
+
+   Question generation prompt
+
+
+   You are generating difficult clinical reasoning questions from case reports to build a benchmark evaluating accuracy and
+    hindsight bias in language models. Questions should be genuinely hard—the answering model should make errors, especially
+    by using outcome knowledge to revise past assessments it should not revise.
+
+    Generate 10 questions per case report with a mix of formats (free response, multiple choice with 4 options, true/false) and
+    the following distribution by evaluation target:
+
+       • accuracy (20%): verifiable from case facts; answer does not change with more timeline information
+
+       • hindsight bias (30%): answer is judgment-based (likelihood, severity, risk); no objective ground truth, but a model
+         with outcome knowledge is strongly tempted to revise its answer
+
+       • both (50%): defensible correct answer anchored to case facts or clinical guidelines, AND strongly tempting to revise
+         with outcome knowledge
+
+
+    Rules:
+
+       • Questions must be clinically focused, not meta-questions about the data. Never phrase a question in terms of what the
+       TTS “establishes,” “shows,” “records,” or “contains.” Ask about the clinical facts themselves (e.g., “Did angiography
+         occur before embolization?”  not “Does the TTS establish a strict chronological sequence between angiography and
+          embolization?”).
+
+       • Do not include any time reference in the question text. Questions must be atemporal—e.g., “What was the probability
+           of a serious infectious complication?” not “At readmission, what was the probability...”. The answering model’s timeline
+             is controlled externally through masking; an explicit time reference tips off prospective reasoning.
+
+       • Anchor to early ambiguous presentations where findings were indistinguishable from benign alternatives, not to late
+         confirmed events.
+
+       • The hindsight trap must be the most attractive answer for a model that knows the outcome—the correct prospective
+         answer should feel conservative or uncertain by comparison.
+
+       • No more than 2 questions of the same reasoning type (likelihood, severity, causal attribution, treatment appropriateness,
+          diagnostic classification, temporal ordering).
+
+       • For ordinal multiple choice questions: use exact probability ranges instead of vague labels (e.g., “A. <10%”, “B. 10–
+        30%”, “C. 30–60%”, “D. >60%”). The correct answer and hindsight trap must be at opposite ends of the scale—if the
+          correct answer is the lowest option, the hindsight trap must be the highest, and vice versa.
+
+
+   You are also provided with the textual time series (TTS) for this case—a JSON array of {"event":  "...", "time":  <hours>}
+    tuples ordered chronologically by time.
+
+   Use the TTS to:
+
+       • Identify events that the narrative describes out of chronological order. These are especially valuable for hindsight bias
+         questions—the narrative’s non-chronological framing may lead a model reading only the narrative to assume a different
+         temporal order than what actually occurred. Design questions that target these moments, where a model relying on
+          narrative framing would answer differently than one reasoning from the true chronological sequence.
+
+       • Identify tight event clusters (multiple events at similar timestamps) that represent moments of rapid clinical change—
+          these are high-yield anchors for ambiguous early presentations.
+
+
+    Return a valid JSON array only. Each element:
+    {"question":  "...",
+    "format":  "free response | multiple choice | true/false",
+    "options":  ["A. ...", "B. ...", "C. ...", "D. ..."] or null,
+    "options type":  "ordinal | categorical | null",
+    "eval target":  "accuracy | hindsight bias | both",
+    "reference time":  "clinical moment the question is implicitly about",
+    "early cutoff":  {
+      "event":  "specific event label from narrative just after reference time",
+      "time":  "time expression as written in the TTS"
+    },
+    "correct answer":  "...",
+    "hindsight trap":  "the most tempting wrong answer for a model with
+      full-case access; null if eval target is accuracy",
+    "hindsight trap explanation":  "one sentence naming the post-cutoff fact
+      that makes the trap so tempting; null if eval target is accuracy"
+    }
+
+
+
+                                                  14
+
+=== PDF第15页 ===
+                      Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+Answer generation prompt: Condition 0 (Narrative only)
+
+
+You answer clinical reasoning questions using only the provided case report.
+
+For each request, you will receive:
+
+   1. A case report.
+
+   2. One JSON question object containing only these fields: "question", "format", and "options".
+
+Answer only from the visible case report and the visible question object. Use general medical knowledge only to interpret
+clinical language, not to invent patient-specific facts.
+
+Rules:
+
+   •  If "format" is "true/false", answer exactly "true" or "false".
+
+   •  If "format" is "multiple choice", answer with exactly one option string from "options", including the option letter and
+      text.
+
+   •  If "format" is "free response", answer concisely in one to three sentences.
+
+   • Always include an "evidence" field explaining why you gave the answer.
+
+   • The evidence should be a concise case-grounded rationale, ideally naming the relevant event, symptom, test, treatment,
+      timing, or absence of needed information from the case report.
+
+   • Do not include reasoning, citations, markdown, or extra text outside the JSON.
+
+
+Return only valid JSON in this exact shape:
+
+
+{"answer": "...", "evidence": "..."}
+
+
+
+Answer generation prompt: Conditions 1 and 3 (Narrative + TTS)
+
+
+You answer clinical reasoning questions using the provided case report and its textual time series (TTS).
+
+For each request, you will receive:
+
+   1. A case report.
+
+   2. A TTS—a JSON array of {"event":  "...", "time":  <hours>} tuples ordered chronologically by time relative to an
+      arbitrary anchor event.
+
+   3. One JSON question object containing only these fields: "question", "format", and "options".
+
+Answer using both the case report and the TTS. When they conflict, trust the TTS for event ordering and timing, and the
+narrative for clinical detail.
+Use general medical knowledge only to interpret clinical language, not to invent patient-specific facts.
+
+Rules:
+
+   •  If "format" is "true/false", answer exactly "true" or "false".
+
+   •  If "format" is "multiple choice", answer with exactly one option string from "options", including the option letter and
+      text.
+
+   •  If "format" is "free response", answer concisely in one to three sentences.
+
+   • Always include an "evidence" field explaining why you gave the answer.
+
+   • The evidence should be a concise rationale grounded in the case report or TTS, naming the relevant event, timestamp,
+     symptom, test, treatment, or absence of needed information.
+
+   • Do not include reasoning, citations, markdown, or extra text outside the JSON.
+
+
+Return only valid JSON in this exact shape:
+
+
+{"answer": "...", "evidence": "..."}
+
+
+
+
+                                              15
+
+=== PDF第16页 ===
+                      Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+Answer generation prompt: Condition 2 (TTS only)
+
+
+You answer clinical reasoning questions using only the provided textual time series (TTS).
+
+For each request, you will receive:
+
+   1. A TTS—a JSON array of {"event":  "...", "time":  <hours>} tuples ordered chronologically by time relative
+      to an arbitrary anchor event.
+
+   2. One JSON question object containing only these fields: "question", "format", and "options".
+
+Answer using only the TTS. Use general medical knowledge only to interpret clinical language, not to invent patient-
+specific facts.
+
+Rules:
+
+   •  If "format" is "true/false", answer exactly "true" or "false".
+
+   •  If "format" is "multiple choice", answer with exactly one option string from "options", including the option
+      letter and text.
+
+   •  If "format" is "free response", answer concisely in one to three sentences.
+
+   • Always include an "evidence" field explaining why you gave the answer.
+
+   • The evidence should be a concise rationale grounded in the TTS, naming the relevant event, timestamp, or
+     absence of needed information.
+
+   • Do not include reasoning, citations, markdown, or extra text outside the JSON.
+
+Return only valid JSON in this exact shape:
+
+
+{"answer": "...", "evidence": "..."}
+
+
+Hindsight warning prompt
+
+
+For the sensitivity analysis experiments, the answer-generation prompts for Conditions 0–3 were identical to the
+corresponding prompts above, except that the following two sentences were appended to the beginning (for GPT) or
+end (for GLM) of each prompt:
+
+Use your medical expertise for this reasoning task; do not let hindsight cloud your judgment. Use only knowledge
+available at the time; do not let the final outcome of the case affect your answer.
+
+
+Synthetic case generation prompt: Condition 3
+
+
+You are a medical expert tasked with reconstructing a synthetic clinical case report from a patient timeline presented in textual
+time-series (TTS) format. The input contains two columns: event and time in hours, where the timeline conventions are as
+follows: Time 0 represents the patient’s hospital admission; events occurring before admission have negative time values and
+events occurring after admission have positive time values.
+
+Guidelines:
+
+   • Use clinical and natural language to convert fragmented timeline entries into a readable narrative.
+
+   • Follow the order in which events appear in the TTS file as the narrative sequence.
+
+   • Central events include: symptom onset or major clinical changes; hospital admission, transfer, discharge, or death;
+      diagnostic tests and clinically significant results; diagnoses; procedures and interventions; medication initiation, discon-
+      tinuation, or major adjustment; complications and treatment responses.
+
+   • Express the timing of central events relative to nearby central events (e.g., “two weeks after that,” “one month after
+      presentation,” “shortly after admission”) using any unit of time (hours, days, weeks, months, years) that is the most
+      natural to read.
+
+   • Use a standalone or absolute timepoint only when there is no clear anchoring event or when it is clearer than a relative
+      phrase.
+
+   • Include only information explicitly supported by the input timeline.
+
+   • Do not infer, invent, or add diagnoses, symptoms, treatments, results, outcomes, demographic details, or causal relation-
+      ships that are not documented.
+
+
+
+
+                                              16
+
+=== PDF第17页 ===
+                      Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+   • When the timeline is ambiguous or incomplete, report the information conservatively without any speculation.
+
+
+Output Requirements: Return only the synthetic clinical case report. Do not include headings about the task, explanations,
+notes, disclaimers, or commentary outside the report.
+
+Example input:
+42-year-old | 0
+female | 0
+no pathological history | 0
+consulted the rheumatology clinic | 0
+initiated subcutaneous semaglutide for weight loss | -1008
+starts complaining of myalgia | -672
+edema in the four limbs | -672
+review of symptoms was negative | -672
+new contrast MRI took place | +730
+notable decrease in inflammatory changes in the limb muscles | +730
+
+Example output:
+A 42-year-old female patient with no pathological history consulted the rheumatology clinic. Six weeks before the consultation,
+she had initiated subcutaneous semaglutide for weight loss. Two weeks after that, she starts complaining of myalgia and edema
+in the four limbs. The review of symptoms by systems was negative. One month after presentation, a new contrast MRI showed
+a notable decrease in the extent of inflammatory changes in the limb muscles.
+
+
+GPT judge prompt: Individual metrics for free-response questions
+
+
+You are evaluating an answer to a clinical temporal-QA question.
+Return only JSON. Decide clinical meaning, not exact wording.
+
+   • accuracy score must be 1 for fully correct, 0.5 for partially correct, and 0 for incorrect.
+
+   • htr score must be 1 if the answer fully matches the hindsight trap, 0.5 if it partially reflects the hindsight trap,
+     and 0 if it does not reflect the trap.
+
+   •  If hindsight trap is null, htr score must be 0.
+
+
+GPT judge prompt: Paired metrics for free-response questions
+
+
+You are evaluating paired answers to a clinical temporal-QA question.
+Return only JSON. Decide clinical meaning, not exact wording.
+
+   • full equals masked is true if the full-condition and masked-condition answers mean the same thing clinically.
+
+   • For full accuracy score and masked accuracy score, use 1 for fully correct, 0.5 for partially correct, and 0 for
+      incorrect.
+
+   • For full htr score and masked htr score, use 1 if the answer fully matches the hindsight trap, 0.5 if it partially
+      reflects the hindsight trap, and 0 if it does not reflect the trap.
+
+   •  If hindsight trap is null, both HTR scores and hbr score must be 0.
+
+   • For hbr score, give hindsight-bias credit only to the extent that the masked answer is correct and the full answer
+      reflects the trap; use 1, 0.5, or 0.
+
+
+
+
+
+                                              17
+
+=== PDF第18页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+Appendix D. Distribution of Masking          1.0            Cumulative Distribution of Masking Cutoff Positions
+              Cutoffs                                                    GLPSepsis(n=1277)(n=400)
+To characterize where masking occurs within the clin-        0.8
+ical timelines, we define the relative masking cutoff
+position as the chronological index of the cutoffevent        0.6                                                                                                                                                                                                                                                                                            incidence
+within each TTS, normalized to the interval [0, 1],
+where 0 and 1 correspond to the beginning and end of        0.4                                                                                                                                                                                                                                                                                                                            Cumulative
+the timeline, respectively. This measure reflects po-
+sition within the sequence of recorded events rather        0.2
+than elapsed clinical time.
+  Table D.1 summarizes the distribution of relative                                                                                                         0.0
+cutoff positions, RelPos(q), across the two datasets.           0.0              0.2         Relative0.4 masking cutoff0.6position         0.8              1.0
+In both cases, the mean and median were near the
+midpoint of the timeline, and the standard deviations
+indicate substantial spread across temporal positions.
+                                                   Figure D.1: Empirical cumulative distribution of rel-
+The observed ranges were also broad, showing that
+                                                                      ative masking cutoff positions for GLP
+questions span much of the clinical trajectory rather
+                                                       and Sepsis. Relative position is defined
+than clustering within a narrow temporal window.
+                                                                using the chronological index of the cut-
+                                                                offevent within the TTS and normalized
+Table D.1: Distribution  of  relative  cutoff  posi-               to [0, 1], with 0 representing the begin-
+            tion RelPos(q) across questions in each              ning and 1 the end of the recorded event
+            dataset.                                              sequence.
+
+
+                         Sepsis  GLP
+
+             Mean      0.499    0.565
+              Median    0.500    0.581               mained generally high, with relatively modest full–
+            SD        0.206    0.206              masked differences for most paired conditions (Fig-
+             Min       0.029    0.000
+                                                    ure  E.7).   Condition 0  is an unpaired  original-            Max       0.945    1.000
+                                                       narrative baseline and is therefore shown only un-
+                                                    der full information.  In contrast to accuracy, HTR
+  Figure D.1 shows that masking points are dis-
+                                              showed a clearer masking effect:  full and masked
+tributed broadly across the clinical timeline rather
+                                 HTR were similar in the 1.x conditions, whereas
+than being concentrated at a single position.  Sep-
+                                             masked HTR was consistently lower across models
+sis cutoffs tend to occur somewhat earlier than GLP
+                                                          in the strict 2.x and 3.x conditions (Figure E.8).
+cutoffs, particularly in the middle of the timeline, al-
+                                            The paired metrics reinforce this pattern (Fig-though both datasets span nearly the full range of rel-
+                                                    ure E.9). ∆HTR was near zero in the 1.x condi-ative positions. This distribution indicates that the
+                                                         tions but consistently positive under strict masking,prospective evaluation is conducted at diverse stages
+                                                     while AIR also increased substantially in the 2.x andof the underlying clinical trajectories rather than at
+                                                       3.x conditions. Positive HBR further indicates thata fixed or narrowly defined point in each case.
+                                            some answer changes were directional, shifting from
+                                                    the prospective reference under masking toward the
+Appendix E. Results for Other            hindsight trap when post-cutoff information was re-
+           Models                           stored.  Although effect sizes varied across models
+                                             and datasets, the same qualitative pattern appeared
+Figures E.1–E.6 report the  case-level 95% boot-                                                       across all four model families.
+strap confidence  intervals  for the  individual and
+                                                   Cross-model differences should be interpreted cau-
+paired evaluation metrics for Gemma-4, GLM-5.2,
+                                                              tiously. GPT was the only answerer from the same
+and Opus-5.
+                                                     family as the question generator, and GPT was also
+Comparison  across  models.  Across GPT-5.6  used to judge free-response answers; however, the
+Sol, Gemma-4, GLM-5.2, and Opus-5, accuracy re-  similar strict-masking pattern among Gemma, GLM,
+
+
+                                                  18
+
+=== PDF第19页 ===
+                       Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+                                                 Individual Metrics by Condition
+
+       (A)                                                            (B)                           GLP                                                     Sepsis
+          1.00                                                                              1.00
+                                                                                                 Full
+          0.97                                                     Masked           0.97
+
+          0.94                                                                              0.94
+              Accuracy 0.910.88                                                                              0.910.88
+          0.85                                                                              0.85
+          0.82                                                                              0.82          Full
+                                                                                            Masked
+          0.79                                                                              0.79
+
+       (C)                                                          (D)
+          0.25                                                                              0.25
+                                                                                                 Full                                                                                                       Full
+                                                                  Masked                                                                  Masked
+          0.20                                                                              0.20         (HTR)
+       Rate 0.15                                                                              0.15
+       Trap
+          0.10                                                                              0.10
+
+          0.05                                                                              0.05                Hindsight
+
+          0.00                                                                              0.00
+                0        1.1        1.2        2.1*        2.2*        3.1*        3.2*                 0        1.1        1.2        2.1*        2.2*        3.1*        3.2*
+                                       Condition                                                               Condition
+
+
+                                                       *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+Figure E.1: Accuracy and HTR results for Gemma with case-level 95% bootstrap confidence intervals.
+
+
+
+
+                                                 Paired Metrics by Condition
+                                                      ΔHTR         AIR       HBR
+         (A)                                                            (B)
+                           GLP                                                 Sepsis
+
+             0.25
+
+             0.20
+
+             0.15
+        Rate  0.10
+
+             0.05
+
+             0.00
+
+          −0.05
+                      1.1         1.2          2.1*         2.2*         3.1*         3.2*                      1.1         1.2          2.1*         2.2*         3.1*         3.2*
+                                         Condition                                                               Condition
+
+                                                          *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+  Figure E.2: Hindsight bias metrics for Gemma with case-level 95% bootstrap confidence intervals.
+
+
+
+
+                                               19
+
+=== PDF第20页 ===
+                      Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+                                               Individual Metrics by Condition
+
+     (A)                                                            (B)                          GLP                                                     Sepsis
+        1.00                                                                              1.00
+                                                                                              Full
+        0.97                                                     Masked           0.97
+
+        0.94                                                                              0.94
+          Accuracy 0.910.88                                                                              0.910.88
+        0.85                                                                              0.85
+        0.82                                                                              0.82          Full
+                                                                                          Masked
+        0.79                                                                              0.79
+
+     (C)                                                          (D)
+        0.25                                                                              0.25
+                                                                                              Full
+                                                                Masked
+        0.20                                                                              0.20      (HTR)
+     Rate 0.15                                                                              0.15
+     Trap
+        0.10                                                                              0.10
+
+        0.05                                                                              0.05           Hindsight                                                                                                                           Full
+                                                                                          Masked
+        0.00                                                                              0.00
+              0        1.1        1.2        2.1*        2.2*        3.1*        3.2*                 0        1.1        1.2        2.1*        2.2*        3.1*        3.2*
+                                     Condition                                                               Condition
+
+
+                                                     *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+Figure E.3: Accuracy and HTR results for GLM with case-level 95% bootstrap confidence intervals.
+
+
+
+
+                                                Paired Metrics by Condition
+                                                     ΔHTR         AIR       HBR
+       (A)                                                            (B)
+                         GLP                                                 Sepsis
+
+           0.25
+
+           0.20
+
+           0.15
+      Rate  0.10
+
+           0.05
+
+           0.00
+
+        −0.05
+                    1.1         1.2          2.1*         2.2*         3.1*         3.2*                      1.1         1.2          2.1*         2.2*         3.1*         3.2*
+                                       Condition                                                               Condition
+
+                                                       *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+  Figure E.4: Hindsight bias metrics for GLM with case-level 95% bootstrap confidence intervals.
+
+
+
+
+                                              20
+
+=== PDF第21页 ===
+                      Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+                                                Individual Metrics by Condition
+
+      (A)                                                            (B)                           GLP                                                     Sepsis
+          1.00                                                                              1.00
+
+          0.97                                                                              0.97
+
+          0.94                                                                              0.94
+             Accuracy 0.910.88                                                                              0.910.88
+          0.85                                                                              0.85
+          0.82          Full                                                                   0.82          Full
+                   Masked                                                                  Masked
+          0.79                                                                              0.79
+
+       (C)                                                          (D)
+          0.25                                                                              0.25
+                                                                                                Full                                                                                                       Full
+                                                                 Masked                                                                  Masked
+          0.20                                                                              0.20        (HTR)
+       Rate 0.15                                                                              0.15
+       Trap
+          0.10                                                                              0.10
+
+          0.05                                                                              0.05               Hindsight
+
+          0.00                                                                              0.00
+               0        1.1        1.2        2.1*        2.2*        3.1*        3.2*                 0        1.1        1.2        2.1*        2.2*        3.1*        3.2*
+                                      Condition                                                               Condition
+
+
+                                                       *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+Figure E.5: Accuracy and HTR results for Opus-5 with case-level 95% bootstrap confidence intervals.
+
+
+
+
+                                                 Paired Metrics by Condition
+                                                      ΔHTR         AIR       HBR
+        (A)                                                            (B)
+                          GLP                                                 Sepsis
+
+            0.25
+
+            0.20
+
+            0.15
+       Rate  0.10
+
+            0.05
+
+            0.00
+
+          −0.05
+                     1.1         1.2          2.1*         2.2*         3.1*         3.2*                      1.1         1.2          2.1*         2.2*         3.1*         3.2*
+                                        Condition                                                               Condition
+
+                                                         *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+  Figure E.6: Hindsight bias metrics for Opus-5 with case-level 95% bootstrap confidence intervals.
+
+
+
+
+                                               21
+
+=== PDF第22页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+and Opus suggests that the overall effect is not spe-
+cific to GPT. The plots also suggest that lower-
+performing model–condition combinations can ex-
+hibit greater degradation under masking, but this re-
+lationship is not monotonic across models or datasets.
+Thus, overall model quality may contribute to robust-
+ness, but accuracy and susceptibility to hindsight in-
+formation appear to capture distinct aspects of model
+behavior.
+
+
+
+
+
+                                                  22
+
+=== PDF第23页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+                                                  Model Comparison: Accuracy
+                                                                   GPT      Gemma       GLM       Opus
+
+                                  GLP — Full                                             Sepsis — Full
+                         1.000
+                         0.975
+                         0.950
+                         0.925
+                         0.900                                               Accuracy 0.875
+                         0.850
+                         0.825
+                         0.800
+                                0        1.1       1.2       2.1*       2.2*       3.1*       3.2*                 0        1.1       1.2       2.1*       2.2*       3.1*       3.2*
+                                 GLP — Masked                                         Sepsis — Masked
+                         1.000
+                         0.975
+                         0.950
+                         0.925
+                         0.900                                               Accuracy 0.875
+                         0.850
+                         0.825
+                         0.800
+                                0        1.1       1.2       2.1*       2.2*       3.1*       3.2*                 0        1.1       1.2       2.1*       2.2*       3.1*       3.2*
+                                      (N/A)                                                                                 (N/A)
+                                                     Condition                                                            Condition                                                                       *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+Figure E.7: Accuracy across models and input conditions.  Accuracy for GPT-5.6 Sol, Gemma-4,
+          GLM-5.2, and Opus-5 on GLP and Sepsis under full (top) and masked (bottom) information.
+            Asterisks denote strict masking conditions.
+
+
+
+
+                                            Model Comparison: Hindsight Trap Rate
+                                                                  GPT      Gemma       GLM       Opus
+
+                                 GLP — Full                                             Sepsis — Full
+                         0.25
+                             (HTR) 0.20
+                        Rate 0.15
+                        Trap 0.10
+
+                         0.05                                                     Hindsight                         0.00
+                               0        1.1       1.2       2.1*       2.2*       3.1*       3.2*                 0        1.1       1.2       2.1*       2.2*       3.1*       3.2*
+                                GLP — Masked                                         Sepsis — Masked
+                         0.25
+                             (HTR) 0.20
+                        Rate 0.15
+                        Trap 0.10
+
+                         0.05                                                     Hindsight                         0.00
+                               0        1.1       1.2       2.1*       2.2*       3.1*       3.2*                 0        1.1       1.2       2.1*       2.2*       3.1*       3.2*
+                                    (N/A)                                                                                 (N/A)
+                                                    Condition                                                            Condition                                                                      *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+Figure E.8: Hindsight Trap Rate across models and input conditions. HTR for GPT-5.6 Sol,
+          Gemma-4, GLM-5.2, and Opus-5 on GLP and Sepsis under full (top) and masked (bottom)
+            information. Asterisks denote strict masking conditions.
+
+
+
+
+
+                                                  23
+
+=== PDF第24页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+                                   Model Comparison: Paired Hindsight-Bias Metrics
+                                                          GPT      Gemma       GLM       Opus
+                               GLP                                                   Sepsis
+                0.25
+                0.20
+                0.15
+           ΔHTR  0.10
+                0.05
+                0.00
+             −0.05
+
+
+                0.25
+                0.20
+                0.15
+         AIR  0.10
+                0.05
+                0.00
+             −0.05
+
+
+                0.25
+                0.20
+                0.15
+         HBR  0.10
+                0.05
+                0.00
+             −0.05
+                            1.1        1.2        2.1*        2.2*        3.1*        3.2*                        1.1        1.2        2.1*        2.2*        3.1*        3.2*
+                                           Condition                                                            Condition
+                                                            *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+Figure E.9: Paired hindsight-bias metrics across models. ∆HTR, Answer Instability Rate (AIR), and
+           Hindsight Bias Rate (HBR) for GPT, Gemma, GLM, and Opus on GLP and Sepsis. Asterisks
+           denote strict masking conditions.
+
+
+
+
+
+                                                  24
+
+=== PDF第25页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+Appendix F. Sensitivity Analysis with                                                                                                           Effect of Explicit Hindsight Warning
+              Explicit Hindsight                                             Original prompt         Hindsight warning       ΔHTR         AIR       HBR
+           Warning                                                    GPT — Sepsis
+
+Figures F.1–F.2 and F.3–F.4 report the sensitivity             0.20
+analysis using explicit hindsight warning for GPT and             0.15
+GLM, respectively. Error bars indicate case-level 95%
+bootstrap confidence intervals. The modification in        Rate  0.10
+prompts can be found in Appendix C.                                          0.05
+
+
+                                                                                                                      0.00
+            Original vs. Explicit Hindsight Warning Prompt
+                                                                                                          −0.05
+                  Original prompt         Hindsight warning           Full        Masked                                         1.1            1.2             2.1*             2.2*             3.1*             3.2*
+   (A)                    GPT — Sepsis                                                                                   Condition
+      1.000
+                                                                                                                                       *Masked condition is strictly protected from post-cutoff information leakage.
+      0.975
+
+      0.950
+
+      0.925     Accuracy                                                Figure F.2: Hindsight bias metrics across paired con-
+      0.900                                                               ditions for GPT under both prompt ver-
+      0.875                                                                   sions.   Metrics include the change in
+      0.850                                                           hindsight trap rate (∆HTR), AIR, and
+                                               HBR. Error bars show case-level 95%    (B)
+                                                              bootstrap confidence intervals.
+     (HTR) 0.20
+    Rate 0.15
+    Trap 0.10                                                  tions in hindsight-related metrics were not driven by
+                                                a general deterioration in task performance. The con-
+       0.05                                                  sistency of this pattern across GLM and GPT indi-        Hindsight
+                                                       cates that models can respond to explicit instructions
+       0.00
+              0          1.1         1.2         2.1*         2.2*         3.1*         3.2*      against hindsight bias, but that simple prompt-level
+                                         Condition                                                     mitigation is insufficient to eliminate the effect.
+                *Masked condition is strictly protected from post-cutoff information leakage.
+
+
+
+Figure F.1: Accuracy and hindsight trap rate (HTR)
+            across conditions for GPT under both
+          prompt versions. Error bars show case-
+              level 95% bootstrap confidence intervals.
+
+
+  Across both models, explicit hindsight warning at-
+tenuated hindsight-biased responding but did not
+eliminate  it.  The reduction was most apparent
+in Conditions  2.1–3.2, where  full-condition HTR,
+∆HTR, and HBR were generally lower under the
+modified prompt. AIR was also reduced, particularly
+for GPT, but remained positive across the paired con-
+ditions, as did HBR, indicating persistent hindsight-
+sensitive answer changes despite the explicit warning.
+Accuracy remained broadly similar between prompt
+versions for both models, suggesting that the reduc-
+
+
+                                                  25
+
+=== PDF第26页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+            Original vs. Explicit Hindsight Warning Prompt
+
+                  Original prompt         Hindsight warning           Full        Masked
+   (A)                  GLM — Sepsis
+      1.000
+                                                                                                           Effect of Explicit Hindsight Warning
+      0.975                                                                                                                                               Original prompt         Hindsight warning       ΔHTR         AIR       HBR
+      0.950                                                                       GLM — Sepsis
+      0.925                                                                                                                      0.20     Accuracy
+      0.900
+                                                                                                                      0.15
+      0.875
+                                                                                                                      0.10
+      0.850                                                                                                              Rate
+    (B)                                                                                                             0.05
+
+                                                                                                                      0.00
+     (HTR) 0.20
+                                                                                                          −0.05
+    Rate 0.15                                                                                                                           1.1            1.2             2.1*             2.2*             3.1*             3.2*
+                                                                                                                                              Condition
+    Trap 0.10
+                                                                                                                                       *Masked condition is strictly protected from post-cutoff information leakage.
+
+       0.05        Hindsight
+
+       0.00
+              0          1.1         1.2                                                         2.1*         2.2*         3.1*         3.2*      Figure F.4: Hindsight bias metrics across paired con-                                         Condition
+                                                                      ditions for GLM under both prompt ver-
+                *Masked condition is strictly protected from post-cutoff information leakage.
+                                                                         sions.   Metrics include the change in
+                                                                 hindsight trap rate (∆HTR), AIR, and
+                                               HBR. Error bars show case-level 95%
+Figure F.3: Accuracy and hindsight trap rate (HTR)              bootstrap confidence intervals.
+            across conditions for GLM under both
+          prompt versions. Error bars show case-
+              level 95% bootstrap confidence intervals.
+
+
+
+
+
+                                                  26
+
+=== PDF第27页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+Appendix G. Human Validation           estimates based on the cohort-specific sampling de-
+                                                            sign. These closely matched the corresponding sam-
+This appendix provides additional details on the hu-                                                        ple estimates (Table G.1) and should be interpreted
+man validation described in Section 3.8, including the                                                      as design-weighted point estimates; uncertainty inter-
+error-enriched sampling procedure and validation re-                                                          vals would require case-level resampling.
+sults.
+
+Annotators and review procedure.  Four clini-
+cal annotators participated: one physician and three
+medical or physician assistant trainees. We sampled
+10% of cases for review and divided them into two
+non-overlapping 5% subsets, each independently eval-
+uated by two annotators. For each question, annota-
+tors assessed (1) whether the question was clinically
+reasonable, (2) whether they agreed with the prospec-
+tive reference answer, and (3) whether they agreed
+with the hindsight-trap answer. All judgments were
+binary (yes/no).
+
+Error-enriched sampling.  Rather than sampling
+uniformly, we preferentially selected cases in which
+the evaluated model exhibited errors or hindsight-
+sensitive behavior.  For each case, we computed an
+error-proneness score (EPS) from four model-derived
+quantities: 1−Accuracy and HTR under Condition 0,
+and AIR and HBR under Condition 2.1. Each quan-
+tity was aggregated to the case level and min–max
+normalized within cohort:
+
+    ^   ]
+   EPSi = 0.4 (1 −Accuracy)i + 0.2 HTRi
+                                            (G.1)
+       ]       + 0.2 AIRi + 0.2 HBRi.      g
+  Cases were sampled without replacement with
+weights
+                 EPSi
+         wi ∝exp               ,     τ = 0.3.
+                       τ
+Thus, a 0.3-unit increase in EPS corresponds to an
+approximately e ≈2.72-fold increase in relative sam-
+pling weight. This design provides a targeted stress
+test of benchmark annotations in cases most relevant
+to the observed model errors and hindsight effects.
+
+Human validation results.  The validation sam-
+ple comprised 170 questions, each reviewed by two
+annotators.  Agreement with the benchmark an-
+notations was high across question reasonableness,
+prospective reference answers, and hindsight-trap an-
+swers, with sample agreement ranging from 95.9% to
+98.7% (Table G.1).  Inter-annotator agreement was
+similarly high (91.8–99.2%).
+  Because sampling favored cases with higher EPS,
+we additionally report inverse-probability-weighted
+
+
+                                                  27
+
+=== PDF第28页 ===
+                         Hindsight Bias in Clinical Temporal Reasoning
+
+
+
+
+
+Table G.1: Human validation results. Sample estimates are calculated from the error-enriched validation
+              set; weighted estimates use inverse-probability weights from the cohort-specific sampling design.
+
+
+Assessment                Sample agreement     Applicable assessments    Weighted agreement
+
+Agreement with benchmark annotations
+
+Question clinically reasonable           95.9%                    326/340                    95.8%
+Prospective reference answer            98.7%                    235/238                    99.0%
+Hindsight-trap answer                  97.1%                    264/272                    96.5%
+
+Inter-annotator agreement
+
+Question clinically reasonable           91.8%                    156/170                    91.6%
+Prospective reference answer            99.2%                    118/119                    99.5%
+Hindsight-trap answer                  94.1%                    128/136                    93.0%
+
+   Note. Sample agreement is calculated from individual annotator assessments. Inter-annotator agreement is the propor-
+    tion of applicable questions for which both annotators assigned to the subset gave the same judgment. Not-applicable
+   answer assessments are excluded from the corresponding denominators.
+
+
+
+
+
+                                                  28

@@ -1,0 +1,2124 @@
+
+=== PDF第1页 ===
+     DERELAB: Probing Defeasible Reasoning and Confirmation Bias in LLMs
+                           with a Generative Benchmark
+
+                         Jayanta Sadhu1, Sayem Shahad2, Kenneth Marino1
+                                              1University of Utah
+                         2Bangladesh University of Engineering and Technology
+                          {jayanta.sadhu, kenneth.marino}@utah.edu
+                               1024052110@grad.cse.buet.ac.bd
+
+
+                        Abstract                         for defeasible reasoning, which has been relatively
+                                                            understudied to date.
+               Defeasible reasoning is a type of reasoning                                                                  Prior works on defeasible inference have evalu-
+             where inferences are drawn from plausible cur-
+                                                               ated language models using static datasets through
+                rent evidence, but can be retracted upon the2026                                                         multiple probing methods. Rudinger et al. (2020)               introduction of newer evidence. Although re-
+                cent studies have examined language-model be-       created the first defeasible reasoning natural lan-
+               haviors in defeasible reasoning, the datasets      guage dataset and Allaway and McKeown (2025)Aug         have been static and lack wide coverage of       created a dataset grounded in generics and inheri-
+31         non-monotonictroduce DERELAB,reasoninga generativecategories.frameworkWe in-       tance properties. These datasets are, however, sus-                                                                  ceptible to benchmark saturation as model capabil-
+                 that produces multi-turn belief-updating con-
+                                                                            ities improve. With the rapid growth of the field,
+                versations from parameterized graph structures
+                                                              evaluation datasets often become short-lived, and               across default and inheritance reasoning, with
+               formally verified ground truth at every turn,       researchers must handcraft new versions or apply
+               enabling controlled measurement of how mod-       targeted modifications. Furthermore, static bench-[cs.AI]                 els respond to confirming and disconfirming      marks report aggregate accuracy without revealing
+               evidence. This controlled generation process      why a model fails or whether failures reflect gen-
+                creates a testbed for experimental designs that       uine reasoning deficits rather than surface-level
+                 isolate specific reasoning demands. Applying                                                                 pattern matching.
+                  this capability to the study of confirmation bias,
+                                        We address these limitations with DERELAB
+           we evaluate nine open and proprietary large lan-
+                                                            (Defeasible Reasoning Lab), a generative frame-             guage models and find that nearly all exhibit
+              a systematic tendency to accept congruent evi-      work that produces multi-turn belief-updating con-
+              dence while resisting incongruent updates, with        versations from parameterized graph structures
+                several models correctly identifying a weaken-       across two canonical non-monotonic reasoning
+               ing update yet failing to revise their conclusion.       paradigms — default reasoning and inheritance rea-
+          We believe our work and findings will facilitate                                                           soning (Lifschitz, 1989; Horty et al., 1990) — with
+                future research on evaluating language models
+                                              1                         formally verified ground truth at every turn. DERE-                in defeasible reasoning.
+                                          LAB follows the generative evaluation paradigmarXiv:2608.30413v1
+        1  Introduction                                 of Liu et al. (2025) and extends it to defeasible
+                                                             reasoning, a fundamentally different setting that
+         Reasoning is a central capability for any intelligent    requires models to retract conclusions when new
+          agent, and it plays a decisive role in performing    evidence defeats prior defaults — a capability that
+           reliably in real-world applications. The majority    relational reasoning benchmarks do not test. Fine-
+          of inferences humans make in real life are defea-   grained configuration parameters over property
+           sible in nature (Chater et al., 2011). Unlike con-   chaining, branching factor, distractor density, and
+           trolled environments, practical reasoning is rarely    source-priority structure enable controlled diagnos-
+          straightforward due to noisy data and incomplete     tic experiments at arbitrary difficulty levels without
+          information flow. With the integration of LLMs    collecting a new dataset.
+           into many of our day-to-day activities, it has be-     Using DERELAB, we evaluate nine base mod-
+        come important to study language model behaviors    els under ten model-inference configurations and
+                                                                report three findings.  First, no model achieves                1All our data and code are public and available  at
+          https://github.com/Jayanta47/DeReLab                strong performance across all conditions: defea-
+
+
+                                                  1
+
+=== PDF第2页 ===
+          Graph                                                                                                     Populate     E1                                                                                                            P     E1 has property P.                         PremiseIs hypothesis+ Hypothesistrue?
+        Configuration                                                                                               nodes with                     E2 is a kind of E1.
+                                                                                                                                            entities                       E3 is a kind of E2.       Premise                    Yes (confidence: 0.87)
+                                                                                                                                                                                                    is                                                                                                                                                     a                                                                                                                                                      kind                                                                                                                                                                     of                                                                                                                                                          E3.                                                                                                 E2                E4
+                                                                                                                   E5                                                                                                                                                                                                    is                                                                                                                                                     a                                                                                                                                                      kind                                                                                                                                                                     of                                                                                                                                                          E3.                      Updateeffect1(Strengthener)on the hypothesis?→ What is the
+                                                                                                E3                                                                                                                                                 Hypothesis:                                                                                                                           E5 has                                                                                                                                                                               the                                                                                                                                                                           property                                                                                                                                         P                                                                                                                                                 Assign      chain_length,                                                                                                                                                                                                    Strengthen (confidence: 0.70)
+                                                                                                                                                                          entity/property                                                                                                                                                                                             to     num_subject,
+                                                                                                                                                nodes                                                                                                                                       Update:                                                                                                                    E3 does not                                                                                                                                                   have                                                                                                                                                                                the                                                                                                                                                                             property                                                                                                                                          P       irr_attributes,
+     branch_prob,        Default Reasoning                          Inheritance                                                                                               E4
+     max_turns,                                                                                            E5                                                   Update N (Defeater) → Is the hypothesis true?
+      reveal_order,                has_property/inherits_property        Property Node      Irrelevant                                                     Convert edges into natural language using
+                                                                                                                                                   templates and build up QA structure      type,                                   defeasible_has_property                                                                                   object                                                                      Node
+                                                                                                                                                                                 Yes (confidence: 0.82)                                                        Object      survival_prob                                                                                                          Knowledgebase                                    defeasible_lacks_property                                                      Node       Entity                                                                      Node
+   …                                                                (Default)                                                                                                                                   (Entity & property)                                                                                   (Inheritance)                                   hypothesis_edge
+
+                 Graph Generation                                     Entity Insertion and NL Conversion                           Evaluation
+
+                  Figure 1: Overview of the generation and evaluation process of DERELAB.
+
+
+ sible reasoning is genuinely hard, and accuracy   monotonic reasoning, these formulations did not
+degrades systematically as reasoning complexity   support incremental information updates. Subse-
+ increases. Second, confirmation bias (Nickerson,   quent work (e.g., Zhao et al. (2023); Rudinger et al.
+1998) — the tendency to accept evidence that con-   (2020)) addressed this limitation by introducing
+firms a prior belief while resisting evidence that    additional information that can alter an inference.
+contradicts it — is near-universal among models    Evaluating the defeasibility of reasoning is a more
+on default reasoning, revealing that LLMs exhibit   nuanced way of evaluating non-monotonic reason-
+a well-documented human cognitive bias when up-    ing. A formal modal framework for defeasibility in
+dating beliefs under new evidence. Third, several   non-monotonic reasoning was proposed by Asher
+models correctly identify that an update weakens   and Morreau (1991). Allaway et al. (2023) dis-
+ the hypothesis yet still fail to revise their conclusion   cussed generics and instantiations in logical pro-
+— suggesting that belief revision and not factual un-   gramming, and Allaway and McKeown (2025) cre-
+derstanding is the locus of failure.                   ated a dataset for defeasible reasoning with the
+   In this paper, we: (1) introduce DERELAB, a    inheritance reasoning category.
+ flexible dataset generation framework for scalable
+evaluation and cognitive science-inspired probes of   Cognitive biases in LLMs  The use of Large
+LLMs on defeasible reasoning; (2) demonstrate sys-   Language Models (LLMs) in high-stakes decision-
+tematic evaluation across default and inheritance   making (e.g., Wu et  al. (2023); Singhal et  al.
+reasoning at multiple difficulty tiers, revealing that    (2022)) has made it imperative to broaden the study
+reasoning complexity and task type jointly deter-   of biases beyond traditional ethical and social con-
+mine model failure; and (3) show how the frame-   cerns (e.g., Gallegos et al. (2023)). Specifically,
+work enables cognitive science-inspired probes, un-   there is a growing need to account for cognitive
+covering near-universal confirmation bias and a    biases and heuristics, which directly impact the ra-
+know-but-don’t-output dissociation across current    tionality of LLMs’ judgments (Hagendorff et al.
+LLMs.                                             (2022)).  Early research in this area focused on
+                                                    detecting these effects at the level of individual
+2  Related Work                            prompts (Talboy and Fuller (2023); Macmillan-
+                                                    Scott and Musolesi (2024)).  Other works have
+Defeasible and Non-monotonic Reasoning  Pre-   investigated the challenge of detection and miti-
+liminary studies on AI and defeasible reasoning    gation, but were limited to particular LLM roles
+focused on formal logics (e.g., Reiter (1978, 1980);    (Pilli (2024); Ye et al. (2025)), or specific domains
+Poole (1988)). In recent times, research has been    (Schmidgall et al. (2024); Opedal et al. (2024)). To
+done to construct datasets built upon these princi-   address the need for large-scale evaluation, follow-
+ples and evaluate non-monotonic reasoning ability   up works have proposed comprehensive frame-
+ in language models. Xiu et al. (2022) constructed   works, such as those by Echterhoff et al. (2024)
+a dataset for non-monotonic proofs and Parmar   and Xie et al. (2024), which aim to systematically
+ et al. (2024) used patterns of default reasoning from   benchmark and mitigate these cognitive limitations
+Lifschitz (1989) to construct a QA dataset. Non-    (e.g., Zhong et al. (2024)).
+monotonic reasoning has also been studied within
+the context of natural language inference (NLI)   Sandbox Evaluation Toolkit  To take evaluation
+(Yanaka et al., 2019b,a; Gubelmann et al., 2023).   beyond simple pattern matching, Clark et al. (2020)
+Although these datasets focused on evaluating non-   introduced the concept of transformers emulating
+
+
+                                         2
+
+=== PDF第3页 ===
+a reasoning algorithm by concluding explicit rules    belief trajectory over the course of the conversation.
+provided in natural language. Tafjord et al. (2021)  An ideal defeasible reasoner should revise its be-
+extended it by enabling iterative 1-hop generation     lief state precisely when new evidence changes the
+to build a proof reflecting the model’s decisions.   underlying inferential structure, while remaining
+Later, Kiela et al. (2021) and Thrush et al. (2022)    stable under irrelevant or out-of-scope updates.
+added human annotation in the evaluation loop to
+                                                    3.2  Reasoning Typesaddress the rapid saturation of static benchmarks.
+Recognizing human annotation as a bottleneck, Liu  DERELAB  implements  the  two  canonical
+et al. (2025) proposed a framework to generate rea-   paradigms of non-monotonic reasoning identified
+soning datasets given tunable input configurations    in the formal literature (Lifschitz, 1989), each
+and seeds. Our framework draws inspiration from    targeting a structurally distinct mode of defeasible
+their work, but significantly differs in the genera-    inference.
+tion and evaluation paradigms.
+                                                Default Reasoning.  Default reasoning concerns
+3  The DERELAB Framework                general rules that hold in the absence of specific
+                                                    contradicting information (Reiter, 1980): conclu-
+DERELAB is a generative evaluation framework    sions are drawn by default and retracted when ex-
+for defeasible reasoning that overcomes three limi-   ceptions arise. In DERELAB, this is instantiated
+tations of existing benchmarks. First, unlike static    as a parameterized chain of default rules over ob-
+datasets that become obsolete as model capabilities    jects, with updates that introduce confirmations,
+advance (Kiela et al., 2021), DERELAB generates    defeaters, distractors, and source-priority conflicts.
+evaluation problems on demand from a scalable
+                                               Inheritance Reasoning.  Inheritance reasoningconfiguration space, allowing difficulty to grow
+                                                concerns the propagation of properties through awith model capability without collecting new data.
+                                              taxonomic hierarchy (Lifschitz, 1989; Horty et al.,Second, unlike prior defeasible datasets that vary
+                                                 1990): a property attributed to a class is inheritedprimarily at the semantic level, DERELAB spans a
+                                          by its subclasses and instances unless explicitlyrich distribution of reasoning structures — linear
+                                               blocked at some node. In DERELAB, this is in-default chains, branching inheritance hierarchies,
+                                                       stantiated as a configurable taxonomy with bothmulti-source priority graphs, and quantified uncer-
+                                                     linear and tree structures, where updates introducetainty — covering structural variation that surface-
+                                                   inheritance-blocking exceptions or properties oflevel rephrasing cannot capture. Third, fine-grained
+                                                      sibling branches that must be correctly scoped toconfiguration parameters across both default and in-
+                                                     the hypothesis subject.heritance reasoning (chain depth, branching factor,
+exception density, source count, hierarchy depth,                                                    3.3  Default Reasoning: Configuration and
+sibling structure) make controlled diagnostic abla-                                                  Question Types
+tion a first-class capability. The implementation
+                                               Configuration. We generate default reasoningdetails are in Appendix A.
+                                               examples through parameterized graphs controlled
+3.1  Defeasibility: Scope and Induction         by chain length, number of object instantiations,
+                                                         distractor density, and a sparsity factor controlling
+Defeasible reasoning is inherently non-monotonic:
+                                                  defeat-edge injection. Two difficulty tiers are de-
+conclusions warranted by the current information
+                                                        fined: Easy (shorter chains, fewer objects) and
+may need to be retracted when new evidence ar-
+                                       Hard (longer chains, more objects and distractors),
+rives. DERELAB operationalizes this directly by
+                                                with full parameter ranges in Appendix A.1. The
+presenting information incrementally rather than all
+                                                  order in which graph edges are revealed across
+at once. Each conversation begins with a partially
+                                                     turns is separately configurable, allowing the be-
+specified reasoning structure and then reveals addi-
+                                                                 lief trajectory to be shaped by design: for instance,
+tional facts one update at a time. As the premise set
+                                                  placing a defeating update early tests whether a
+evolves, previously supported conclusions may be
+                                           model correctly reinstates a conclusion when sub-
+reinforced, defeated, reinstated, or left unchanged,
+                                                 sequent confirming evidence arrives.
+depending on the structural role of the new infor-
+mation.                                      Question Types.  Drawing on the taxonomy of
+  This incremental construction induces a dynamic    default reasoning patterns in Lifschitz (1989), we
+
+
+                                         3
+
+=== PDF第4页 ===
+identify three structural question types that cover   Question Types.  Unlike default reasoning, in-
+the principal modes of defeasible inference; Ap-   heritance conversations pose only the entailment
+pendix B details how this taxonomy maps onto our    question (yes / no / unknown) after each update. The
+graph structures.                                     belief-update question is omitted because the direc-
+                                                        tion of change is directly recoverable from consec-
+    • Type 1—Direct chain manipulation. Posi-   utive entailment answers: a transition from yes to
+      tive or negative assertions about related prop-   no is by definition a weakening, making a separate
+      erties test basic belief updating; exceptions    effect question redundant. The primary diagnostic
+      test defeat of default rules.                           is therefore whether the model correctly identifies
+                                             which updates fall within the scope of the hypothe-
+    • Type 2—Irrelevant information. An update                                                             sis subject’s inheritance path and which do not.
+     concerns a property outside the default chain,
+                                                     In Figures 13 and 14, the generation procedure
+    making this variant irrelevant to the original
+                                                        for two inheritance reasoning examples (linear and
+     default rules. This category checks the rea-
+                                                           tree) is shown in detail.
+     soning ability of isolating irrelevant property
+     information.
+                                                    3.5  Graph Resolution
+
+    • Type 3—Source priority. Competing claims   Ground truth labels in DERELAB are produced
+    from sources  of  differing  reliability  test    deterministically by a path-based resolution proce-
+    whether models apply priority relations cor-   dure grounded in the inheritance theory of Horty
+      rectly, including when a higher-priority rule    et al. (1990).  Given the accumulated premise
+     bypasses rather than directly overrides a prior    set at any conversational turn, the resolver tra-
+     defeat.                                        verses the knowledge graph and returns one of
+                                                       three verdicts for the target hypothesis: ENTAILED
+   In Figure 12, a default reasoning example gener-                                                          (yes), DEFEATED (no), or UNDETERMINED (un-
+ation procedure is shown in detail.                                              known). This mechanism produces formally cor-
+                                                              rect, annotation-free labels at every conversational
+3.4  Inheritance Reasoning: Configuration
+                                                     turn when new information is revealed. The full
+    and Question Types
+                                                       resolution procedure is described in Appendix A.3.
+Following Lifschitz (1989), we distinguish two
+structural variants of inheritance reasoning and    3.6  Conversation Structure
+explicitly considering them as two different cat-
+                                              Across all categories, each conversation contains:egories from here.  Linear inheritance arranges
+                                                                     (i) a pretext section presenting background defaultcategories in a single chain from root to entity;
+                                                         rules and entity instantiations; (ii) a hypothesis stat-tree inheritance extends this with branching, where
+                                                  ing the entailment question under evaluation; andmultiple sibling subcategories share a parent. The
+                                                                      (iii) a sequence of update turns, each deliveringkey diagnostic introduced by branching is scope:
+                                            one new fact followed by the entailment question.an update about a sibling branch must not affect
+                                                For default reasoning, each update turn is followedthe hypothesis subject, which belongs to a different
+                                          by a second effect question eliciting whether thebranch entirely.
+                                                update strengthened, weakened, or had no effect
+Configuration.  Both variants are parameterized   on hypothesis support. Default reasoning conver-
+by hierarchy depth; tree inheritance is addition-    sations may chain multiple hypothesis sections via
+ally parameterized by branching factor, controlling   a new hypothesis turn that changes the active sub-
+how many sibling subcategories share each par-    ject while preserving the full set of accumulated
+ent node. Blocking edges are scoped to individual    premises. Furthermore, default reasoning can have
+nodes: blocking inheritance at a node severs the    multiple competing sources with priority rankings,
+chain for that node only, leaving all sibling and   from which an update originates, where a higher-
+cousin nodes unaffected. The model must there-    priority source will supersede an update from a
+fore track whether the hypothesis subject’s specific    lower-priority one. For our experimental purpose,
+path to the root carries an active block, rather than   we construct an alternate version where the effect
+whether any path in the graph does. Full parameter    question comes prior to the entailment question.
+ranges appear in Appendix A.1.                      (see Appendices E and I.1 for details)
+
+
+                                         4
+
+=== PDF第5页 ===
+ Cond.  Prior GT effect      Meaning                   What it tests
+
+  C1    yes     strengthening   Model believes hypothesis; new evi- Whether models correctly accept congruent evidence
+                               dence supports it                     (control condition)
+  C2    yes    weakening      Model believes hypothesis; new evi- Whether models revise beliefs against their prior
+                               dence defeats it                     conclusion — the primary confirmation bias signal
+  C3   no    no effect (neg.)  Hypothesis   already    defeated;  Whether models react to surface negation rather than
+                                 negative-sounding update arrives     logical scope (semantic override)
+  C4   no    no effect (neu-  Hypothesis already defeated; neutral  Whether a logically irrelevant distractor causes spu-
+                      tral)            update arrives                        rious belief revision (neutral baseline)
+  C5    unk.     str. / weak.      Model is uncertain; directional evi- Whether models correctly resolve from an indeter-
+                               dence arrives                      minate state (anchoring under uncertainty)
+
+Table 1: Congruence conditions assigned to each update turn. Prior is the model’s own predicted answer at the
+immediately preceding turn, not the ground truth. GT effect is the formally verified effect of the incoming update
+on the hypothesis. Confirmation bias is evidenced by a systematic accuracy gap between C2 and C1 turns within the
+same conversation.
+
+
+3.7  Entity Design and Contamination           gruence conditions.
+     Prevention                        We use two complementary metrics to measure
+                                                  confirmation bias. The Bias Gap measures theThe overlap between benchmark content and pre-
+                                                 accuracy difference between congruent and incon-training corpora is a recognized threat to the va-
+                                                   gruent conditions:lidity of LLM evaluation (Magar and Schwartz,
+2022; Al-Lawati et al., 2026; Zhou et al., 2023).
+                                                   BiasGap = Acc(C1) −Acc(C2)      (1)
+Although our proposed framework is flexible to
+use any type of entity, we present results keeping
+                             A positive BiasGap indicates the model handles
+all entities in the primary DERELAB dataset as
+                                                    supporting evidence more accurately than defeating
+pseudowords (logatomes) pronounceable but se-
+                                                  evidence — the hallmark of confirmation bias. The
+mantically null strings generated programmatically
+                                      Odds Ratio (OR) provides a scale-invariant effect
+(e.g., Kitylu, Atool, Deraw) (see Appendix D.1 for
+                                                           size:
+pseudoword generation details). For defeasible rea-                         C1correct × C2wrong
+                                      OR =                              (2)
+soning, a model may produce the correct answer by                     C1wrong × C2correct
+retrieving a memorized real-world fact (penguins
+                              OR > 1 indicates confirmation bias; OR = 1 in-cannot fly) rather than by executing the defeasible
+                                                     dicates no asymmetry between conditions. Boot-inference the benchmark intends to measure. Be-
+                                                         strap 95 % confidence intervals are computed at thecause pseudoword entities carry no prior semantics
+                                                  conversation level. Full operationalization detailsin any trained model, correct responses can only
+                                                 appear in Appendix H.arise from reasoning over the premises supplied in
+context.                                       4  Experimental Setup
+
+3.8  Cognitive Bias Probing                                                    4.1  Dataset
+A key capability of DERELAB is the ability to em-
+bed cognitive science-inspired experiments directly                             Difficulty      Conver-  Question
+                                                         Topology
+into the evaluation structure. Because the frame-                          Configuration    sations     Turns
+work controls the content of information updates, it      Default reasoning   Easy             150     1,905
+can construct controlled experimental conditions.       Default reasoning   Hard             150     9,325
+                                                               Linear inheritance  Easy             150      646
+  As a primary instantiation, we measure con-
+                                                               Linear inheritance  Hard             150     2,483
+firmation bias in defeasible belief updating: the      Tree inheritance    Easy             150      963
+tendency of LLMs to accept evidence congruent      Tree inheritance    Hard             150     3,068
+with their current belief while resisting contradict-      Total             –                900    18,390
+ing evidence (Nickerson, 1998). Each update turn
+is assigned a congruence condition based on the    Table 2: Canonical DERELAB evaluation set. “Ques-
+model’s own prior predicted answer and the ground    tions” refers to the total number of answer-bearing turns
+truth effect of the update. Table 1 defines the con-    evaluated across all conversations in each split.
+
+
+                                         5
+
+=== PDF第6页 ===
+                     Model Performance   Overall Accuracy by Topology and Difficulty
+                                            Default Reasoning                                Linear Inheritance                 Tree Inheritance
+
+   Qwen3-32B*        88.1             88.7             65.1             61.7             99.9             90.6             99.8             94.1             86.0
+   GPT-5-mini*        70.6             62.3             71.5             65.4            100.0            99.7            100.0            99.9             83.7           100%
+                                                                                                                                                  90%
+  Gemma-4-31B        90.6             90.6             64.7             61.4             94.3             73.7             98.3             85.7             82.4
+                                                                                                                                                  80%
+  Gemma-4-12B        87.2             79.1             61.6             53.4             93.2             74.6             95.9             81.1             78.3
+                                                                                                                                                  70%
+ Gemma-4-MoE        79.3             75.3             65.5             54.2             88.1             59.1             94.7             71.8             73.5           60%                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 Accuracy
+       GPT-5.1        64.3             55.1             64.2             56.2             93.0             70.5             96.6             80.3             72.5           50%
+                                                                                                                                                  40%   Overall    Qwen3-32B        78.8             65.3             58.6             50.7             90.7             62.5             91.0             68.8             70.8
+                                                                                                                                                  30%
+  Llama-3.1-70B        50.8             31.4             52.8             41.5             85.8             53.9             73.2             36.4             53.2
+                                                                                                                                                  20%
+  Gemma-4-E4B        53.7             60.6             33.0             34.4             67.8             47.8             46.9             31.9             47.0
+                                                                                                                                                  10%
+   Llama-3.1-8B        47.8             39.3             42.6             29.0             67.3             43.8             60.2             39.7             46.2
+
+                            Entail              Entail             Effect             Effect            Easy            Hard            Easy            Hard           Avg
+                       Easy            Hard            Easy            Hard
+
+
+
+Figure 2: Turn-level model performance across reasoning topologies and difficulty levels. Each cell reports accuracy
+for a model under one topology–difficulty condition. (*) represents reasoning-enabled inference.
+
+
+  We evaluate models on three DERELAB rea-    els, covering different model families, sizes, and
+soning topologies: default reasoning, linear inher-    architectures. The closed GPT models provide
+itance, and tree inheritance. For each topology,   a strong frontier-model reference point.  The
+we generate easy and hard splits, with 150 conver-   Llama and Gemma-4 models provide open-weight
+sations per topology-difficulty combination. This   comparisons across model families and scales.
+gives 900 canonical evaluation conversations in   For architectural  diversity, we also include a
+total (Table 2). All canonical examples use pseu-   mixture-of-experts (MoE) model from the Gemma
+doword entities to avoid contamination from mem-   4 (Gemma-4-26B-A4B, hereafter referred to as
+orized real-world facts. The easy and hard splits   Gemma-4-MoE) family alongside dense models. Fur-
+differ in graph size, distractor attributes, density,   thermore, for direct comparison between thinking
+and reasoning depth (see Table 6 and 7 in Appendix   and non-thinking modes, we utilize the dual capa-
+A). We additionally construct a robustness dataset:    bility of Qwen3-32B model (Table 3). We evaluate
+a reseeding set of 1,200 examples to test whether   models in a multi-turn chat setting.
+results are stable across random seeds. This set con-
+                                       5  Results and Discussiontains 20 seeds, 2 topologies, and 30 conversations
+per topology per seed.                                                    In the following sections, we analyze our findings
+                                                 about model performance and behavior using data4.2  Models
+                                                  generated through DERELAB.
+
+  Model            Type                                                    5.1  Overall Reasoning Accuracy
+  gpt-5.1            Closed, standard
+                                  How capable are current LLMs at defeasible rea-
+  gpt-5-mini        Closed, compact reasoning
+                                                   soning, and does capability vary systematically  Gemma-4-31B-it   Open, instruction-tuned
+  Gemma-4-26B-A4B  Open, Mixture of Expert (MoE)      across reasoning type and task difficulty?
+  Gemma-4-12B-it   Open, instruction-tuned         We evaluate all the models on the generated
+  Gemma-4-E4B      Open, instruction-tuned             dataset for both default and inheritance reasoning
+  Llama-3.1-70B    Open, instruction-tuned               at easy and hard difficulty levels. We report turn-
+  Llama-3.1-8B     Open, instruction-tuned
+                                                         level accuracy against ground-truth labels and per-
+  Qwen3-32B (*)    Open, non-thinking and thinking
+                                             formance with respect to reasoning complexity in
+                                                  Figure 2.Table 3: Models evaluated in our experiments.  (*)
+We use Qwen3-32B model in both thinking and non-    We notice a significant performance gap between
+thinking mode for inference. Further details about the    reasoning-enabled and standard instruction-tuned
+models are documented in Appendix L.                  configurations, where reasoning models clearly
+                                               outperform the latter. Within task type, default
+  We evaluate both closed and open-weight mod-   reasoning is consistently harder than inheritance
+
+
+                                         6
+
+=== PDF第7页 ===
+                        Confirmation Bias Gap by Model                                Metacognitive Belief Update Accuracy (Default Reasoning Only)
+        1.0                                                                                                       0.935                      DefaultInheritancereasoning                   1.0                                                                                                                                     C1_effect_accC2_effect_acc
+
+        0.8                                                                                                                                                                                          0.8
+                                                                                                  0.668                      0.670   C2_acc)                                            0.597
+        0.6                              0.548                                                                                                                                                                                                                                                                                               Accuracy 0.6                      0.484
+
+        0.4                                   0.364   (C1_acc                                                 0.324                                                                                          0.307                                                                                                                                  0.295                                                                                                                                                                                                     0.4
+                                                                            0.249                                                                                                                     0.246                 0.224 Gap                                                              0.179        0.2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  Metacognitive
+  Bias                                                   0.082         0.088                                                                    0.065                        0.2
+        0.0                                                                               -0.007             0.003                               0.008
+Llama-3.1-8BLlama-3.1-70BGemma-4-E4BGemma-4-12BGemma-4-31BGemma-4-MoEGPT-5-mini*GPT-5.1Qwen3-32BQwen3-32B*           Llama-3.1-8B0.0  Llama-3.1-70BGemma-4-E4BGemma-4-12BGemma-4-31BGemma-4-MoEGPT-5-mini*GPT-5.1Qwen3-32BQwen3-32B*
+
+(a) Confirmation bias gap (C1 acc −C2 acc) per model and rea-  (b) Metacognitive accuracy on the belief-update task (default
+soning type. Gemma-4-MoE on default reasoning and Qwen3-  reasoning only). C1-effect: fraction of congruent turns cor-
+32B* on inheritance are non-significant after Holm correction.  rectly labeled strengthening. C2-effect: fraction of incongruent
+OR undefined for GPT-5-mini inheritance (C1 errors = 0).      turns correctly labeled weakening.
+
+Figure 3: Confirmation bias magnitude and metacognitive awareness across models. Left: BiasGap (C1 acc −
+C2 acc) measures how much more accurately a model handles congruent than incongruent updates, broken down
+by reasoning type. Right: Accuracy on the separate effect-of-update question for the same turns, distinguishing
+whether models that fail the entailment question nonetheless correctly identify the direction of the update.
+
+
+reasoning, and the belief-update task (strengthen-                          Default         Inheritance
+ing/weakening/no effect) is the most demanding of     Model       Gap OR Anch. Gap OR Anch.
+all conditions. Larger models perform better within                                                         GPT-5.1         .94  891   .43    .25   9.3   .05
+each family: Gemma-4-31B > Gemma-4-12B >      GPT-5-mini      .67  26.5   .02    .00 —    .00
+Gemma-4-E4B and Llama-3.1-70B > Llama-3.1-     Qwen3-32B      .67  93.3   .48    .30   6.8   .22
+                                                 Gemma-4-E4B   .60  72.7   .40    .32   4.0   .64
+8B across all conditions, consistent with the general      Llama-3.1-70B   .55  13.2   .19    .36   7.8   .07
+scaling trend observed in reasoning benchmarks.      Llama-3.1-8B    .22   2.8   .12    .48   8.3   .34
+For Qwen3-32B, performance decreases substan-     Gemma-4-31B   .09  18.1   .05    .25   6.6   .05
+                                                  Gemma-4-12B   .08   2.9   .12    .18   2.8   .14
+tially when extended thinking is disabled.             Qwen3-32B*     .01   1.1   .03    .07   3.7   .00
+                                                Gemma-4-MoE −.01  0.8   .03    .31  16.7   .02
+5.2  Confirmation Bias in Belief Updating
+Do LLMs exhibit confirmation bias when updating    Table 4: Confirmation-bias metrics across default and
+                                                         inheritance reasoning. Gap = C1 acc −C2 acc. ORbeliefs under incongruent evidence, and what does
+                                         = odds ratio. Anch. = anchoring rate on ground-truth-
+this reveal about the nature of their belief revision?
+                                                            flipping sections. Qwen3-32B* denotes the extended-
+  We apply the congruence-condition framework                                                        thinking variant. OR undefined (—) when C1 contains
+(§3.8) to all Phase 1 inference results, yielding be-    zero errors.
+tween 9,029 and 11,682 labeled turns per model
+across all reasoning types and difficulty tiers. Sta-
+tistical methodology and full supplementary results    fault (Gap = −0.007) and Qwen3-32B* inheritance
+appear in Appendix H and I respectively.          (Gap = 0.065). As we show below, the Gemma-4-
+                                 MoE result is an artifact of question ordering rather
+Confirmation bias is near-universal.  Confir-                                                  than a genuine absence of bias.
+mation bias is near-universal: 17 of 19 model–
+reasoning-type cells are statistically significant   Bias is stronger on default reasoning than in-
+after Holm–Bonferroni correction (Table 4, Fig-   heritance.  For most models, the BiasGap  is
+ure 3a).  Bias magnitude spans a wide range:    larger on default reasoning than inheritance (Ta-
+Gemma-4-12B shows a small but reliable gap (Bi-   ble 4). The contrast is sharpest for GPT-5-mini
+asGap = 0.082, OR = 2.9), while GPT-5.1 reaches    (0.668 →0.003) and GPT-5.1 (0.935 →0.246). We
+near-total incongruent failure (BiasGap = 0.935,    attribute this to the richer update vocabulary of de-
+OR = 891, 95 % CI [586, 1498]) — a C2 accu-    fault reasoning — source-priority conflicts, trap
+racy of just 3.5 % means the model almost never    distractors, and multi-turn exception chains create
+correctly revises from yes to no when faced   more opportunities for prior-belief anchoring than
+with a weakening update.  Two cells are non-   the structurally simpler inheritance updates. Two
+significant after correction: Gemma-4-MoE de-   exceptions to this phenomenon are Llama-3.1-8B
+
+
+                                         7
+
+=== PDF第8页 ===
+(default 0.224, inheritance 0.484) and Gemma-4-   near-zero default bias in the standard evaluation or-
+MoE (default −0.007, inheritance 0.307).           der (Gap = 0.008, OR = 1.07; Holm p = 0.015 but
+                                                        effect negligible) and the lowest anchoring rates
+Metacognitive dissociation:  Each update turn                                                   of any model on both topologies (default: 0.032;
+contains two  distinct  questions:   the  entail-                                                       inheritance: 0.004). The standard Qwen3-32B, by
+ment question (reported as C1 acc and C2 acc)                                                         contrast, shows a default BiasGap of 0.670 — one
+and  the  effect-of-update  question  (strengthen-                                                   of the largest in the evaluation, and its gap rises
+ing / weakening / no-effect, reported as C1-eff and                                                         further to 0.816 under reversed question order. This
+C2-eff). A pattern emerges when we examine them                                                    suggests that the thinking scaffold has a substantial
+together (Figure 3): several models correctly label a                                                         effect on both the entailment and effect questions,
+C2 update as weakening at high rates yet simultane-                                            which could be attributed to figuring out the struc-
+ously answer yes to the entailment question on the                                                      ture of the graph over which the information is
+same turn. The largest absolute dissociation are in                                                     presented.
+GPT-5-mini (C2-eff = 95.4 %, C2 acc = 20.3 %) and
+Llama-3.1-70B (C2-eff = 85.1 %, C2 acc = 14.9 %):   Anchoring and semantic override.  At the con-
+both models correctly identify weakening on the    versation level, GPT-5.1 and Qwen3-32B exhibit
+majority of C2 turns yet almost never revise their    the highest default anchoring rates (0.433 and
+entailment answer accordingly. We refer to this dis-   0.483):  in nearly half of conversations where
+crepancy as a know-but-don’t-output pattern: the    the ground-truth answer changed, these models
+model produces the correct effect label but an in-   maintained their initial prediction. Gemma-4-E4B
+consistent entailment judgment on the same turn.    shows the most persistent anchoring on inheritance
+                                                       (0.635), consistent with its strong prior-preserving
+Reversed question order reveals scaffolded                                                   behavior across both metrics. By contrast, Gemma-
+causal labeling. We reverse the order of the en-                                           4-31B and GPT-5-mini show near-zero anchoring
+tailment and effect questions to test whether high                                    (≤5 %), indicating per-turn bias does not accumu-
+C2-eff reflects independent causal understanding                                                           late into global belief fixation for these models.
+or is scaffolded by prior engagement with the                                             Llama-3.1-70B shows the highest semantic over-
+entailment judgment.  C2-eff dropped substan-                                                        ride rate on default (83.9 %): it mislabels C3 turns
+tially across all tested models: Gemma-4-31B                                                   as weakening even when the chain is already de-
+(0.970 →0.264), Gemma-4-12B (0.887 →0.209),                                                         feated, reflecting strong sensitivity to surface-level
+Gemma-4-MoE (0.732 →0.288), and Qwen3-32B                                                     negative language regardless of logical scope. Full
+(0.803 →0.414). Gemma-4-E4B is the lone excep-                                                          results are in Appendix I.
+tion (0.000 →0.349): its near-zero original score
+reflected a vocabulary failure rather than a dissoci-   5.3  Confidence and Inference Path Length
+ation. Entailment accuracy on C2 turns also wors-
+                                           Does model confidence in the correct answer decay
+ened under reversal for most models, with the Bi-
+                                                as the inference chain between the updated node
+asGap rising substantially — most strikingly for
+                                           and the hypothesis grows longer?
+Qwen3-32B (0.670 →0.816) and Gemma-4-MoE
+                                  We analyze tree-inheritance turns along two(−0.007 →0.259, exposing the near-zero default
+                                                dimensions: on-path turns, where the update isgap as an ordering artifact). Together, these results
+                                                    causally relevant to the hypothesis, and off-pathshow the entailment question acts as a broad cogni-
+                                                        turns, where the update concerns a node out-tive scaffold: engaging with the yes/no/unknown
+                                                     side the hypothesis subject’s inheritance path andjudgment first triggers reasoning that benefits both
+                                                should have no effect on confidence. We measurethe effect label and the entailment answer itself.
+                                            ∆gold_conf — the change in probability assignedThe know-but-don’t-output dissociation observed
+                                                      to the correct label relative to the model’s initialin the standard order is therefore a weaker form of
+                                             answer — as our primary confidence signal. Fullthe same effect — the scaffold is strong enough
+                                                               statistical details appear in Appendix G.to enable correct effect labeling but insufficient to
+                                                    On-path, correct-answer confidence declines sig-overcome the entailment bias on most models. Full
+                                                          nificantly with distance for most models (Table 5) —comparison tables appear in Appendix I.1.
+                                             most steeply for Gemma-4-31B (ρ = −0.298, p <
+Thinking mode suppresses bias.  Qwen3-32B*    0.001), Llama-3.1-8B (ρ = −0.255, p < 0.001),
+(Qwen3-32B with extended thinking) achieves   and Llama-3.1-70B (ρ = −0.207, p < 0.001) —
+
+
+                                         8
+
+=== PDF第9页 ===
+                                                                                                   Model Accuracy Variance   Default Reasoning
+              On-path ρ     Off-path ρ
+                                                                                                                       Qwen3-32B
+ Model           Hard     Easy    Hard                                   GPT-5.1
+ GPT-5.1         +.13∗    +.09∗   +.01                        Gemma-4-MoE
+ Qwen3-32B      −.03     +.06    +.01                          Gemma-4-31B
+                                                                                                                                                                                                              Model Gemma-4-12B Gemma-4-12B   −.16∗∗    −.01    +.01
+ Gemma-4-MoE   −.18∗∗   −.12∗∗   −.04                         Gemma-4-E4B
+
+                                                                                                                                       Llama-3.1-70B Qwen3-32B*     −.01    −.13∗∗∗   −.03
+ Gemma-4-31B   −.30∗∗∗    −.01    −.03                               Llama-3.1-8B
+
+                                                                                                                                               70%    80%    90%    100% Llama-3.1-8B    −.26∗∗∗    −.06    −.01                                       0.0%    40%    50%    60%  Accuracy
+ Llama-3.1-70B   −.21∗∗∗    +.02    −.03
+ Gemma-4-E4B    +.07     +.01   +.10∗∗∗             (a) Variance in accuracy by property chain length
+                                                                   category for default reasoning.
+                                                                                                   Model Accuracy Variance   Linear Inheritance
+Table 5: Spearman ρ between update-to-hypothesis dis-
+tance and correct-answer confidence. On-path: hard                       Qwen3-32B
+tree-inheritance turns only; easy omitted because of                             GPT-5.1
+insufficient distance variation. Off-path: model’s re-                   Gemma-4-MoE
+sponse to causally irrelevant updates; values near zero                               Model Gemma-4-31BGemma-4-12Bindicate correct suppression. Negative on-path ρ = con-
+fidence decays with distance; positive = accumulation.                    Gemma-4-E4B
+∗p<.05, ∗∗p<.01, ∗∗∗p<.001.                                                                          Llama-3.1-70B
+
+                                                                                                                                         Llama-3.1-8B
+
+                                                                                                                                      0.0%    40%    50%    60%    70%    80%    90%    100%
+while GPT-5.1 shows the opposite (ρ = +0.130,                                                              Accuracy
+p = 0.026), consistent with successfully accu-           (b) Variance in accuracy by inheritance hierarchy
+                                                                 depth for inheritance reasoning (linear).
+mulating evidence over longer chains. Off-path,
+Llama-3.1-8B changes its answer incorrectly on          Figure 4: Reseeding robustness analysis.
+more than one in three irrelevant turns (36 %),
+whereas GPT-5.1 and Gemma-4-31B do so on
+                                                    the 20 seeds for any model–condition pair (all
+fewer than 1 %: the models that maintain confi-
+                                           p > 0.06, after accounting for multiple compar-
+dence along longer chains are also those that cor-
+                                                           isons), confirming that seed choice does not system-
+rectly ignore updates that should not affect them.
+                                                           atically alter the ranking or magnitude of scores.
+5.4  Seeded Sample Variance Analysis            Our results also show that within-model variance
+                                                                is low for most models. The CV is below 4 % forAre DERELAB evaluations reproducible across in-
+                                                            five out of eight models on both default and linear-dependent random seeds, and does stability hold
+                                                    inheritance conditions. (Appendix F, Table 11).across model tiers?
+                                            These results confirm that the benchmark scores  We evaluate eight models on 20 independently
+                                                     reported throughout this paper reflect stable modelseeded draws of the evaluation data (default and
+                                                      properties rather than sampling variability.linear inheritance, easy difficulty) and measure vari-
+ability. Three statistics are reported: the intraclass                                       6  Conclusion
+correlation coefficient (ICC, two-way random ef-
+fects, absolute agreement), Kruskal–Wallis tests  We introduced DERELAB, a structural frame-
+for per-sample accuracy distributions, and the co-   work for evaluating defeasible reasoning in LLMs
+efficient of variation (CV = SD / mean × 100). Fig-   through formally verified, multi-turn benchmarks.
+ure 4 shows the resulting boxplots; full statistical   Our experiments reveal that current models are brit-
+details appear in Appendix F.                             tle under belief-updating conditions: confirmation
+                                                     bias is near-universal, confidence degrades with
+Scores are highly reproducible across seeds.                                                   inference-path length, and structural relevance is
+The ICC across all model–condition cells is 0.949                                                       rarely tracked reliably. Future work can extend
+(95 % CI [0.938, 0.963]), indicating that over 94 %                                                     the framework with additional non-monotonic rea-
+of the variance in turn-level accuracy is shared                                                soning structures and further cognitive science-
+across seeded draws, confirming that the bench-                                                     inspired probes to deepen understanding of where
+mark captures consistent model behavior. Kruskal–                                             and why defeasible reasoning fails.
+Wallis tests yield no significant differences across
+
+
+                                         9
+
+=== PDF第10页 ===
+Limitations                                            Jessica Maria Echterhoff, Yao Liu, Abeer Alessa, Ju-
+                                                                 lian McAuley, and Zexue He. 2024. Cognitive bias
+The current framework evaluates the default and       in decision-making with LLMs. In Findings of the
+inheritance topologies, which can be further ex-      Association for Computational Linguistics: EMNLP
+                                                      2024, pages 12640–12653, Miami, Florida, USA.
+panded to support a broader spectrum of defeasible
+                                                          Association for Computational Linguistics.
+reasoning structures. Moreover, DERELAB didn’t
+evaluate models’ consistency against human perfor-    Isabel O. Gallegos, Ryan A. Rossi,  Joe Barrow,
+mance, leaving it an open question whether human     Md. Mehrab Tanjim, Sungchul Kim, Franck Dernon-
+reasoning diverges from algorithmic conclusions.        court, Tong Yu, Ruiyi Zhang, and Nesreen Ahmed.
+                                                       2023. Bias and fairness in large language models: A
+  Our evaluation includes only two explicitly                                                            survey. Computational Linguistics, 50:1097–1179.
+reasoning-enabled  configurations—GPT-5-mini
+and Qwen3-32B in extended-thinking mode. More   Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri,
+models could help us find patterns. We found bi-     Abhinav Pandey, Abhishek Kadian, Ahmad Al-
+                                                       Dahle, Aiesha Letman, Akhil Mathur, Alan Schel-ases exist but didn’t discuss why they were found.
+                                                                    ten, Alex Vaughan, Amy Yang, Angela Fan, Anirudh
+                                                      Goyal, Anthony Hartshorn, Aobo Yang, Archi Mi-
+                                                                          tra, Archie Sravankumar, Artem Korenev, Arthur
+References                                             Hinsvark, and 542 others. 2024. The llama 3 herd of
+                                                       models. Preprint, arXiv:2407.21783.
+Ali Al-Lawati,  Jason Lucas, Dongwon Lee, and
+  Suhang Wang. 2026.  Llm benchmark datasets
+                                                  Reto Gubelmann, Ioannis Katis, Christina Niklaus, and
+  should  be  contamination-resistant.     Preprint,
+                                                            Siegfried Handschuh. 2023. Capturing the varieties
+   arXiv:2605.19999.
+                                                          of natural language inference: A systematic survey
+                                                            of existing datasets and two novel benchmarks. J. of
+Emily Allaway, Jena D. Hwang, Chandra Bhagavatula,                                                           Logic, Lang. and Inf., 33(1):21–48.
+   Kathleen McKeown, Doug Downey, and Yejin Choi.
+   2023. Penguins don’t fly: Reasoning about generics
+                                                     Thilo Hagendorff, Sarah Fabi, and Michal Kosinski.  through instantiations and exceptions. In Proceed-
+                                                      2022. Human-like intuitive behavior and reasoning   ings of the 17th Conference of the European Chap-
+                                                            biases emerged in large language models but disap-   ter of the Association for Computational Linguistics,
+                                                       peared in chatgpt. Nature Computational Science,  pages 2618–2635, Dubrovnik, Croatia. Association
+                                                      3:833 – 838.   for Computational Linguistics.
+
+                                                 John F. Horty, Richmond H. Thomason, and David S.Emily Allaway and Kathleen McKeown. 2025. Evaluat-
+                                                            Touretzky. 1990. A skeptical theory of inheritance in   ing defeasible reasoning in LLMs with DEFREAS-
+                                                  nonmonotonic semantic networks. Artificial Intelli-  ING. In Proceedings of the 2025 Conference of the
+                                                          gence, 42(2):311–348.  Nations of the Americas Chapter of the Association
+   for Computational Linguistics: Human Language
+   Technologies (Volume 1: Long Papers), pages 10540–    Erik Jones and Jacob Steinhardt. 2022. Capturing fail-
+  10558, Albuquerque, New Mexico. Association for       ures of large language models via human cognitive
+  Computational Linguistics.                                  biases. In Proceedings of the 36th International Con-
+                                                          ference on Neural Information Processing Systems,
+Nicholas Asher and Michael Morreau. 1991. Common-     NIPS ’22, Red Hook, NY, USA. Curran Associates
+   sense entailment: A modal theory of nonmonotonic       Inc.
+   reasoning. In Logics in AI, pages 1–30, Berlin, Hei-
+   delberg. Springer Berlin Heidelberg.             Douwe Kiela, Max Bartolo, Yixin Nie, Divyansh
+                                                        Kaushik, Atticus Geiger, Zhengxuan Wu, Bertie Vid-
+Nick Chater, Mike Oaksford, Ulrike Hahn, and Evan       gen, Grusha Prasad, Amanpreet Singh, Pratik Ring-
+   Heit. 2011. Inductive logic and empirical psychol-       shia, Zhiyi Ma, Tristan Thrush, Sebastian Riedel,
+   ogy.  In Dov M. Gabbay, Stephan Hartmann, and      Zeerak Waseem, Pontus Stenetorp, Robin Jia, Mohit
+  John Woods, editors, Inductive Logic, volume 10 of       Bansal, Christopher Potts, and Adina Williams. 2021.
+  Handbook of the History of Logic, pages 553–624.     Dynabench: Rethinking benchmarking in NLP. In
+   North-Holland.                                      Proceedings of the 2021 Conference of the North
+                                                  American Chapter of the Association for Computa-
+Stanley F Chen and Joshua Goodman. 1999. An em-       tional Linguistics: Human Language Technologies,
+   pirical study of smoothing techniques for language      pages 4110–4124, Online. Association for Computa-
+   modeling. Computer Speech & Language, 13(4):359–       tional Linguistics.
+   394.
+                                          Jemma König, Andreea S Calude, and Averil Coxhead.
+Peter Clark, Oyvind Tafjord, and Kyle Richardson. 2020.      2020. Using character-grams to automatically gener-
+  Transformers as soft reasoners over language. arXiv       ate pseudowords and how to evaluate them. Applied
+   preprint arXiv:2002.05867.                                Linguistics, 41(6):878–900.
+
+
+                                         10
+
+=== PDF第11页 ===
+Terry K Koo and Mae Y Li. 2016. A guideline of   David Poole. 1988. A logical framework for default
+   selecting and reporting intraclass correlation coeffi-      reasoning. Artificial Intelligence, 36(1):27–47.
+   cients for reliability research. Journal of chiropractic
+   medicine, 15(2):155–163.                           R. Reiter. 1980. A logic for default reasoning. Artificial
+                                                               Intelligence, 13(1):81–132. Special Issue on Non-
+Vladimir Lifschitz. 1988.  Benchmark problems for      Monotonic Logic.
+   formal nonmonotonic reasoning: Version 2.00. In In-
+   ternational Workshop on Non-Monotonic Reasoning,   Raymond Reiter. 1978. On Closed World Data Bases,
+  pages 202–219. Springer.                              pages 55–76. Springer US, Boston, MA.
+
+Vladimir Lifschitz. 1989. Benchmark problems for for-   Rachel Rudinger, Vered Shwartz, Jena D. Hwang, Chan-
+  mal nonmonotonic reasoning. In Proceedings of the      dra Bhagavatula, Maxwell Forbes, Ronan Le Bras,
+  2nd International Workshop on Non-Monotonic Rea-     Noah A. Smith, and Yejin Choi. 2020. Thinking like
+   soning, page 202–219, Berlin, Heidelberg. Springer-      a skeptic: Defeasible inference in natural language.
+   Verlag.                                                   In Findings of the Association for Computational Lin-
+                                                                guistics: EMNLP 2020, pages 4661–4675, Online.
+Andrew Liu, Henry Prior, Gargi Balasubramaniam,      Association for Computational Linguistics.
+  Rivka Moroshko, Amir Zait, Ilia Labzovsky, Danny
+  Karmon, Ishita Dasgupta, Kimberly Stachenfeld, and   Samuel Schmidgall, Carl Harris, Ime Essien, Daniel
+  Kenneth Marino. 2025. Recoglab: a framework test-      Olshvang, Tawsifur Rahman, Ji Woong Kim, Rojin
+   ing relational reasoning &amp; cognitive hypotheses       Ziaei, Jason Eshraghian, Peter Abadir, and Rama
+  on llms. In International Conference on Representa-      Chellappa. 2024. Addressing cognitive bias in medi-
+   tion Learning, volume 2025, pages 45077–45106.         cal language models. Preprint, arXiv:2402.08113.
+
+Olivia Macmillan-Scott and Mirco Musolesi. 2024.   Karan Singhal, Shekoofeh Azizi, Tao Tu, S. Sara
+   (ir)rationality and cognitive biases in large language      Mahdavi, Jason Wei, Hyung Won Chung, Nathan
+  models. Preprint, arXiv:2402.09193.                      Scales, Ajay Tanwani, Heather Cole-Lewis, Stephen
+                                                            Pfohl, Perry Payne, Martin Seneviratne, Paul Gam-
+Inbal Magar and Roy Schwartz. 2022. Data contamina-       ble, Chris Kelly, Nathaneal Scharli, Aakanksha
+   tion: From memorization to exploitation. In Proceed-     Chowdhery, Philip Mansfield, Blaise Aguera y Ar-
+   ings of the 60th Annual Meeting of the Association       cas, Dale Webster, and 11 others. 2022. Large lan-
+   for Computational Linguistics (Volume 2: Short Pa-     guage models encode clinical knowledge. Preprint,
+   pers), pages 157–165, Dublin, Ireland. Association      arXiv:2212.13138.
+   for Computational Linguistics.
+                                               Oyvind Tafjord, Bhavana Dalvi, and Peter Clark. 2021.
+Boris New,  Jessica  Bourgin,  Julien  Barra,  and       Proofwriter: Generating implications, proofs, and
+  Christophe Pallier. 2024. Unipseudo: A universal       abductive statements over natural language. In Find-
+  pseudoword generator. Quarterly Journal of Experi-      ings of the Association for Computational Linguistics:
+  mental Psychology, 77(2):278–286.                 ACL-IJCNLP 2021, pages 3621–3634.
+
+Raymond Nickerson. 1998. Confirmation bias: A ubiq-   Alaina N. Talboy and Elizabeth Fuller. 2023. Challeng-
+   uitous phenomenon in many guises. Review of Gen-      ing the appearance of machine intelligence: Cog-
+   eral Psychology, 2:175–220.                                nitive bias in llms and best practices for adoption.
+                                                              Preprint, arXiv:2304.01358.
+Andreas Opedal, Alessandro Stolfo, Haruki Shirakami,
+  Ying Jiao, Ryan Cotterell, Bernhard Schölkopf, Ab-  Gemma Team. 2026.  Gemma 4 technical report.
+   ulhair Saparov, and Mrinmaya Sachan. 2024. Do       Preprint, arXiv:2607.02770.
+  language models exhibit the same cognitive biases
+   in problem solving as human learners? In Proceed-   Qwen Team. 2025. Qwen3 technical report. Preprint,
+   ings of the 41st International Conference on Machine      arXiv:2505.09388.
+  Learning, ICML’24. JMLR.org.
+                                                          Tristan  Thrush,  Kushal  Tirumala, Anmol Gupta,
+Mihir Parmar, Nisarg Patel, Neeraj Varshney, Mutsumi    Max  Bartolo,  Pedro  Rodriguez,  Tariq  Kane,
+  Nakamura, Man Luo, Santosh Mashetty, Arindam      William  Gaviria  Rojas,  Peter  Mattson,  Adina
+   Mitra, and Chitta Baral. 2024. LogicBench: Towards      Williams, and Douwe Kiela. 2022.  Dynatask: A
+   systematic evaluation of logical reasoning ability of      framework for creating dynamic ai benchmark tasks.
+   large language models. In Proceedings of the 62nd       In Proceedings of the 60th Annual Meeting of the
+  Annual Meeting of the Association for Computational      Association for Computational Linguistics: System
+   Linguistics (Volume 1: Long Papers), pages 13679–      Demonstrations, pages 174–181.
+  13707, Bangkok, Thailand. Association for Compu-
+   tational Linguistics.                                     Shijie Wu, Ozan Irsoy, Steven Lu, Vadim Dabravolski,
+                                               Mark Dredze, Sebastian Gehrmann, Prabhanjan Kam-
+Stephen Pilli. 2024. Exploring conversational agents       badur, David Rosenberg, and Gideon Mann. 2023.
+   as an effective tool for measuring cognitive biases in      Bloomberggpt: A large language model for finance.
+   decision-making. Preprint, arXiv:2401.06686.            Preprint, arXiv:2303.17564.
+
+
+                                         11
+
+=== PDF第12页 ===
+Zhentao Xie, Jiabao Zhao, Yilei Wang, Jinxin Shi, Yan-  A  DERELAB Framework
+  hong Bai, Xingjiao Wu, and Liang He. 2024. Mind-
+   scope: Exploring cognitive biases in large language  We discuss the different modules of DERELAB in
+  models through multi-agent systems. In European    the following sections. The logical flow is depicted
+  Conference on Artificial Intelligence.
+                                                       in Figure 5.
+Yeliang Xiu, Zhanhao Xiao, and Yongmei Liu. 2022.
+  LogicNMR: Probing the non-monotonic reasoning   A.1  Graph Generation
+   ability of pre-trained language models. In Findings
+                                         Our reasoning structure contains two node types:   of the Association for Computational Linguistics:
+  EMNLP 2022, pages 3616–3626, Abu Dhabi, United    entity and property nodes. The graph contains four
+  Arab Emirates. Association for Computational Lin-   primary edge types. These are:
+   guistics.
+                                                                 • Hypothesis  Edge:  Represents the target
+Hitomi Yanaka, Koji Mineshima, Daisuke Bekki, Ken-
+   taro Inui, Satoshi Sekine, Lasha Abzianidze, and        query or tentative conclusion that is currently
+  Johan Bos. 2019a. Can neural networks understand        under evaluation.
+   monotonicity reasoning? In Proceedings of the 2019
+  ACL Workshop BlackboxNLP: Analyzing and Inter-       • Has Attribute: Denotes factual and monotonic
+   preting Neural Networks for NLP, pages 31–40, Flo-                                                    assignment of a property to an entity.
+   rence, Italy. Association for Computational Linguis-
+   tics.
+                                                                 • Defeasible Has Property: Represents a non-
+Hitomi Yanaka, Koji Mineshima, Daisuke Bekki, Ken-       monotonic implication indicating that an en-
+   taro Inui, Satoshi Sekine, Lasha Abzianidze, and           tity “generally” or “typically” possesses a cer-
+  Johan Bos. 2019b. HELP: A dataset for identify-
+                                                              tain property. For example, “Red objects are   ing shortcomings of neural models in monotonic-
+   ity reasoning.  In Proceedings of the Eighth Joint         generally cubic”.
+  Conference on Lexical and Computational Semantics
+  (*SEM 2019), pages 250–255, Minneapolis, Min-       • Defeasible Lack Property: Represents a non-
+   nesota. Association for Computational Linguistics.        monotonic implication indicating that an en-
+                                                                     tity “generally” does not possess a specificJiayi Ye, Yanbo Wang, Yue Huang, Dongping Chen,
+  Qihui Zhang, Nuno Moniz, Tian Gao, Werner Geyer,           trait. For example, “Cubic objects generally
+  Chao Huang, Pin-Yu Chen, Nitesh V Chawla, and       do not roll”.
+  Xiangliang Zhang. 2025. Justice or prejudice? quan-
+   tifying biases in LLM-as-a-judge. In The Thirteenth                                           The graph generator module could construct
+   International Conference on Learning Representa-
+                                                      three distinct topologies:   tions.
+                                              Linear Inheritance: The graph formed a sin-
+Wenting Zhao, Justin Chiu, Claire Cardie, and Alexan-                                                         gle, unbranched entity chain from a root concept
+   der Rush. 2023. Abductive commonsense reason-
+                                        down to a terminal subclass. The root concept was   ing exploiting mutually exclusive explanations. In
+  Proceedings of the 61st Annual Meeting of the As-   assigned a base target property. To introduce non-
+   sociation for Computational Linguistics (Volume 1:   monotonicity, defeasible edges were probabilisti-
+  Long Papers), pages 14883–14896, Toronto, Canada.    cally injected at intermediate nodes in the chain.
+  Association for Computational Linguistics.
+                                          The final hypothesis strictly queried the leaf node.
+Hanyang Zhong, Liman Wang, Wenting Cao, and     Tree Inheritance: The tree expanded from a
+  Zeyuan Sun. 2024. Balancing rigor and utility: Miti-   root node where the maximum branching factor
+   gating cognitive biases in large language models for                                                   exponentially decayed with depth. Branches also
+   multiple-choice questions.
+                                             underwent random survival checks, resulting in
+Kun Zhou, Yutao Zhu, Zhipeng Chen, Wentong Chen,   asymmetrical structures. Defeasible edges were
+  Wayne Xin Zhao, Xu Chen, Yankai Lin, Ji-Rong                                              randomly added across intermediate nodes, and the
+  Wen, and Jiawei Han. 2023.  Don’t make your
+                                                  hypothesis edge targeted a leaf node.  llm an evaluation benchmark cheater.   Preprint,
+  arXiv:2311.01964.                                   In Table 6, the parameters tuned to set the diffi-
+                                                     culty of Inheritance Reasoning topologies across
+                                                         different presets are listed: easy (fewer nodes, less
+                                                 depth and breadth) and hard.
+                                                 Default Reasoning: This topology modeled a
+                                          main property chain. Multiple entities could be
+                                               connected to a root property. This root property
+
+
+                                         12
+
+=== PDF第13页 ===
+       Parameters              KB + Grammar Rules
+
+             Json                                        Entities     Requirements
+            Config                                                     json
+
+                                                                                  Conversation Simulator
+     Graph Generator                     Entity Constructor
+                                                                       MultiRound Conversations
+ Includes:                              DxGraph  Add entities to the graph                1) User:
+ - Skeleton Graph                                                                            Pretext + Hypothesis
+ -  Defeasible           Edges and nodes                                                                                        Question:                                                                                                       (yes/no)                                                                                         Does X have                                                                                                                         property y?                                                DxGraph       Sentences -  Hypothesis                                                                                          2)                                                                                                  Assistant:                                                                                                  yes/no (measure                                                                                                                              probability)
+                                                                                          3) User:
+                             NL Generator                Information Add/Update
+                                                                                        Question:
+                                                 Construct Questions                   Category 1: (yes/no) Does X' have property y?   Path Relation Algorithm
+                                                                                   Category 2: Does the information strengthen/
+                              Resolve                                         weaken/has no effect on the hypothesis?
+                                                           Entities       Sentences      query(x,y): Does the
+      net allow path from
+           x to y                           Sentence Templates
+
+
+                    Figure 5: Modules of DERELAB framework used for data generation.
+
+
+implied subsequent properties. To evaluate robust-   ference path leading to the hypothesis. Therefore,
+ness against noise, irrelevant properties (distractor    they should not affect its entailment.
+nodes) were attached directly to random entities.     Template Structures: To generate grammati-
+Defeasible edges were injected onto intermediate    cally sound sentences, properties were represented
+property nodes and assigned a depth-based serial    using a structured template. Each attribute cate-
+number. This serialization ensured logical order   gory contained a pool of candidate values along
+from general to specific used later translating into   with two linguistic templates (singular and plural)
+conversation. The hypothesis then queried a termi-    to support different relational contexts.
+nal property leaf.                              The abstract template structure was defined as
+  In Table 7, the parameters tuned to set the diffi-   follows:
+culty of default reasoning topology are listed: easy                                           Attribute Category: <String>
+(fewer properties, objects, and hypotheses) and                                           Examples: [<Value_1>,
+hard.                                                    <Value_2>,
+                                                    ..., <Value_n>]
+A.2  Entity Construction
+                                           Template: "<Plural Verb Phrase> [value]"
+The abstract graph nodes and edges from the graph   Object Template: "<Singular Verb Phrase>
+generator module were populated with nonce enti-                     [value]"
+ties and coherent attributes. The nonce entities are
+                                   An Example: To illustrate the property instan-
+pronounceable but semantically null pseudowords
+                                                              tiation, consider a graph requiring an entity assign-
+(for example, “Kitylu”, “Atool”, and “Deraw” can
+                                           ment and a property implication within the “Tool”
+be different types of “Tool”). Entity and attribute
+                                               domain.
+preparations have been discussed in Appendix D.
+                                              At first, the “material” attribute was sampled for
+  The property sampling was domain-aware. A                                                     the “Tool” domain.
+root concept dictated the pool of valid attributes
+                                               Example Value Selected: Titanium(e.g., a “Tool” domain permits attributes like mate-
+                                               Template: are made of [value]rial and utility, whereas an “Animal” domain would
+                                               Object Template: is made of [value]permit habitat).
+   Additionally, for default reasoning, we sampled     Then, the placeholders in Template and Object
+attributes that were distant from the attributes in the   Template were replaced with the Example Value,
+reasoning chain. These attributes were used to con-   generating Filled Template and Filled Object Tem-
+struct irrelevant updates. Although they described    plate respectively. Finally, the exact predicate struc-
+the same entity, they did not participate in any in-    ture was passed to the graph populator.
+
+
+                                         13
+
+=== PDF第14页 ===
+     Parameter             Easy      Hard          sion rather than arbitrarily selecting one.
+    Global Settings                                  Before resolution, the logical topology was ab-
+      Sparsity factor range    0.50–0.80   0.40–0.60         stracted into a signed Directed Acyclic Graph
+      Serial random            True        True                                          (DAG), where edges denoted either positive sup-
+     Jellyfish Preset                                      port (supporting links) or negative evidence (defeat-
+    Max depth               4          8
+                                                  ing links). The resolver excluded hypothesis and     Root breadth             5         13
+     Branching (min–max)     1–1        1–1            irrelevant-property edges from logical propagation.
+      Survival probability        0.40        0.60
+     Branching decay            1.0          1.0                 • Supporting Links(+): “inheritance”, “is_a”,
+     Expected nodes          4–8       24–50
+                                                        “implies”,  “has_property”,  and  “defeasi-
+    Balanced Preset                                      ble_has_property” edges.
+    Max depth               3          4
+     Root breadth             2          3
+                                                                 • Defeating      Links(-):           “defeasi-     Branching (min–max)     2–2        2–2
+      Survival probability         1.0          1.0                ble_lacks_property” edges.
+     Branching decay            1.0          1.0
+     Expected nodes           7         46                 • Ignored Links(o): “hypothesis” and “irrele-
+   Bushy Preset                                         vant_property” edges.
+    Max depth               2          4
+     Root breadth             3          4           The evaluation then proceeded through the fol-
+     Branching (min–max)     1–2        1–4
+                                               lowing core phases:      Survival probability        0.70        0.80
+     Branching decay            1.0         0.75
+     Expected nodes          5–9       20–60               • Trimming: The graph was first pruned to
+                                                              isolate the relevant nodes and edges to the
+Table 6: Configuration Parameters for Easy and Hard         specific query. The algorithm first performed
+Difficulties in Inheritance Reasoning Topology               a forward search from the source entity along
+                                                                     strictly positive paths, followed by a backward
+  Parameter               Easy       Hard             search from the target property. Only nodes
+  Chain length            5–10 nodes   10–20 nodes           residing in the intersection of these valid paths
+  Num objects               2–3         4–6            were retained for evaluation.
+   Irrelevant attributes          1–2         2–4
+   Sparsity factor             0.30–0.50     0.40–0.70            • Propagation: The trimmed network was then
+  Max hypothesis sections       2           3
+                                                         evaluated in a strict topological order. This en-
+                                                     sured that every intermediate node was fullyTable 7: Comparison of Easy and Hard Parameters in
+Default Reasoning Topology                              resolved before its logical state was propa-
+                                                      gated forward.  The algorithm maintained
+                                                               states of proven and defeated properties, car-
+Attribute Name: material                           rying the deductive logic upward from the
+Selected Value: Titanium                           source entity.
+Filled Template: are made of Titanium
+Filled Object Predicate: is made of Titanium     • Direct Preemption: Any evidence directly at-
+                                                       tached to the root subject entity was treated as
+A.3  Path Resolver Algorithm                          absolute, immediately overriding any longer,
+                                                            inherited reasoning chains.
+To determine the ground-truth entailment of each
+hypothesis, the framework employed a path-based        • Specificity  Based  Conflict  Resolution:
+resolver adapted from (Horty et al., 1990). In this      When an intermediate node received conflict-
+formulation, conclusions are determined by which         ing logics (e.g., inheriting both a property and
+positive or negative inheritance paths are permitted           its negation from different parent nodes), the
+by the network. When conflicting paths support        algorithm inspected the hierarchical relation-
+opposing conclusions, the resolver applies the prin-        ship between the conflicting sources. If a posi-
+ciple of preemption: information inherited through          tive path existed from source A to source B, A
+a more specific class can preempt a conflicting path       was identified as a more specific subclass of
+based on more general information. If opposing        B. The logic originating from a more specific
+compound paths remain unpreempted, the skeptical        subclass strictly preempted the signal from a
+interpretation withholds the corresponding conclu-         superclass.
+
+
+                                         14
+
+=== PDF第15页 ===
+    • Skeptical Inference: If conflicting deductive    Table 8: Natural language templates used for different
+                                                  edge types.     paths were completely symmetric, meaning
+     neither source node was a subclass of the                                          Edge Type     Template
+     other, the algorithm classified the property’s                                              is_a          {subject} is a {object}.
+      state as unknown.                                              implies        Objects                    that
+                                                           {subject_predicate}  gener-    • Default Chain Resolution: For graphs repre-
+                                                                                ally {object_predicate}.
+     senting linear property chains, the algorithm
+                                              conflict      However, {subject} does not
+     applied a "defaults carry through" rule. Entail-
+                                                               {object}.
+    ment flowed through the chain unless explic-
+                                              has_attribute {subject}                also
+      itly blocked by negative defeasible evidence.
+                                                             {object_predicate}.
+     Furthermore, the framework supported syn-
+                                              inheritance   {subject}   is  a  kind   of
+      thetic bypass rules, allowing the logic to skip
+                                                               {object}.
+     intermediate nodes if sufficient, unblocked en-
+                                              defeasible    {subject}
+      try points were established earlier in the chain.
+                                              has property  {object_predicate}.
+                                              defeasible    {subject} is not {object}.  The execution of the formal PMPM strategy
+                                              lacksfrom (Horty et al., 1990) is detailed throughout
+                                              property
+Algorithm 1.
+                                              hypothesis    Does            {subject}
+  The resolver returns one of three states for the tar-
+                                              edge          {object_predicate}?
+get property node: entailed (True), defeated (False),
+or undetermined (Unknown).
+
+                                                          are made of Titanium}.
+A.4  Natural Language Generation
+                                                      Final Output: “Objects that are Tools gener-
+To translate the populated graph into readable text,         ally are made of Titanium.”
+a natural language generation module mapped each
+directed edge to a coherent English sentence. This   A.5  Conversation Simulation
+was achieved using predefined structural templates
+                                                  After the natural language realization of every
+that defined the grammatical interaction between                                                graph edge, the conversation simulator determines
+a source node and a target node based on the edge
+                                                      the order in which edges of the reasoning structure
+type.                                                    are disclosed. After each disclosure, the resolver
+  Common sentence templates include:                                                     reevaluates the hypothesis.
+  During sentence generation, the module injected                                      An initial premise was first constructed from the
+the instantiated entity labels and filled property                                                      deterministic backbone of the graph: consisting of
+predicates into these sentence templates. For exam-                                                    the “inheritance” and “has-attribute” edges. This
+ple, given a nonce entity (Zibber), a base concept                                                   premise, along with the hypothesis, was presented
+(Tool), and an instantiated property (made of Tita-                                                        to the resolver before any defeasible evidence was
+nium), the graph edges are translated as follows:                                                      introduced. It established the base structure against
+                                            which all subsequent updates would be evaluated.
+    • Inheritance Edge Translation:
+                                                    Defeasible edges were then revealed according    Mapping:  {subject:  Zibber} is a {object:
+                                                        to a controlled schedule. Each defeasible edge was     Tool}.
+                                                  assigned a serial index according to its position in     Final Output: “The Zibber is a Tool.”
+                                                    the reasoning structure, so that lower indices cor-
+    • Property Assignment Edge Translation:      responded to more general information and higher
+    Mapping:     {subject:     Zibber}   {ob-   indices to more specific information. Two reveal
+     ject_predicate: is made of Titanium}.            strategies were used for defeasible edges: serial
+     Final Output:  “The Zibber  is made of    reveal and randomized reveal.
+     Titanium.”
+                                                                 • Serial Reveal: In this configuration, edges
+    • Implication Edge Translation:                  were disclosed in ascending order of their as-
+    Mapping:  Objects that {subject_predicate:        signed serial indices. That means the revealed
+     are Tools} generally {object_predicate_plural:        information became more and more specific.
+
+
+                                         15
+
+=== PDF第16页 ===
+    • Randomized Reveal: An alternative random-       “Block A is an exception to this rule.”
+     ized reveal mode was also supported to miti-
+     gate the risk of models exploiting positional     The NL Generator traced the primary logical
+     patterns rather than inferential reasoning. In    chain. Introducing new facts either reinforced the
+     that mode, defeasible edges for a given sub-   current hypothesis or broke the chain. When gen-
+      ject were shuffled into a random reveal order.    erating a negative update, NL Generator randomly
+    The resolver was supplied only with the edges    alternated between a direct negation (“The object
+     explicitly revealed up to that point.            does not have the property”) and exception phras-
+                                                  ing (“The object is an exception to the rule”). If
+  After each defeasible edge was introduced, the                                                    the parent category has already been established
+hypothesis was re-evaluated using all evidence re-                                                   as negative earlier in the chat, the system force-
+vealed up to that turn. For inheritance reasoning,                                                        fully overrode the exception phrasing to prevent
+this produced only the updated entailment label:                                                       contradiction.
+yes, no, or unknown. The effect of an update was                                           Type 2: Irrelevant Information
+determined by comparing the hypothesis state be-                                             To understand Default Reasoning with Irrelevant
+fore and after the reveal. An update was strength-                                                  Information (Benchmark A2), consider the genera-
+ening if it increased support for the hypothesis,                                                          tor has concluded:
+weakening if it reduced support, and no effect if
+                                                “Block A is on the table”.
+the resolved hypothesis state remained unchanged.
+                                                     Introducing a new, unrelated fact such as
+  Moreover, a positive or negative defeasible edge
+                                                “Block A is red”,
+did not necessarily imply strengthening or weak-
+                                                   should not affect the prior conclusion.
+ening by itself. For example, a negative defeasible
+                                           The NL Generator generated two distinct vari-
+edge introduced on a path whose inheritance had
+                                                       ants of irrelevance to probe the model’s robustness.
+already been solved would leave the hypothesis
+                                               “Safe” irrelevance introduced completely benign
+unchanged (no effect).
+                                            and unrelated traits. “Trap” irrelevance dynami-
+  Inheritance conversations used only the entail-
+                                                      cally scanned the active logic graph and synthe-
+ment label, while the explicit strengthening, weak-
+                                                    sized distractor properties that share overlapping
+ening, and no-effect labels were used for the belief-
+                                                vocabulary or negative prefixes with valid chain
+update questions in default reasoning.
+                                                 nodes.  In all Type 2 updates, the programmed
+B  Default Reasoning                          ground-truth registered “no effect” on the underly-
+                                                   ing hypothesis.
+In this section, we have discussed which of the                                           Type 3: Source-Priority Conflicts
+benchmark problems from (Lifschitz, 1988) have
+been addressed by every question type in Default        • Priorities between Defaults (Benchmark A9)
+reasoning.                                              involves conflicting sources(Jack and Mary).
+  Type 1: Direct Chain Manipulation                      If Jack asserts,
+  Consider an initial premise:
+                                                  “Block A is not on the table,”
+  “Heavy blocks are normally located on the ta-
+ble.”                                                 while Mary asserts,
+                                                  “Block A is on the table.”    • In Basic Default Reasoning (Benchmark A1),
+     introducing the fact:                             Because the environment dictates that Mary is
+    “Block A is heavy”                               a more reliable source than Jack, her claim
+                                                         takes precedence, and the final conclusion
+     leads to the conclusion:
+                                                 must side with her.
+    “Block A is on the table.”
+                                  NL Generator evaluated complex belief revision
+    • Default Reasoning with Several Defaults
+                                            by orchestrating disputes between simulated agents
+    (Benchmark A3) extends  it for several de-
+                                                 (“Expert A” and “Expert B”). A known priority
+      faults.
+                                                   ordering was announced in the pretext once:
+    • Default Reasoning with a Disabled Default      "Expert A is generally more reliable than Expert
+    (Benchmark A4) tests the revocation of this    B."
+     conclusion by introducing an overriding fact:     The implementation had several mechanisms:
+
+
+                                         16
+
+=== PDF第17页 ===
+• Dual Conflict Topologies: Realization of two        • Subject Isolation: Entities subjected to Type
+  distinct shapes of disagreement:                 3 source-priority conflicts were disjoint from
+                                                             entities undergoing Type 1 or 2 scenarios to
+ The first is a direct contradiction, where the
+                                                    ensure the model’s success or failure is a func-
+  high-priority and low-priority agents argued
+                                                          tion of priority resolution.
+  over the exact same node.
+                                                  In Table 9, we have briefly discussed the map-  The second is a structural bypass. In a bypass,
+                                                  ping.  the low-priority agent claimed that a critical
+  connective rule is blocked.
+                                                  Table 9: Mapping of Question Types to (Lifschitz,
+  Rather than arguing the point,  the high-   1988)’s Benchmark Equivalents
+  priority agent introduced a “shortcut” rule that
+  logically routed around the blocked node (en-    Question Type           Benchmark Equivalents
+  suring the bypass source index was strictly                                              Type 1: Direct Chain Ma-  A1 (Basic Default Reasoning)
+  before the block, and the target index was     nipulation             A3 (Default Reasoning with
+  strictly after), successfully restoring the hy-                                 Several Defaults)
+                                                             A4 (Disabled Default)
+  pothesis path.
+                                               Type 2: Irrelevant Informa-  A2 (Default Reasoning with Ir-
+                                                                tion                           relevant Information)
+
+                                              Type  3:   Source-Priority   A9, A10 (Priorities between
+                                                              Conflicts                     Defaults)
+          object        Property chain
+
+                          C  Inheritance Reasoning
+
+                                        Bypass             In Inheritance reasoning, a target property was
+                                          (high priority)
+                                              implied by the root entity/domain and was inher-
+                                        contradict                   ited by its descendants. A negative defeasible up-
+         Hypothesis               (low priority)                date (defeasible_lack_property edge) could block
+                                             a property inherited from a more general entity.
+                                            Whereas, a positive update to a more specific entity
+                                              could again restore the property.
+                                                Figure 7 shows the real-life hierarchy mimics
+                                   we have used as presets.
+
+                          D  Data Creation Process
+
+   Figure 6: Conflict: Contradict and Bypass                                               This section contains the overall architecture of the
+                                          whole data creation process.
+• Temporal Ordering: Randomizing the order
+                                          D.1  Nonce Word Generation
+  in which the agents speak:
+                                           There was the possibility that if we used real and
+  If the low-priority agent spoke first, the re-                                                  sensical words as entity, models could answer us-
+  solver registered a drop in confidence, fol-                                               ing memorized real-world knowledge instead of
+  lowed by a nonmonotonic recovery when the                                                reasoning over the premises provided in the conver-
+  high-priority agent corrected the record.                                                      sation. Because nonce entities carry no predefined
+  Conversely, if the high-priority agent spoke   semantic associations, the resulting examples di-
+   first, the system acted as an epistemic shield.    rectly tested the defeasible reasoning process.
+ When the low-priority agent disagreed, the     To populate the entity nodes of the reasoning
+  resolver computed “no effect”.                   structure, we generated the nonce words using
+                                                   character-level Markov n-gram models trained on
+• Redundancy Filtering:  If a lower-priority    different seed corpora following the UniPseudo
+  source subsequently echoed a confirmation al-   paradigm of (New et al., 2024). We followed the
+  ready established by a higher-priority source,  CGCA approach of (König et al., 2020) to avoid
+  the algorithm enforced a strict “no effect”.      bleed between word-initial and word-final contexts.
+
+
+                                      17
+
+=== PDF第18页 ===
+                            Jellyfish Structure                                                      Balanced Structure
+
+
+
+
+
+                       Bushy Structure                                                          Linear Structure
+
+
+                             Figure 7: Inheritance: Real Life Hierarchy Mimic
+
+
+In this approach, the model’s transitions were buck-  we assigned them to the group of capability”. More-
+eted by relative position (initial, medial, final).        over, we used a Large Language Model to augment
+  Afterwards,   transition   probabilities  were   more properties under each group, augment new
+smoothed using  interpolated Kneser–Ney  fol-   property groups, and enrich the domain-attribute
+lowing (Chen  and Goodman,  1999),  which   mapping.
+prevents zero-probability assignments on unseen    We represented each such group as “attribute”
+continuations and supports candidate  scoring.   and properties under a group as “values”. To use
+Each candidate was additionally subject to a    these properties in a sentence, we need to prepare
+legality check (König et al., 2020).                  templates. For instance, “fly” is a value under the
+  To train the model, we prepared different ref-    attribute “capability”. Now, the sentence should
+erence corpora: reference nouns and adjectives,   be “[Subject] can fly”. Here, the object predicate
+synthetic phonotactic syllables, domains with Data-   was stored as a template (“can [value]”). Values
+muse expansion, etc. We also sampled nonce   can be different capabilities in this case. Table 10
+words, locking the suffix for noun and adjective-    lists attribute counts and sample attributes for each
+shaped nonce words. Finally, we filtered out real   domain.
+English words, repeated characters, and unpro-
+nounceable consonant strings.             E  Data Examples
+
+D.2  Property Fetching and Enrichment         E.1  Default Reasoning
+
+At  first, we prepared a  list of domain names.   In Figure 12, an example graph on default reason-
+To fetch properties given the domain names, we    ing is shown.
+queried the normalized ConceptNet DB2, Wiki-
+Data3, and Datamuse API4. Then we categorized   E.2  Linear Inheritance
+the properties into groups. For instance, if a domain                                                   In Figure 13, an example graph on linear inheri-
+animal” has two properties named fly” and swim”,                                                   tance is shown.
+
+   2https://huggingface.co/datasets/cstr/
+conceptnet-normalized-multi/tree/main             E.3  Tree Inheritance
+   3https://www.wikidata.org/wiki/Wikidata:
+REST_API                                            In Figure 14, an example graph on tree inheritance
+   4https://www.datamuse.com/api/                        is shown.
+
+
+                                         18
+
+=== PDF第19页 ===
+ Domain      Attr.    Sample Attributes     ICC is estimated on a 16 × 20 matrix (16 cells = 8
+ Name       Count                         models × 2 configurations; 20 seeds), with boot-
+ Animal      32      Sound,    Behavior,     strap confidence intervals computed over 1,000 re-
+                            Size, Weight             samples.
+  Plant        30       Location, Origin, Age      As shown in Table 12, the pooled ICC of 0.949
+ Tool         25        Material, Utility, Af-     (95 % CI [0.9382, 0.9631]) indicates excellent con-
+                         fordance                  sistency across seeds under all tested configura-
+ Food        24       Texture, Flavor, Ap-     tions (Koo and Li, 2016). The upper bound of the
+                        pearance              CI does not fall below 0.93, confirming that this
+ Vehicle      25       Sound, Origin, State      conclusion is robust to bootstrap sampling variabil-
+ Compound   21       Color, Shape, Size           ity.
+ Object       24        State, Utility, Role
+                                             Kruskal–Wallis Tests  Material     22       Composition,  Tem-
+                            perature, Age            For each model–configuration cell, we additionally
+ Micro organ-  18        Origin, Size, State        run a Kruskal–Wallis H-test with the null hypothe-
+ ism                                                       sis that the 20 per-seed accuracy scores are drawn
+  Infrastructure  24       Location,     Shape,    from the same distribution. Unlike the ICC, which
+                       Weight                 measures overall consistency, the Kruskal–Wallis
+                                                              test is sensitive to any systematic ordering or drift
+Table 10: Domain Names and their corresponding At-                                                    across seeds within a cell. A non-significant result
+tribute Counts (Attr. Count).
+                                                   (p > 0.05) provides direct evidence that no seed
+                                               produces systematically higher or lower accuracy
+F  Seeded Sample Variance: Statistical       than others.
+    Details                                      All 16 cells are non-significant (minimum p =
+                                                     0.07, maximum H = 28.75) considering α =
+This section provides full statistical details for the                                                     0.05, providing no evidence that any seed produces
+seeded sample variance analysis. We report the Intr-                                                     systematically different results within a given con-
+aclass Correlation Coefficient (ICC) pooled across                                                          figuration. The coefficient of variation remains be-
+all configurations and per-configuration Kruskal–                                             low 8 % in all cells, with Gemma-4-31B showing the
+Wallis tests of seed-level accuracy distributions.                                                  lowest variance (CV ≤3.10 %) and Gemma-4-E4B
+                                          on linear inheritance showing the highest (CVExperimental Setup
+                            = 7.86 %), still well within the range expected
+We  run  20  independent  random  seeds  per                                            from sampling variability alone at n = 30 conver-
+configuration, generating 30 conversations per                                                      sations per seed.
+seed.   Eight models are evaluated:  gpt-5.1,                                               Taken together, the ICC and Kruskal–Wallis re-
+Qwen3-32B, Gemma-4  family  (Gemma-4-E4B,                                                          sults confirm that DERELAB evaluations are sta-
+Gemma-4-12B,    Gemma-4-26B-A4B       MoE,                                                              tistically reproducible under reseeding: different
+Gemma-4-31B),      Llama-3.1-70B-Instruct                                                   seeds generate statistically equivalent datasets from
+and   Llama-3.1-8B-Instruct,    representing                                                    the same configuration, and no seed produces a
+frontier closed, open large-scale to small model                                                     systematically advantaged or disadvantaged evalu-
+tiers, and a family of newer architecture models.                                                          ation.
+Two configurations are tested: Default Reasoning
+and Linear Inheritance  against  the easy  tier                         G  Path Confidence Analysis: Full
+difficulty. Accuracy is computed at the turn level                                                        Statistical Details
+against formally verified ground truth labels for
+each seed independently.                          This appendix provides complete statistical results
+                                                        for the inference-path confidence analysis summa-
+Intraclass Correlation Coefficient                                                     rized in §5.3 of the main paper. This analysis is
+To quantify the consistency of accuracy scores    restricted to the tree inheritance paradigm where
+across seeds, we compute the two-way random-  we want to check if there is a correlation between
+effects ICC(2,1) treating seeds as the replicate fac-   the graph structural distance of an incoming update
+tor and configurations as the grouping factor. The   and the hypothesis node and its effect on the model
+
+
+                                         19
+
+=== PDF第20页 ===
+                Model                Config  Mean   Std  CV (%)  H     p     Sig.
+
+                    Default Reasoning, Easy
+                  Qwen3-32B          Default   0.733   0.025    3.36    16.41  0.630  No
+                 Gemma-4-12B        Default   0.791   0.027    3.47    20.63  0.358  No
+                 Gemma-4-26B-A4B   Default   0.790   0.026    3.24    16.72  0.609  No
+                 Gemma-4-31B        Default   0.842   0.026    3.10    28.75  0.070  No
+                 Gemma-4-E4B        Default   0.467   0.028    5.96    12.46  0.865  No
+                       gpt-5.1               Default   0.702   0.026    3.73    16.59  0.617  No
+                    Llama-3.1-70B       Default   0.659   0.024    3.57    17.64  0.546  No
+                    Llama-3.1-8B         Default   0.528   0.036    6.90    21.19  0.327  No
+
+                   Linear Inheritance, Easy
+                  Qwen3-32B          Linear    0.893   0.036    4.01    22.99  0.238  No
+                 Gemma-4-12B        Linear    0.897   0.029    3.25    17.95  0.526  No
+                 Gemma-4-26B-A4B   Linear    0.867   0.034    3.93    13.95  0.787  No
+                 Gemma-4-31B        Linear    0.932   0.032    3.44    19.29  0.439  No
+                 Gemma-4-E4B       Linear    0.683   0.054    7.86    17.26  0.572  No
+                       gpt-5.1               Linear    0.921   0.033    3.62    18.74  0.474  No
+                    Llama-3.1-70B       Linear    0.908   0.029    3.20    14.98  0.724  No
+                    Llama-3.1-8B        Linear    0.665   0.046    6.88    21.16  0.328  No
+
+Table 11: Per-cell Kruskal–Wallis results across 20 seeds. Mean and Std are computed over per-seed accuracy
+ scores. CV = coefficient of variation (Std / Mean × 100). H = Kruskal–Wallis statistic; p = asymptotic p-value
+under χ2 approximation with 19 degrees of freedom. No cell is significant at α = 0.05.
+
+
+              Statistic                 Value               define
+            ICC(2,1)                  0.949                          gold_conf = py∗,
+           95 % CI lower bound      0.9382
+           95 % CI upper bound      0.9631            where y∗is the ground-truth label. This measures
+          Number of cells            16            how much probability mass the model places on the
+          Number of seeds per cell    20                 correct answer, regardless of which label it actually
+            Bootstrap resamples        1,000
+                                                    chose.
+
+Table  12:   Pooled  ICC(2,1)  across  all  model–                                                Predicted confidence (pred_conf).
+ configuration cells.
+                                                           pred_conf =  pˆy,
+
+confidence.                                  where ˆy = arg maxy py is the model’s predicted
+                                                            label. This measures the model’s self-assessed cer-
+Metrics and Statistical Tests                                                         tainty in its own answer.
+Structural distance d.  Each update_answer
+                                              Confidence delta (∆gold_conf).  Raw gold con-
+ turn is annotated with d, the shortest-path distance
+                                                    fidence conflates per-sample baseline difficulty
+ in the tree between the update node and the hypoth-
+                                                with path-length effects. We normalise by sub-
+ esis node. Distance d=1 means the update directly
+                                                        tracting the initial confidence before any updates
+modifies a property the hypothesis entails; larger
+                                                        in the conversation:
+values require more inferential hops to reach the
+hypothesis.                                    ∆gold_conf(t) = gold_conf(t)−gold_conf(t0),
+
+On-path vs. off-path turns. A turn is on-path if   where t0 is the first initial_answer turn in the
+the update’s logical effect is strengthen or weaken    conversation. Negative ∆indicates confidence ero-
+— it is causally relevant to the hypothesis. It is off-   sion relative to baseline.
+path if the effect is no effect — the update belongs
+                                          Entropy and margin. We track two comple- to a sibling branch whose changes do not propagate
+                                              mentary uncertainty measures. Shannon entropy to the hypothesis node. These conditions are non-
+                                     H(p) = −Py py log py (in nats) captures overalloverlapping and form two separate analyses.
+                                                 spread across the label set. The decision margin
+Gold confidence (gold_conf).  Each model re-  m = p(1) −p(2), where p(k) is the k-th largest
+sponse includes a constrained probability distribu-    probability, captures the strength of the model’s
+ tion p ∈∆|Y| over the answer label set Y. We    top preference. High entropy and low margin both
+
+
+                                         20
+
+=== PDF第21页 ===
+                                               Distance effect      Per-hop  ˆβ      Calibration
+              Model           Diff    n
+                                             ρ       p           ˆβ       p      ∆Brier
+
+                 Llama-3.1-8B    Easy  150  −0.230    0.005  −0.069  <0.001      +0.112
+                 Llama-3.1-8B    Hard  294  −0.255  <0.001  −0.069  <0.001      +0.131
+
+                 Llama-3.1-70B   Easy  150  −0.153    0.062  −0.056  <0.001      +0.080
+                 Llama-3.1-70B   Hard  294  −0.207  <0.001  −0.056  <0.001      +0.100
+
+              Gemma-4-E4B   Easy  150  −0.037    0.651  −0.021    0.114      −0.078
+              Gemma-4-E4B   Hard  294  +0.072    0.217  −0.021    0.114      −0.067
+
+              Gemma-4-12B   Easy  150  −0.140    0.087  −0.064  <0.001      −0.032
+              Gemma-4-12B   Hard  294  −0.156    0.007  −0.064  <0.001      +0.146
+
+              Gemma-4-31B   Easy  150  −0.273  <0.001  −0.061  <0.001      −0.028
+              Gemma-4-31B   Hard  294  −0.298  <0.001  −0.061  <0.001      +0.157
+
+              Gemma-4-MoE  Easy  150  −0.203    0.013  −0.039    0.014      +0.131
+              Gemma-4-MoE  Hard  294  −0.184    0.002  −0.039    0.014      +0.128
+
+                GPT-5.1        Easy  150  +0.015    0.860  +0.029    0.138      −0.031
+                GPT-5.1        Hard  294  +0.130    0.026  +0.029    0.138      −0.170
+
+              Qwen3-32B     Easy  150  −0.105    0.203  −0.026    0.095      +0.068
+              Qwen3-32B     Hard  294  −0.030    0.607  −0.026    0.095      −0.005
+
+               Qwen3-32B*    Easy  150  −0.042    0.609  −0.017    0.207      −0.003
+               Qwen3-32B*    Hard  151  −0.010    0.903  −0.017    0.207      +0.049
+
+Table 13: On-path confidence analysis. ρ is the Spearman correlation between update distance and gold-answer
+confidence (negative = confidence erodes with distance).  ˆβ is the mixed-effects coefficient giving expected
+∆gold_conf per additional hop, controlling for conversation-level baseline. ∆Brier is the change in Brier score
+from short (d≤2) to long (d>2) chains; positive values indicate worsening calibration at greater depth. Qwen3-32B*
+uses extended thinking mode.
+
+
+indicate uncertainty; they can diverge when the    chains — a rising score means the model’s prob-
+distribution has a long tail.                             ability estimates become less reliable as chains
+                                                 grow.
+Intrusion error.  On an off-path turn, an intru-
+sion error occurs when the model changes its an-
+                                          G.1  On-Path Resultsswer from the previous turn and the new answer is
+wrong:                                          Table 13 shows three measures of how reasoning
+                                                      quality changes as the update moves further from
+       intrusion(t) = 1[effect = no effect]
+                                                      the hypothesis in the inheritance tree: the Spearman
+                                · 1[ˆyt ̸= ˆyt−1]                                                      correlation ρ between distance and gold-answer
+                                · 1[ˆyt ̸= y∗t ]                   confidence, the per-hop regression coefficient ˆβ,
+                                            and the change in Brier score from short to long
+The intrusion rate is the fraction of off-path turns
+                                                   chains (∆Brier).
+in a group that satisfy this condition.  It directly
+measures how often a model revises its belief in
+                                               Five of nine models degrade with distance.
+response to causally irrelevant evidence.
+                                               Llama-3.1-8B, Llama-3.1-70B, Gemma-4-12B,
+Statistical tests. We use three tests to measure   Gemma-4-31B, and Gemma-4-MoE all show con-
+how confidence changes with path length. Spear-    sistent negative ρ and significant negative ˆβ (p <
+man ρ captures whether confidence rises or falls    0.05 after controlling for difficulty). The effect
+monotonically as d increases. Mixed-effects re-    is strongest for Gemma-4-31B (ρ =  −0.298,
+gression fits ∆gold_conf against d with a per-    ˆβ = −0.061 on hard) and the Llama models
+conversation random intercept, so the coefficient     (ˆβ = −0.069 and −0.056 respectively), meaning
+ˆβ gives the expected confidence change per addi-   each additional inferential hop costs these models
+tional hop while controlling for each conversation’s   up to 6–7 percentage points of correct-label confi-
+baseline difficulty. Brier scores compare calibra-   dence. Gemma-4-MoE shows a similar but weaker
+tion quality on short (d ≤2) versus long (d > 2)    pattern (ˆβ = −0.039).
+
+
+                                         21
+
+=== PDF第22页 ===
+GPT-5.1, Qwen3, and Gemma-4-E4B are robust.   answer to an irrelevant update (intrusion rate), how
+None of these three show a significant distance    strongly it reacts to irrelevant versus relevant up-
+ effect, and their ∆Brier values are zero or negative    dates (signal ratio), and its raw accuracy on off-path
+— meaning calibration does not degrade and, for    turns.
+GPT-5.1 on the hard split, actually improves at
+                                                 Intrusion rates expose a two-tier split.  Llama-longer chains (∆Brier = −0.170). Gemma-4-E4B
+                                               3.1-8B intrudes on 36.2 % of easy off-path turns is a special case: it is distance-robust but has the
+                                              and 31.9 % of hard turns — more than one in threeworst absolute Brier scores in the table (0.715 short-
+                                                         structurally irrelevant updates causes an incorrect path, hard), indicating that its probability estimates
+                                             answer change. Llama-3.1-70B is better but stillare unreliable throughout, not just at depth.
+                                                  high at 15.2 % on easy. All other models stay below
+Hard chains amplify calibration degradation.   6 %, with Gemma-4-31B (0.3 %), Qwen3-32B*
+For most models, the easy split shows moderate or    (0.2 %), and GPT-5.1 (0.9 %) the most reliable.
+even negative ∆Brier, while the hard split is con-
+                                         Only GPT-5.1 and Qwen3-32B consistently dis- sistently positive and substantially larger. Gemma-
+                                               criminate relevant from irrelevant evidence.4-31B, for example, has near-zero Brier on both
+                                         The signal ratio compares how much confidence short and long easy chains, but its long-chain hard
+                                                           shifts on causal updates versus irrelevant ones.Brier rises to 0.201 (∆= +0.157), suggesting that
+                                            GPT-5.1 is the only model with a ratio above 1×the compounding difficulty of harder graphs accel-
+                                                       in every condition (1.29× easy, 1.33× hard), and erates the breakdown of calibrated confidence at
+                                       Qwen3-32B matches this on both splits (1.19×,depth.
+                                                1.07×). Every other model shows ratio inversion
+ Model           Diff   Intrus.    SR  Off-path acc.    in at least one condition, meaning off-path updates
+  Llama-3.1-8B    Easy   36.2 %  0.68×         47.8 %    perturb their confidence at least as much as on-path
+  Llama-3.1-8B    Hard   31.9 %  0.82×         36.3 %   ones. The worst cases are Llama-3.1-8B (0.68×
+  Llama-3.1-70B   Easy   15.2 %  0.80×         63.0 %   easy) and Llama-3.1-70B (0.80× easy): these mod-
+  Llama-3.1-70B   Hard    8.1 %  0.83×         32.0 %    els are more reactive to irrelevant information than
+ Gemma-4-E4B   Easy    4.2 %  0.98×         45.1 %    to information that actually matters.
+ Gemma-4-E4B   Hard    5.6 %  1.00×         31.1 %
+ Gemma-4-12B   Easy    1.1 %  1.03×         94.7 %  Gemma-4-E4B presents a distinct failure mode.
+ Gemma-4-12B   Hard    1.4 %  0.99×         80.7 %   Despite a low intrusion rate (4–6 %), Gemma-4-
+ Gemma-4-31B   Easy    0.3 %  0.97×         98.2 %  E4B achieves only 31–45 % off-path accuracy and
+ Gemma-4-31B   Hard    1.4 %  0.90×         84.6 %   a near-unity signal ratio (≈1.00×). Rather than
+ Gemma-4-MoE  Easy    1.5 %  0.85×         93.2 %    incorrectly revising answers, it simply holds wrong
+ Gemma-4-MoE  Hard    3.3 %  0.89×         70.0 %   answers throughout, unable to reason correctly on
+  GPT-5.1        Easy    0.9 %  1.29×         95.9 %    off-path turns regardless of whether it changes its
+  GPT-5.1        Hard    1.2 %  1.33×         79.4 %
+                                                    response.
+ Qwen3-32B     Easy    1.4 %  1.19×         89.3 %
+ Qwen3-32B     Hard    1.3 %  1.07×         68.3 %   Discussion
+ Qwen3-32B*    Easy    0.2 %  0.94×         99.8 %
+                                         The results reveal two distinct failure modes that Qwen3-32B*    Hard    2.6 %  1.01×         93.9 %
+                                            do not co-occur systematically.
+Table 14:  Off-path analysis.  Intrus.   (Intrusion):     Chain-length sensitivity affects five of nine
+ fraction of off-path turns where the model incor-   models: as the inheritance chain between the up-
+ rectly changes its answer. SR (Signal ratio): mean    date and hypothesis grows longer, confidence in
+|∆gold_conf| on causally relevant (on-path) turns di-                                                     the correct answer erodes and calibration worsens.
+vided by off-path turns; values below 1× indicate the                                                 This is not simply an accuracy problem — models
+model is more perturbed by irrelevant updates than rele-
+                                                can still produce the right discrete answer while be-vant ones. Off-path acc.: accuracy on turns where the
+                                            coming progressively less certain that it is correct.update should have no effect.
+                                                  Structural blindness affects a separate set of
+                                               models: rather than using graph structure to filter
+G.2  Off-Path Results                                             which updates are logically relevant, they treat off-
+Table 14 reports three off-path metrics: the fraction    path sibling-branch updates with the same weight
+of turns where the model incorrectly changes its    as causally connected ones. The clearest signal is
+
+
+                                         22
+
+=== PDF第23页 ===
+ratio inversion — off-path evidence perturbing con-   preceding update_answer or initial_answer
+fidence more than on-path evidence — combined    turn. Critically, we use the model’s own predicted
+with high intrusion rates.                         answer, not the ground truth, as the prior. Confir-
+  The two failure modes are empirically dissocia-   mation bias is a property of what the model resists
+ble. Gemma-4-31B is the most distance-sensitive   updating away from, regardless of whether that
+model on-path (ˆβ = −0.061, ρ = −0.298) yet has    prior belief was correct.
+the lowest easy-split intrusion rate (0.3 %) and near-
+                                                Prior reset.  At every hypothesis change turn, the
+perfect off-path accuracy (98.2 %).  It degrades
+                                                       prior belief tracker resets. The new section’s prior
+gracefully along relevant chains but correctly ig-
+                                                                is initialized from the ground truth of the initial
+nores irrelevant ones. GPT-5.1 shows neither fail-
+                                             answer turn for the new hypothesis subject, not
+ure: no distance effect, negative ∆Brier, and the
+                                            from the model’s answer in the preceding section.
+only consistently positive signal ratio. Llama-3.1-
+                                                This prevents cross-subject contamination of the
+8B sits at the opposite extreme, combining signif-
+                                               congruence labels.
+icant on-path degradation with catastrophic struc-
+tural blindness. Gemma-4-E4B represents a third,   Congruence conditions.  Each update_answer
+rarer pattern — robust to distance and resistant    turn is assigned exactly one label from the follow-
+to intrusion, yet poorly calibrated throughout and    ing mutually exclusive taxonomy:
+unable to reason correctly on off-path turns.
+  Taken together, chain-length sensitivity and        • C1 — Congruent, live chain. Prior belief =
+structural blindness are separable properties of the         yes; ground-truth effect = strengthening. The
+reasoning process, and improving one does not im-        update aligns with the model’s current belief.
+ply progress on the other.
+                                                                 • C2 — Incongruent, live chain. Prior belief
+H  Confirmation Bias Experiment            = yes; ground-truth effect = weakening. The
+                                                    update should defeat the current conclusion.
+Theoretical Background                                                     This is the primary confirmation-bias signal.
+Confirmation bias is the tendency to search for,
+                                                                 • C3 — Saturated semantic negative. Priorinterpret, and recall information in a way that con-
+                                                             belief = no; ground-truth effect = no effect;firms one’s prior beliefs. It is one of the most robust
+                                                     update type ∈{neg, exception}. The chain isand widely replicated findings in cognitive psychol-
+                                                        already defeated; the update sounds negativeogy (Nickerson, 1998). Its relevance to language
+                                                         but is logically inert. A model that labels thismodel evaluation arises from the multi-turn nature
+                                                        as weakening is responding to surface formof defeasible reasoning: a model that has commit-
+                                                              rather than logical scope — a phenomenon weted to a belief at turn t must be willing to revise
+                                                    term semantic override.that belief at turn t + 1 if new evidence warrants it.
+A model exhibiting confirmation bias will system-
+                                                                 • C3inh — Sibling-branch semantic negative.
+atically fail to revise, treating incongruent evidence                                                          Prior belief = yes; ground-truth effect = no
+as less compelling than its logical weight justifies.                                                                     effect; negation in update content (inheritance
+   Prior work has documented content effects in                                                           only). The update concerns a sibling branch
+LLM reasoning and susceptibility to cognitive bi-                                                              that cannot affect the hypothesis subject. A
+ases more broadly (Jones and Steinhardt, 2022),                                               model that answers no is confusing topologi-
+but defeasible belief updating under formally veri-                                                             cal adjacency with logical scope.
+fied ground truth has not previously been studied in
+this framework. DERELAB is the first benchmark        • C4 —  Neutral  distractor.    Prior  be-
+to provide the controlled conditions necessary to          lief = no; ground-truth effect = no effect.
+measure confirmation bias as a structural property        For default reasoning, further restricted to
+of belief updating rather than a surface-level sensi-       update_type = safe_irr  (explicitly harm-
+tivity to semantic content.                                   less updates; other types go to C0). For in-
+                                                         heritance reasoning, no update-type restric-
+Operationalization                                                              tion applies — any off-path update with a non-
+Prior belief.  The model’s prior belief at turn t is        supporting prior qualifies. Logically irrelevant
+defined as its predicted answer at the immediately         regardless of semantic content.
+
+
+                                         23
+
+=== PDF第24页 ===
+    • C5 — From unknown prior. Prior belief =   may use that commitment as a cue to produce a
+    unknown; ground-truth effect ∈{strengthen-    consistent effect label, inflating Acceff without any
+     ing, weakening}. Directional updates from an    genuine prior understanding of the update’s logical
+     indeterminate state; analyzed separately from    role. To test whether the metacognitive signal is
+    C1–C4.                                     genuine or post-hoc, we re-ran six models with the
+                                                  question order reversed: the effect question was
+    • C0 — Excluded. All remaining combinations   posed first, and the entailment question followed.
+      that do not fit C1–C5 unambiguously. Logged    Results and their implications are discussed in
+    with reason; excluded from all analyses.        Section I.1.
+
+Metrics We already mentioned the metrics in   Anchoring analysis.  For each hypothesis section
+§3.8. The two metrics we employ are BiasGap    in which the ground-truth label changes between
+and Odds Ratio. BiasGap, the difference in accu-   the initial and final turn, we compute the anchoring
+racy between congruent and incongruent updates,    rate:
+measures the extent to which models exhibit confir-
+                                      n                 o                                                        s ∈S : ˆy(s)final = ˆy(s)init ̸= y(s)finalmation bias. On the other hand, Odds Ratio (OR)
+                               A =                                        (3)
+is a scale-invariant measure of effect size.                n            o                                                            s ∈S : y(s)init ̸= y(s)final
+Statistical tests. We use McNemar’s test (with
+                                                   Here, S denotes the set of hypothesis sections,continuity correction) rather than a proportion test
+because C1 and C2 turns are not independent:     ˆyinit and ˆyfinal are the model’s initial and final pre-
+                                                         dictions, and yinit and yfinal are the correspondingboth arise from the same hypothesis section, the
+                                                   ground-truth labels. A section counts as anchoredsame subject, and the same conversational con-
+                                       when the model preserves its initial prediction de-text. McNemar asks whether the model’s error pat-
+                                                        spite the correct answer changing over the coursetern is asymmetric between C1 and C2 within the
+                                                    of the conversation.same section, which is a more sensitive and better-
+                               A high anchoring rate indicates that the modelcontrolled test than comparing aggregate propor-
+                                                 maintains its initial conclusion, even after a se-tions across sections. One C1–C2 pair is selected
+                                              quence of updates that should have revised it.per section to avoid pseudoreplication from sec-
+tions with multiple C1 or multiple C2 turns. Be-
+                                                   I  Confirmation Bias: Full Statistical
+cause we run one test per model–reasoning-type
+                                               Results
+cell (19 tests in total, excluding GPT-5-mini inheri-
+tance where OR is undefined), Holm–Bonferroni   This appendix provides complete statistical tables
+correction is applied to control the family-wise   and figures for the confirmation bias analysis. All
+error rate across the full set of comparisons. A    metrics follow the operationalization in Appendix
+significant result with positive BiasGap constitutes   H.
+evidence of confirmation bias for that model.
+                                          Primary Bias Metrics
+Belief update dissociation.  For default reason-
+                                                  Table 15 reports the full bias metrics for all model–
+ing, where the belief-update question  is also
+                                                    reasoning-type cells. 17 of 19 valid tests are signif-
+asked, we additionally measure Acceffect(C2): ac-                                                      icant after Holm–Bonferroni correction. The two
+curacy on the strengthen / weaken / no effect ques-
+                                                  exceptions are Gemma-4-MoE on default reason-
+tion specifically on C2 turns. A model where
+                                                  ing (Gap = −0.007, p = .235), which shows no
+Acceffect(C2) is high but BiasGap is also high ex-                                               measurable bias, and Qwen3-32B* on inheritance
+hibits the phenomenon that the model correctly
+                                                  reasoning (Gap = 0.065, p = .235).
+identifies that the update weakens the hypothesis
+but fails to update its entailment answer accord-   Scale of the effect.  GPT-5.1 shows the most ex-
+ingly.                                          treme default-reasoning bias (Gap = 0.935, OR =
+ A potential confound is that in the standard    891), meaning the odds of correct updating on con-
+format, the entailment question (update_answer)   gruent turns are nearly 900 times those on incon-
+appears  before   the   belief-update  question    gruent turns. Qwen3-32B and GPT-5-mini have
+(effect_of_update). A model that has already   comparable default gaps (≈0.67 each), though
+committed  to a  particular  entailment answer  OR magnitudes differ because C1 accuracy differs
+
+
+                                         24
+
+=== PDF第25页 ===
+             Model         Type  C1 acc  C2 acc   Gap   OR  OR lo  OR hi  Holm p
+
+                 Default reasoning (sorted by Gap ↓)
+               GPT-5.1          def     0.970    0.035    0.935   891.2   585.9   1497.7 < .001
+             Qwen3-32B      def     0.976    0.307    0.670    93.3    61.7    155.7  < .001
+               GPT-5-mini      def     0.871    0.203    0.668    26.5    19.2    37.9  < .001
+             Gemma-4-E4B   def     0.978    0.381    0.597    72.7    45.6    132.6  < .001
+               Llama-3.1-70B   def     0.697    0.149    0.548    13.2     9.3     19.2  < .001
+               Llama-3.1-8B    def     0.773    0.549    0.224     2.8     1.8      4.6  < .001
+             Gemma-4-31B   def     0.994    0.907    0.088    18.1     8.9     83.0  < .001
+             Gemma-4-12B   def     0.950    0.868    0.082     2.9     2.0      4.4  < .001
+             Qwen3-32B*     def     0.881    0.873    0.008     1.1     0.8      1.5     .015
+            Gemma-4-MoE   def     0.954    0.961   −0.007    0.8     0.5      1.6     .235
+
+                 Inheritance reasoning (sorted by Gap ↓)
+               Llama-3.1-8B    inh     0.738    0.255    0.484     8.3     5.9     11.9  < .001
+               Llama-3.1-70B   inh     0.899    0.535    0.364     7.8     4.7     14.1  < .001
+             Gemma-4-E4B   inh     0.741    0.417    0.324     4.0     3.1      5.2  < .001
+            Gemma-4-MoE   inh     0.971    0.664    0.307    16.7     9.0     43.6  < .001
+             Qwen3-32B      inh     0.918    0.623    0.295     6.8     4.4     11.9  < .001
+             Gemma-4-31B   inh     0.935    0.686    0.249     6.6     4.4     11.3  < .001
+               GPT-5.1          inh     0.958    0.712    0.246     9.3     5.4     21.6  < .001
+             Gemma-4-12B   inh     0.854    0.675    0.179     2.8     2.2      3.8  < .001
+             Qwen3-32B*     inh     0.973    0.908    0.065     3.7     2.1      7.6     .235
+               GPT-5-mini      inh     1.000    0.997    0.003      —      —
+
+Table 15: Full primary bias metrics for all model–reasoning-type cells. OR = odds ratio; OR lo and OR hi are
+the lower and upper bounds of the 95 % bootstrap confidence interval (10,000 resamples, conversation-level).
+Gap = C1 acc −C2 acc. Holm–Bonferroni correction applied across all 19 cells with defined OR. Italic p-values
+indicate non-significant results (p ≥.05 after correction). GPT-5-mini inheritance OR is undefined (C1 errors = 0).
+Qwen3-32B* default (p = .015) is statistically significant but the effect size is negligible (Gap = 0.008, OR = 1.1).
+Llama model paired counts on default reasoning are limited by high unknown-response rates (Llama-3.1-70B: 127
+pairs; Llama-3.1-8B: 68 pairs).
+
+
+(0.976 vs. 0.871): a high C1 floor inflates the OR   Anchoring and Semantic Override
+independently of the gap.                                                Table 16 reports anchoring rates on ground-truth-
+                                                      flipping sections and semantic override rates onThinking variant eliminates default bias.  The
+                                                 C3/C3inh turns.contrast between Qwen3-32B and its extended-
+reasoning variant Qwen3-32B* is the strongest   Anchoring splits models cleanly.  On default rea-
+finding in the new model set. On default rea-   soning, Qwen3-32B (0.483) and GPT-5.1 (0.433)
+soning, Qwen3-32B achieves Gap = 0.670 (OR =   show the highest anchoring rates — the model pre-
+93.3); Qwen3-32B* reduces this to Gap = 0.008    serves its initial prediction in roughly 40-50% of
+(OR = 1.1, p = .015), a statistically detectable    conversations where the correct answer changes.
+but substantively negligible effect driven by the    Despite being the most entailment-biased model,
+large sample size. Extended chain-of-thought rea-   GPT-5.1’s anchoring is concentrated on default rea-
+soning virtually eliminates confirmation bias on   soning and drops to 0.051 on inheritance. Qwen3-
+this topology. The benefit is partial on inheritance:   32B* (0.032) and GPT-5-mini (0.020) show near-
+Qwen3-32B* still shows Gap = 0.065, though this    zero anchoring on both types, consistent with their
+is non-significant (p = .235).                        generally compliant updating behavior. On inheri-
+                                                   tance reasoning, Gemma-4-E4B stands apart with
+Llama evasion bias.  Llama-3.1-70B and Llama-
+                                              an anchoring rate of 0.635 — the model maintains
+3.1-8B produce unknown responses at high rates
+                                                                      its initial prediction in nearly two-thirds of flipping
+on default reasoning (C5 turns: 1,693 and 875 re-
+                                                        sections. Llama-3.1-8B is second at 0.338.
+spectively), reducing the number of turns with a
+yes prior that qualify as C1 or C2. This evasion   Semantic override is topology-specific.  Llama-
+artificially lowers paired counts for McNemar test-   3.1-70B (default reasoning, C3: 0.839) and Qwen3-
+ing (Llama-3.1-70B: 127 pairs; Llama-3.1-8B: 68   32B (default reasoning, C3: 0.786) respond to logi-
+pairs) and should be read as an additional failure    cally inert negative updates on defeated chains as
+mode alongside their measured bias gap.                 if the chain were still active. Crucially, both mod-
+
+
+                                         25
+
+=== PDF第26页 ===
+                           Odds Ratio: Confirming vs Disconfirming Evidence                        Turn Distribution by Congruence Condition
+       Llama-3.1-8B (default)                                                                           Llama-3.1-8B (default)
+   Llama-3.1-8B (inheritance)                                                                       Llama-3.1-8B (inheritance)
+      Llama-3.1-70B (default)                                                                         Llama-3.1-70B (default)
+  Llama-3.1-70B (inheritance)                                                                      Llama-3.1-70B (inheritance)
+     Gemma-4-E4B (default)                                                              Gemma-4-E4B (default)
+  Gemma-4-E4B (inheritance)                                                           Gemma-4-E4B (inheritance)
+     Gemma-4-12B (default)                                                                Gemma-4-12B (default)
+  Gemma-4-12B (inheritance)                                                             Gemma-4-12B (inheritance)
+     Gemma-4-31B (default)                                                                Gemma-4-31B (default)
+  Gemma-4-31B (inheritance)                                                             Gemma-4-31B (inheritance)
+    Gemma-4-MoE (default)                                                            Gemma-4-MoE (default)
+ Gemma-4-MoE (inheritance)                                                         Gemma-4-MoE (inheritance)
+       GPT-5-mini* (default)                                                                          GPT-5-mini* (default)
+           GPT-5.1 (default)                                                                      GPT-5-mini* (inheritance)
+        GPT-5.1 (inheritance)                                                                             GPT-5.1 (default)
+       Qwen3-32B (default)                                                                          GPT-5.1 (inheritance)
+    Qwen3-32B (inheritance)                                                                  Qwen3-32B (default)
+      Qwen3-32B* (default)                                                               Qwen3-32B (inheritance)
+                                                                           Default reasoning
+   Qwen3-32B* (inheritance)                                           Inheritance                    Qwen3-32B* (default)             C1 (congruent control)              C4 (irrelevance control)
+                                                                                            Qwen3-32B* (inheritance)             C2 (disconfirmation)               C5 (uncertainty anchor)
+                                                         0                   1                   2                   3
+                                      10            10            10            10                                                           C3/C3_inh (semantic override)        C0 (excluded)
+                                     Odds Ratio (log scale)    with 95% bootstrap CI
+                                                                                                                                                                                 0.0               0.2               0.4               0.6               0.8               1.0
+                                                                                                                                                                                                            Fraction of Labeled Update-Answer Turns
+
+ Figure 8: Forest plot of odds ratios (log scale) with 95 %
+                                                      Figure 9: Distribution of congruence conditions per bootstrap confidence intervals per model–reasoning-
+                                                 model and reasoning type (fraction of total turns). Largetype cell. OR > 1 indicates confirmation bias. Non-
+                                         C5 segments for Llama-3.1-70B and Llama-3.1-8B on significant cells (Gemma-4-MoE default, Qwen3-32B*
+                                                           default reasoning reflect evasion bias. Large C0 seg- inheritance) are shown with open markers. GPT-5-mini
+                                                   ments reflect turns excluded due to prior-belief state not inheritance is excluded (OR undefined).
+                                                    meeting C1–C5 criteria.
+
+
+ els show near-zero C3inh override on inheritance                                             Know-but-don’t-output.  Four models show a
+(Llama-3.1-70B: 0.062; Qwen3-32B: 0.036), indi-                                                         clear dissociation between metacognitive accuracy
+ cating the error is specific to the topology in which                                             and entailment accuracy on C2 turns. GPT-5-mini
+ the belief-update negations are presented, not a gen-                                                                   is the most extreme case: C2-eff = 0.954 (correctly
+ eral surface-form sensitivity. Gemma-4-E4B shows                                                       labels weakening on 95 % of C2 turns) but entail-
+the opposite extreme on default C3: exactly 0.000                                           ment accuracy on the same turns is only 0.203 —
+— it never over-responds to a saturated semantic                                                a 75-point gap. Llama-3.1-70B correctly identi-
+negative. Combined with its high anchoring, this                                                               fies weakening on 85 % of C2 turns but updates its
+points to strong persistence in initial predictions as                                                     entailment answer only 14.9 % of the time. Qwen3-
+ its primary failure mode rather than surface-form                                      32B shows the same pattern more mildly (C2-
+ reactivity.                                                           eff = 0.803, C2 acc = 0.307). Gemma-4-31B’s
+                                            gap is smaller in absolute terms (C2-eff = 0.970,
+                                      C2 acc = 0.907) but the dissociation is still present.Metacognitive Dissociation
+
+Each conversation turn contains two questions:   Symmetric and reversed profiles.  Qwen3-32B*
+the entailment question (yes / no / unknown,  re-   shows a symmetric metacognitive profile (C1-eff ≈
+ported as C1 acc and C2 acc throughout the pa-   C2-eff ≈0.708), consistent with its near-zero bias
+per) and the effect-of-update question (strength-   gap:  neither entailment nor metacognition dis-
+ening / weakening / no-effect). C1-eff and C2-eff    plays a C1/C2 asymmetry. GPT-5.1 is the only
+reported here are accuracy on this second. Table 17   model with a reversed metacognitive gap (C1-
+reports this effect-labeling accuracy (default rea-    eff = 0.797 > C2-eff = 0.643): it is better at recog-
+soning only). The metacognitive gap (C1-eff −    nising strengthening than weakening. This does not
+C2-eff) measures whether a model better recog-   indicate absence of bias — GPT-5.1’s entailment
+nizes strengthening or weakening; a negative gap   C2 accuracy remains 0.035 — but the metacogni-
+ indicates the model is better at labeling weakening    tive asymmetry runs in the opposite direction from
+despite showing entailment confirmation bias.        the entailment asymmetry.
+
+
+                                         26
+
+=== PDF第27页 ===
+ Model          Default reasoning  Inheritance reasoning                                Semantic Override Rate (C3 / C3_inh)
+
+                Anch.    C3-ovr  Anch.      C3inh-ovr                                                                      Llama-3.1-8B (default)                 0.492
+ Qwen3-32B      0.483      0.786   0.220          0.036        Llama-3.1-8B (inheritance)              0.408
+  GPT-5.1         0.433      0.125   0.051          0.026
+ Gemma-4-E4B   0.396      0.000   0.635          0.095          Llama-3.1-70B (default)                            0.839
+  Llama-3.1-70B   0.189      0.839   0.068          0.062       Llama-3.1-70B (inheritance)   0.062
+ Gemma-4-12B   0.122      0.678   0.142          0.034         Gemma-4-E4B (default) 0.000
+  Llama-3.1-8B    0.119      0.492   0.338          0.408
+ Gemma-4-31B   0.047      0.204   0.047          0.041      Gemma-4-E4B (inheritance)    0.095
+ Gemma-4-MoE   0.035      0.251   0.024          0.092         Gemma-4-12B (default)                       0.678
+ Qwen3-32B*     0.032      0.349   0.004          0.027
+                                                         Gemma-4-12B (inheritance)  0.034  GPT-5-mini      0.020      0.071   0.003          0.002
+                                                            Gemma-4-31B (default)        0.204
+Table 16: Anchoring rate on ground-truth-flipping hy-     Gemma-4-31B (inheritance)  0.041
+pothesis sections and semantic override rate on C3 turns,       Gemma-4-MoE (default)         0.251
+per reasoning type. Anch.: fraction of flipping sections    Gemma-4-MoE (inheritance)    0.092
+where model maintains its initial prediction despite the           GPT-5-mini* (default)   0.071
+correct answer changing. C3-ovr (default): fraction of       GPT-5-mini* (inheritance) 0.002
+C3 turns where model labels a logically inert negative               GPT-5.1 (default)     0.125
+update as weakening (chain already defeated). C3inh-           GPT-5.1 (inheritance)  0.026
+ovr (inheritance): fraction of C3inh turns where model          Qwen3-32B (default)                           0.786
+answers no on a sibling-branch update that cannot affect                                                           Qwen3-32B (inheritance)  0.036
+the hypothesis. Rows sorted by default anchoring rate                                                              Qwen3-32B* (default)            0.349
+descending.
+                                                           Qwen3-32B* (inheritance)  0.027                    Default (C3)
+                                                                                                                                                                                    Inheritance (C3_inh)
+           Anchoring Rate on Ground-Truth-Flipping Sections                                                               0.0        0.2        0.4        0.6        0.8        1.0      1.00
+                                                                                                 Default reasoning                                                                  Semantic Override Rate
+    Rate 0.75                                                                                           Inheritance
+         Anchoring 0.500.25                                                   Figure 11: Semantic override rate per model. Default C3
+                                                                  (solid): fraction of turns where model incorrectly labels
+      0.00                                                a logically inert negative update as weakening (chain
+                                                         already defeated). Inheritance C3inh (hatched): fraction Llama-3.1-8BLlama-3.1-70BGemma-4-E4BGemma-4-12BGemma-4-31BGemma-4-MoEGPT-5-mini*GPT-5.1Qwen3-32BQwen3-32B*
+                                                 where model answers no on a sibling-branch update that
+                                                    cannot affect the hypothesis subject. Llama-3.1-70B
+Figure 10: Anchoring rate on ground-truth-flipping
+                                                 shows an extreme default override (0.839) that does not
+sections per model and reasoning type. The Qwen3-
+                                                         carry over to inheritance (0.062), indicating sensitivity
+32B/Qwen3-32B* contrast (0.483 vs. 0.032 on default)
+                                                            to surface negation that is specific to the belief-update
+and the Gemma-4-E4B inheritance spike (0.635) are the
+                                                            task format. Gemma-4-E4B shows exactly 0.000 default
+key features.
+                                                            override.
+
+
+I.1  Reversed Question Order: Addressing the
+                                                     the entailment commitment — they should be sta-     Metacognitive Confound
+                                                     ble across both orderings. If they were inflated by
+Motivation.  In the standard format,  the en-                                                 post-hoc rationalization, they should drop in the
+tailment question (update_answer) precedes the                                                    reversed condition.
+belief-update question (effect_of_update). A
+model that has already committed to an answer —   Models tested.  The reversed-order experiment
+say, maintaining yes despite a weakening update —   was run on six models for default reasoning (easy
+may then produce weakening on the effect question   and hard): Qwen3-32B, Gemma-4-12B, Gemma-4-
+as post-hoc rationalization rather than genuine prior   MoE, Gemma-4-31B, Gemma-4-E4B, and Llama-
+understanding. This would inflate Acceff(C2) and    3.1-8B. These were chosen to span a range of origi-
+overstate the know-but-don’t-output dissociation:    nal Acceff profiles, from near-zero (Gemma-4-E4B)
+the model is not knowing in the relevant sense if its    to near-perfect (Gemma-4-31B).
+metacognitive label is produced retroactively. To
+control for this, we re-ran six models on the same    Results.  Table 18 reports the key comparisons.
+dataset with the order reversed: the effect ques-  Two patterns emerge cleanly.
+tion was posed first, and the entailment question       (1) The confirmation bias gap is robust to or-
+followed.  If the original Acceff(C2) values were    der.  BiasGap is unchanged or larger in the re-
+genuine — reflecting knowledge available before   versed condition for all six models. Gemma-4-
+
+
+                                         27
+
+=== PDF第28页 ===
+ Model          C1-eff   n    C2-eff   n     Gap       Model            BiasGap         C2-eff         C1-eff
+ Gemma-4-31B   0.464   886   0.970  1094  −0.506                        Orig    Rev   Orig   Rev   Orig   Rev
+  GPT-5-mini      0.513   799   0.954  1049  −0.441       Gemma-4-31B    0.088   0.082  0.970  0.264  0.464  0.112
+  Llama-3.1-70B   0.680   406   0.851   545  −0.172       Gemma-4-12B    0.082   0.105  0.887  0.209  0.737  0.222
+ Gemma-4-12B   0.737   907   0.887  1063  −0.151       Qwen3-32B       0.670   0.816  0.803  0.414  0.753  0.311
+                                                                    Llama-3.1-8B     0.224   0.305  0.665  0.533  0.722  0.390
+ Qwen3-32B      0.753  1226  0.803  1265  −0.050       Gemma-4-MoE  −0.007  0.259  0.732  0.288  0.855  0.242
+ Qwen3-32B*     0.708   849   0.708  1050    0.000       Gemma-4-E4B    0.597   0.840  0.000  0.349  0.049  0.374
+ Gemma-4-E4B   0.049   870   0.000   897  +0.049
+  Llama-3.1-8B    0.722   198   0.665   215  +0.057
+                                                     Table 18: Comparison of standard (Orig) and reversed Gemma-4-MoE  0.855   653   0.732   870  +0.122
+  GPT-5.1         0.797  1270  0.643  1282  +0.153      question order (Rev) for six models on default reasoning.
+                                                BiasGap: C1 acc −C2 acc on the entailment question;
+Table 17: Metacognitive accuracy on the belief-update    the primary confirmation-bias measure. C2-eff: accu-
+question (default reasoning only). C1-eff: fraction of C1    racy at labeling the update’s effect as weakening on
+turns correctly labeled strengthening. C2-eff: fraction   C2 turns.  C1-eff: accuracy at labeling the effect as
+of C2 turns correctly labeled weakening. Gap = C1-    strengthening on C1 turns. Rows sorted by original C2-
+eff −C2-eff: negative = model recognizes weakening     eff descending to highlight the post-hoc rationalization
+better than strengthening. Rows sorted by gap ascending    pattern. BiasGap is unchanged or increases in every
+to surface the dissociation pattern. Gemma-4-E4B near-   model under reversal; C2-eff drops substantially for the
+zero on both columns indicates failure to use the belief-    three models that showed the strongest original know-
+update label vocabulary.                                  but-don’t-output dissociation.
+
+
+                                                        to surface.
+31B’s gap is essentially identical (0.088 →0.082).
+The others increase, in some cases substantially:   Implications.  The reversed-order results call for
+Qwen3-32B (0.670 →0.816), Gemma-4-E4B   a qualified reading of the know-but-don’t-output
+(0.597 →0.840), and most strikingly Gemma-4-   claim. The bias itself is genuine and robust: con-
+MoE, which showed no bias in the original order    firmation bias persists at equal or greater magni-
+(Gap = −0.007) but a clear and significant bias in    tude when the entailment judgment is made af-
+the reversed order (Gap = 0.259, OR = 24.8). The    ter the metacognitive one. However, the original
+core phenomenon — models handling congruent   Acceff(C2) values for Gemma-4-31B, Gemma-4-
+updates better than incongruent ones — is not an   12B, and Qwen3-32B overstated how much these
+artifact of question ordering.                     models know about the logical role of an incongru-
+   (2)  Metacognitive  accuracy   is  order-   ent update at the time of the entailment decision. A
+dependent  for  most  models.     Acceff(C2)   more accurate characterisation for these models is
+drops  substantially  in  the  reversed  condition    that they systematically fail to update on incongru-
+for Gemma-4-31B (0.970 →0.264), Gemma-   ent evidence regardless of whether they can label
+4-12B  (0.887 →   0.209),  and Qwen3-32B     its effect, and that this failure is not mediated by a
+(0.803 →0.414). These were the models with    prior correct understanding of the update’s direc-
+the largest original Acceff(C2) values and the    tion.
+most prominent know-but-don’t-output pattern.
+                                       J  Real-Entity Robustness CheckThe drop confirms that a substantial portion of
+their original effect-label accuracy was post-hoc:                                                     In our main benchmark, we used pseudowords (e.g.
+having already said no to the entailment question,                                                           flurp, zandel) to prevent models from exploiting
+producing weakening on  the  effect  question                                             world-knowledge shortcuts. To test whether en-
+required little additional reasoning.                                                                tity naming affects reasoning quality, we ran a
+  Gemma-4-E4B is the exception: its near-zero    controlled comparison for seven models using the
+original Acceff(C2) rises to 0.349 in the reversed   same real-world property chains under two con-
+condition. In the original order, this model’s en-    ditions: pseudoword — entities are unfamiliar
+tailment answers are strongly biased (it usually   pseudowords embedded in the chain (e.g. viatud,
+maintains yes on C2 turns), and having committed   romsan); and real entity — entities are replaced
+to yes made it harder, not easier, to subsequently   with real-world objects from the same domain (e.g.
+label the effect as weakening. The reversed order    concert guitar, mandolin). The graph structure,
+removed this interference, allowing its genuine —   property chain, and update sequence are identical
+though limited — ability to recognise weakening    across both conditions; only the entity names differ.
+
+
+                                         28
+
+=== PDF第29页 ===
+                                      Update-answer accuracy             Effect-of-update acc.
+
+                                  Default        Linear          Tree             Default
+
+            Model         Pseudo  Real  Pseudo  Real  Pseudo  Real  Pseudo     Real
+
+            Qwen3-32B*     0.616   0.587   0.837   0.779   0.793   0.814   0.826      0.808
+            Gemma-4-31B    0.688   0.683   0.861   1.000   0.895   0.949   0.792      0.795
+            Gemma-4-12B    0.553   0.530   0.884   0.837   0.659   0.901   0.777      0.751
+            Gemma-4-MoE   0.522   0.540   0.814   0.756   0.747   0.910   0.784      0.774
+            Gemma-4-E4B   0.566   0.561   0.674   0.674   0.422   0.564   0.803      0.813
+              Llama-3.1-70B   0.634   0.590   0.802   0.837   0.806   0.895   0.829      0.813
+              Llama-3.1-8B    0.470   0.478   0.605   0.535   0.493   0.550   0.558      0.582
+
+Table 19: Update-answer and effect-of-update accuracy under pseudoword entity names (Pseudo) and real entity
+names (Real), across three topologies. Both conditions use the same real-world property chain and graph structure;
+only entity names differ. Each condition contains 385 / 86 / 1072 update turns for default / linear / tree respectively.
+Effect-of-update accuracy is only defined for default-reasoning turns. Qwen3-32B* is the extended-thinking variant.
+
+
+  In the case of Default Reasoning and Linear In-     Model                              Developer  Access
+heritance, differences between conditions are small      GPT-5.1                         OpenAI     Proprietary
+                                                                    GPT-5-mini                       OpenAI     Proprietary
+and inconsistent across models, with no systematic      Gemma-4-31B-IT (Team, 2026)        Google     Open Weight
+advantage for either naming convention. On de-     Gemma-4-26B-A4B-IT (Team, 2026)    Google     Open Weight
+                                                              Gemma-4-12B-IT (Team, 2026)        Google     Open Weight
+fault reasoning, most models change by less than      Gemma-4-E4B-IT (Team, 2026)        Google     Open Weight
+0.05 in either direction; Llama-3.1-70B shows the       Llama-3.1-70B (Grattafiori et al., 2024)  Meta      Open Weight
+largest single drop (0.634 →0.590) and Gemma-      Llama-3.1-8B (Grattafiori et al., 2024)   Meta      Open Weight                                                            Qwen3-32B (Team, 2025)              Alibaba    Open Weight
+4-MoE the largest gain (0.522 →0.540), neither
+of which constitutes a clear pattern. Under linear    Table 20: Overview of the language models used in
+inheritance topologies, results are similarly mixed.    the experiments, including their developers and access
+Gemma-4-31B shows the largest improvement of    types.
+0.139 with real entities. In contrast, Llama-3.1-8B
+                                                                            Model                             Parameters         Architecture  Context
+faces a drop of 0.07.  Effect-of-update accuracy        GPT-5.1                              Undisclosed          Proprietary    400K
+likewise shows no consistent direction (|∆| < 0.03        GPT-5-miniGemma-4-31B-IT (Team, 2026)       31BUndisclosed          ProprietaryDense       400K256K
+for five of seven models).                                          Gemma-4-26B-A4B-IT (Team, 2026)    25.2B (3.8B active)  MoE        256K
+                                                                               Gemma-4-12B-IT (Team, 2026)       12B               Dense       256K
+  On the other hand, Tree Inheritance shows im-      Gemma-4-E4B-ITLlama-3.1-70B (Grattafiori(Team, 2026)et al., 2024)  70B∼4.5B effective     DenseDense       128K128K
+provements with real entities across all seven mod-       Llama-3.1-8BQwen3-32B (Team,(Grattafiori2025) et al., 2024)   8B32B               DenseDense       128K32K∗
+els. For this topology, Gemma-4-12B improves
+by 0.24, which is the highest among all configura-   Table 21: Model specifications, including parameter
+tions. Qwen3-32B* improves by 0.02, indicating    counts, architectures, and context-window sizes.
+the lowest improvement for tree inheritance.
+   Overall, replacing pseudoword entity names  L  Resource Information
+with real-world names does not reliably improve
+                                                  Table 20 and 21 cover the information about LLMsor degrade reasoning accuracy when the underly-
+                                              used in experiments. We evaluate nine base mod-ing graph structure is held constant. Although tree
+                                                         els under ten model–inference configurations, in-inheritance doesn’t show any degradation, improve-
+                                                   cluding standard and extended-thinking variants ofments aren’t significant either. Models do not ap-
+                                          Qwen3-32B. For proprietary/closed models (GPT-pear to exploit the semantic identity of entity names
+                                                   5.1 and GPT-5-mini), we kept the temperature atas a reasoning shortcut, which supports the validity
+                                                        0.1.  For open-weighted models, we used con-of the pseudoword design: the benchmark results
+                                                       strained decoding. We ran 3 A40 GPUs (48 × 3 =are not an artifact of unfamiliar naming.
+                                           144 GB) for approximately 180 hours.
+                                   We used Claude Code 5 for coding purposes and
+K  Evaluation Prompts                   ChatGPT 6 for refining our writing.
+
+Table 22 lists the system prompts used for evalua-       5https://claude.com/product/claude-code
+tion.                                                                6https://chatgpt.com/
+
+
+                                         29
+
+=== PDF第30页 ===
+Algorithm 1 Skeptical Inference with Graph Trimming and Degree Ordering
+  1: function TRIMFORQUERY(Γ, x, y)
+  2:    ForwardSet ←nodes reachable from x via strictly positive links
+  3:    BackwardSet ←nodes from which y can be reached
+  4:     Γ′ ←ForwardSet ∩BackwardSet
+  5:    return Γ′
+  6: end function
+
+  7: function SELECTNEXTDEGREE(Γ′, P)
+  8:  N ←∅
+  9:     for all node v ∈Γ′ such that v /∈P do
+ 10:           if all predecessors of v are contained in P then
+ 11:      N ←N ∪{v}
+ 12:       end if
+ 13:    end for
+ 14:    return N
+ 15: end function
+
+ 16: function QUERY(Γ, x, y)
+ 17:     Γ′ ←TRIMFORQUERY(Γ, x, y)
+ 18:   P ←∅
+ 19:    State(x) ←True
+ 20:    while P ̸= Γ′ do
+ 21:    N ←SELECTNEXTDEGREE(Γ′, P)
+ 22:        for all node w ∈N do
+                                            ▷1. Direct evidence overrides inherited evidence
+ 23:                if direct positive link (x →w) exists in Γ then
+ 24:             State(w) ←True
+ 25:             else if direct negative link (x ̸→w) exists in Γ then
+ 26:             State(w) ←False
+ 27:             else                            ▷2. Collect inherited evidence from valid parents
+ 28:            PosParents ←{p | State(p) = True ∧(p →w) exists}
+ 29:            NegParents ←{p | State(p) = True ∧(p ̸→w) exists}
+ 30:                     if PosParents ̸= ∅and NegParents = ∅then
+ 31:                State(w) ←True
+ 32:                 else if NegParents ̸= ∅and PosParents = ∅then
+ 33:                State(w) ←False
+ 34:                 else if PosParents ̸= ∅and NegParents ̸= ∅then
+                                ▷3. More specific information defeats more general information
+ 35:                State(w) ←RESOLVESPECIFICITY(PosParents, NegParents)
+ 36:                 else
+ 37:                State(w) ←Unknown
+ 38:             end if
+ 39:          end if
+ 40:       end for
+ 41:     P ←P ∪N
+ 42:    end while
+ 43:    return State(y)
+ 44: end function
+
+
+
+
+                                         30
+
+=== PDF第31页 ===
+Prompt Title/Name      Prompt
+
+System Prompt A: Inher-  You are an expert in defeasible reasoning. You will be given a category
+itance Defeasible Reason-  hierarchy where entities belong to categories, and categories can belong
+ing                          to other categories. A property that applies to a category generally
+                             applies to all entities and subcategories within it, unless explicitly stated
+                           otherwise for a specific entity or subcategory.
+
+                          All previously given information remains  active throughout the
+                            conversation. You will then receive a series of information updates
+                       one at a time. After each update you will be asked whether all the
+                           information so far supports the hypothesis.
+
+                      Answer yes  if  the  hierarchy and  facts  support  the  hypothesis
+                       and nothing blocks inheritance for the specific entity in question, no
+                                     if inheritance is explicitly blocked for that entity, or unknown if you
+                          cannot determine either way.
+
+                        Output only the answer word and nothing else.  Do not explain,
+                                  justify, or add any additional text.
+
+System Prompt B: Defea-  You are an expert in defeasible reasoning. You will be given a set of
+sible Reasoning with Ef-  general rules and specific facts about objects. The rules are defaults:
+fect Turns                they hold generally unless specific information contradicts them for
+                         a particular object. All previously given information remains active
+                            unless explicitly overridden.
+
+                     You will then receive a series of information updates one  at a
+                            time. After each update you will be asked one of two questions:
+                        Support: Does the information support the hypothesis? Answer yes,
+                          no, or unknown.
+                            Effect: Does the update strengthen, weaken, or have no effect on the
+                           support for the hypothesis?
+                   When information comes from multiple sources, rely on the most
+                              reliable source when sources contradict each other. If a less reliable
+                          source makes a claim and a more reliable source makes a different but
+                           non-contradicting claim, both claims remain active independently. A
+                       more reliable source speaking does not undo what a less reliable source
+                            established unless they are making opposite claims about exactly the
+                      same fact.
+
+                        Output only the answer word and nothing else.  Do not explain,
+                                  justify, or add any additional text.
+
+                               Table 22: System Prompts for Evaluation
+
+
+
+
+
+                                       31
+
+=== PDF第32页 ===
+         Inheritance / is_a / implies           Defeasible has            Defeasible lacks          Hypothesis
+         Contradicts                      Bypass                     Irrelevant
+                cold                            Locart                                complex
+
+                                                                                       melodic
+
+                stable                                           +
+                                                           +               cylindrical
+
+                                           Nergue
+                                                                                     tough
+
+
+                                                                                          malleable
+
+          Irrelevant Properties                       Objects                                  Property chain
+
+
+Source         Edge type     Target            Realized Sentence
+
+PREMISE
+                    implies  complex                        melodic         Objects that are structurally complex generally have a melodic tone.
+
+                    implies  melodic                           cylindrical        Objects that have a melodic tone generally are cylindrical in shape.
+
+                    implies cylindrical                        tough          Objects that are cylindrical in shape generally are tough in nature.
+
+                    implies   tough                          malleable        Objects that are tough in nature generally are physically malleable.
+
+                       is_a   Locart                       complex         Locart is structurally complex.
+
+                       is_a   Nergue                       complex        Nergue is structurally complex.
+
+
+HYPOTHESIS
+
+   Locart         hypothesis       malleable          Is Locart physically malleable?
+
+   Nergue        hypothesis       malleable          Is Nergue physically malleable?
+
+
+TURNS
+                 defeasible has                       Locart is tough in nature.  →  Entailment: Yes
+   Locart                          tough
+                       →  Result: Strengthening
+   Locart          irrelevant                         Locart is cold in temperature. →  Entailment: Yes                                      cold
+                       →  Result: No effect
+                     irrelevant                         Locart is chemically stable.  →  Entailment: Yes   Locart                               stable
+                       →  Result: No effect
+                   contradicts                       Benito reports: objects with property cylindrical generally are not
+ cylindrical                        tough
+                                                     tough.    → Entailment: No  → Result: Weakening
+                 defeasible has                    Nergue has a melodic tone.  →  Entailment: No   Nergue                         melodic
+                       →  Result: No effect
+                   bypass                        Lorna reports: objects with property melodic generally are physically
+  melodic                         malleable
+                                                      malleable.  → Entailment: Yes  → Result: Strengthening
+
+                             Figure 12: Default Reasoning Example
+
+
+
+
+
+                                    32
+
+=== PDF第33页 ===
+Figure 13: Linear Inheritance Example
+
+
+
+
+             33
+
+=== PDF第34页 ===
+Figure 14: Tree Inheritance Example
+
+
+
+
+             34

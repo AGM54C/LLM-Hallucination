@@ -1,0 +1,659 @@
+
+=== PDF第1页 ===
+   Abstention vs. Hallucination: Benchmarking LLM
+       Source Attribution for Scientific Citations
+
+          Deepa Tilwani∗, Yash Saxena†, Seyedali Mohammadi†, Ankur Padia†, Edward Raff†, Amit Sheth∗‡,
+                                          Srinivasan Parthasarathy§, Manas Gaur†
+                     ∗Artificial Intelligence Institute, University of South Carolina, Columbia, South Carolina, USA
+                                   † University of Maryland, Baltimore County, Baltimore, Maryland, USA
+                                      ‡ IAIRO, India, § The Ohio State University, Columbus, Ohio, USA
+                    Emails: dtilwani@mailbox.sc.edu, ysaxena1@umbc.edu, m294@umbc.edu, pankur1@umbc.edu,
+                          edraff1@umbc.edu, amit@sc.edu, srini@cse.ohio-state.edu, manas@umbc.edu
+
+
+        Abstract—Large language models (LLMs) increasingly gener-  and Bing [7] increasingly mediate scientific discovery, under-
+      ate citation-backed responses, yet citation hallucination remains   standing attribution behavior has become essential. Figure 12026 a major challenge for trustworthy scientific information access.   previews the overview of the REASONS benchmark construc-
+    We introduce REASONS, a benchmark of 12,723 sentence-level
+                                                                          tion and evaluation framework.       citation instances spanning 12 arXiv subject categories, designed
+       to evaluate scientific citation attribution under varying evidence
+                                                                           Prior work optimizes citation accuracy via better retrieval [8,Sep conditions. We propose a dual-metric framework consisting of
+      Abstention Rate (AR) and Hallucination Rate (HR) to charac-   9] or training [10, 11], but ignores when and how often systems
+                                                                 should abstain rather than hallucinate. Current benchmarks15 terize the trade-off between reliability and responsiveness. Using
+      author-attribution and title-attribution tasks, we evaluate pro-    fail in three ways: paragraph-level evaluation masks claim-
+      prietary and open-source LLMs under zero-context, metadata-   level errors [12, 13], Wikipedia datasets suffer LLM contami-
+      augmented, cascaded metadata-augmented prompting (CMP),
+                                                                     nation [14, 15], and metrics ignore epistemic safety [16]. Crit-
+      retrieval-augmented, and adversarial settings. Advanced RAG
+      lowers HR relative to Na¨ıve RAG (65.4% vs. 87.6%) but reduces   ically, existing work cannot answer: how frequently do systems
+    AR from 5.0% to 0%. Under adversarial metadata, several   abstain  vs. hallucinate under varying evidence conditions,
+      systems exceed 85% HR, while retrieval-augmented variants  and does adding context shift behavior from cautious refusal[cs.CL]
+      frequently maintain near-zero abstention. Human evaluation of   to confident error?  Scientific  citations offer sentence-level
+      1,000 outputs (κ = 0.78) finds a 12.7:1 ratio of factual hallu-
+                                                                            attributions with verifiable ground truth, minimal contamina-
+      cinations to acceptable paraphrases. Our findings demonstrate
+      that citation attribution systems should be evaluated not only   tion, and domain variation, enabling controlled measurement
+       for correctness but also for their ability to abstain appropriately   of abstention-hallucination tradeoffs as evidence availability
+     under uncertainty. REASONS provides a benchmark and eval-   changes. We make the following contributions:
+      uation framework for studying attribution reliability in citation
+      generation.
+        Index  Terms—Scientific  Citations,  Attribution  Evaluation,   1) We introduce REASONS, the first sentence-level citation
+      Retrieval-Augmented Generation, Large Language Models, Hal-     benchmark designed for behavioral evaluation, comprising
+       lucination, Epistemic Safety                                                                  12,723 citations across 12 arXiv subject categories that
+                                                                     enable systematic measurement of abstention and hallu-
+                                   I. INTRODUCTION                                                                           cination rates—metrics absent from  existing  attribution
+        Large language models (LLMs) increasingly generate cita-     benchmarks.
+      tions to support their claims, yet citation hallucination poses a   2) We propose a dual-metric evaluation framework that jointly
+     growing challenge to trustworthy scientific information access.     measures abstention rate (AR) and hallucination rate (HR)arXiv:2405.02228v5
+      Prior studies have documented fabricated and erroneous bibli-       to  characterize epistemic  safety  in  citation  generation.
+      ographic citations in ChatGPT-generated responses [1], while    We demonstrate  that standard  attribution improvements
+     more than 100 suspected citation hallucinations have recently      create an abstention-hallucination tradeoff where increased
+     been reported in NeurIPS 2025 accepted papers [2]. Recent      responsiveness eliminates epistemic caution.
+      theoretical work further argues that hallucination cannot be   3) We validate our automated metrics through stratified human
+      completely eliminated under general learning-theoretic con-      evaluation of 1,000 model outputs across  five systems
+      ditions [3]. Existing work has investigated mechanisms and     and multiple domains, demonstrating strong correlation
+      evaluation strategies for LLM source attribution and citation      (r = 0.89, p < 0.001) between automated HR and human-
+      generation  [4,  5]. However, a  critical behavioral question      judged attribution errors. Our analysis confirms that hallu-
+     remains underexplored: when generating  citations through      cination is predominantly a factual error problem (12.7:1
+      parametric knowledge or retrieval, do systems abstain when       ratio of factual errors to acceptable paraphrases) rather
+      evidence is insufficient, or do they confidently produce incor-      than a paraphrase detection issue, and reveals that systems
+       rect attributions? As citation-aware systems like Perplexity [6]      struggle to calibrate abstention decisions appropriately.
+
+=== PDF第2页 ===
+                            Fig. 1: Overview of the REASONS benchmark construction and evaluation framework.
+
+
+            II. BACKGROUND AND RELATED WORK             primarily evaluate whether systems can cite correctly when
+                                                            evidence is present. Existing evaluation metrics are also based
+Attribution optimization in LLMs has focused primarily on                                                     on precision, recall, or support-based scoring, which cannot
+improving citation correctness through better retrieval or train-                                                                  distinguish systems that achieve high precision by abstaining
+ing. RETRO [17]  retrieves  text chunks during pretraining                                                      from uncertain cases from those that respond to all queries
+to ground generation in external knowledge, while retrieval-                                                           while producing confident attribution  errors. Consequently,
+augmented generation (RAG) [9] combines dense  retrieval                                                                these frameworks do not capture the fundamental behavioral
+with sequence-to-sequence models for knowledge-intensive                                                                   tradeoff between abstention and hallucination, nor do they
+tasks. Source-aware training methods [11, 18] teach models to                                                       examine how models behave when evidence is incomplete,
+associate generated content with source identifiers, and self-                                                         ambiguous, or misleading—conditions that frequently arise
+supervised alignment techniques [10] refine citation placement                                                                    in real-world knowledge-seeking  settings. Table  I  situates
+through contrastive learning. Attributed QA [12] evaluates                                      REASONS relative to existing datasets and shows that it is
+whether model outputs are supported by retrieved passages.                                                                 the  first benchmark designed to systematically measure ab-
+While these approaches demonstrate that retrieval and training                                                                 stention–hallucination tradeoffs in the generation of citations.
+can improve citation accuracy, they evaluate whether systems
+                                                           Recent work on adversarial retrieval [22] reveals that LLMscan cite correctly when evidence exists, not whether systems
+                                                                   exhibit attribution bias when retrieved passages are topicallyshould abstain when evidence is insufficient or misleading.
+                                                                   relevant but do not support specific claims, exposing a criticalThis leaves unanswered the behavioral question raised in our
+                                                       gap between retrieval quality (finding documents with highintroduction: when generating citations, do LLMs know when
+                                                           semantic  similarity) and  attribution safety (knowing whenthey don’t know, or do they confidently fabricate sources
+                                                                    retrieved evidence is insufficient for the specific claim beingdespite uncertainty?
+                                                          made). Unlike search engines that present ranked results for  Evaluation frameworks for attribution have largely focused
+                                                               user inspection, generative RAG pipelines convert retrievedon verifying whether generated content is supported by re-
+                                                            evidence directly into assertions, raising the possibility thattrieved evidence. Benchmarks such as Attributed Question
+                                                                surface similarity might trigger confident citation regardless ofAnswering (AQA) [12], ALCE [13], and related knowledge-
+                                                                 claim-level support. This suggests that retrieval might makegrounding and fact-verification benchmarks [14, 19] assess
+                                                          systems more confident without making them more correct,whether generated responses or claims are supported by rel-
+                                                                     directly relevant to our question of whether adding evidenceevant evidence. Similarly, citation-intent datasets and large
+                                                             causes systems to shift from saying “I don’t know” to assertingscholarly corpora [20, 21] support citation analysis, scholarly
+                                                    wrong answers with high confidence.document understanding, and modeling of citation relation-
+ships. Although these benchmarks provide important mea-  Domain adaptation studies [23] show that task performance
+sures of  citation accuracy and  retrieval effectiveness, they   varies across domains, with general-purpose LLMs exhibit-
+
+=== PDF第3页 ===
+ Dataset            Granularity      Domains      Abstention            Task               REASONS dataset example (Computer Vision)
+ S2ORC [21]        Document        General        No             Scholarly Corpus
+ UnarXive [25]          Section         CS          No             Citation Analysis        Link                 http://arxiv.org/abs/2012.05435v2
+ RefSum [26]         Paragraph        CS          No            Summarization         Paper title           Optimization-Inspired  Learning  with  Architecture
+ SciCite  [20]          Sentence      Comp. Ling.       No        Citation Intent Classification
+                                                                                            Augmentations and Control Mechanisms  for Low-
+ REASONS (ours)     Sentence    12 research areas      Yes              Attribution                               Level Vision
+ TABLE I: Comparison of REASONS with existing citation datasets.       Sentence ID        32
+                                                                          Sentence        We adopt  the ℓ1-norm. For GM, we  establish a
+  Domain                     Paper     Papers         Citation                              residual network with seven convolutional layers and
+                            Count      in    IEEE   Count                                 six ReLU blocks, each placed after a convolutional
+                                         format                                                     layer. The DM is constructed as a standard CNN-
+                                                                                             based classifier.
+  Computer Vision (CV)         5488      1028          3437           Citation text        C. Ledig et al., “Photo-Realistic Single Image Super-
+  Robotics                     3656      292           776                                Resolution using a Generative Adversarial Network,”
+  Graphics                     1796      384           1417                     CVPR 2017.
+  Information Retrieval (IR)      1741      564           1654           Cited paper id     arXiv:1609.04802
+   Artificial Intelligence (AI)      1697      531           2021           Cited paper title     Photo-Realistic Single Image Super-Resolution Using
+  Natural Language Processing   1526      293           1092                           a Generative Adversarial Network
+  (NLP)                                                                       Abstract (excerpt)   Despite breakthroughs  in accuracy and speed  for
+  Cryptography                 1084      371           1106                               single-image  super-resolution using deep convolu-
+  Neurons and Cognition (NNC)   892       111           326                                     tional neural networks, ...
+  Human Computer Interaction   761       112           229           Authors              Christian Ledig, Lucas Theis, Ferenc Husz´ar, Jose
+  (HCI)                                                                                              Caballero, Andrew Cunningham, Alejandro Acosta,
+  Databases                    723       115           182                          Andrew Aitken, Alykhan Tejani, Johannes Totz, Ze-
+  Quantum Computing (QC)      421       126           456                             han Wang, Wenzhe Shi
+  Biomolecules                 119       17            27
+                                          TABLE III: Example instance from REASONS showing citation context
+  Total                        19904     3944          12723                                                                     and linked metadata.
+TABLE  II: Our benchmark  dataset, REASONS, includes papers and
+sentences from 12 arXiv subject categories                                 attribution failures arise from domain specialization or simply
+                                                                          reflect differences in data availability. Each instance contains
+ing stronger capabilities in well-represented areas such as                                                           a structured attribution datapoint linking the citing sentence to
+Computer Vision than in specialized fields such as Quantum                                                                     verified citation metadata, including the cited paper’s title, au-
+Computing, due to differences in pretraining corpus compo-                                                                      thors, abstract, and identifier (Table III). In addition to domain-
+sition. However, whether attribution safety, the joint behav-                                                                     level  diversity, REASONS  includes cross-domain  citation
+ior of abstention and hallucination, degrades systematically                                                          markers that capture interdisciplinary references, providing
+with domain complexity or varies stochastically with model                                                                 controlled test cases in which topical similarity between citing
+capacity remains unknown. This gap is critical for deploy-                                                       and cited papers is reduced. These features enable fine-grained
+ment: systems may perform well on aggregate benchmarks                                                                evaluation of  attribution behavior under varying  levels of
+dominated by popular domains, yet exhibit unsafe behav-                                                           semantic overlap and evidence availability. Link for dataset
+ior on specialized queries where epistemic caution is most                                                               https://zenodo.org/records/18264033.
+critical. This concern is particularly relevant in high-stakes
+                                                       Metadata enrichment and structure: Each instance pairs a
+domains, where reliability and safety are central requirements
+                                                                      citing sentence with verified metadata of the referenced paper,
+for trustworthy AI deployment [24]. Existing work leaves our
+                                                               including  title, abstract, author  list, venue, and publication
+behavioral questions unanswered. Sentence-level granularity
+                                                                     year. This metadata is verified by exact matching of in-text
+is not perfect: some claims require multi-sentence discourse,
+                                                                      citation strings to retrieved records. The source explicitly cited
+tables/figures, or broader context to verify. Our evaluation
+                                                     by the original authors is treated as ground truth; thus, REA-
+settings explicitly vary the amount of context available (e.g.,
+                                         SONS measures fidelity to the observed citation rather than
+minimal  vs.  metadata/retrieval  conditions), allowing us  to
+                                                         whether alternative sources could also support the claim. The
+study how systems trade off abstention and hallucination as
+                                                                   dataset also records the source paper identifier and publication
+evidence becomes more complete. Sentence-level evaluation
+                                                                     date, enabling analyses of temporal factors such as model
+provides a controlled lens for observing attribution behavior
+                                                      knowledge cutoffs.
+under systematically manipulated evidence.
+                                                                    a) Tasks: We evaluate attribution behavior through two
+      III. DATASET CONSTRUCTION AND BENCHMARK                                                       complementary tasks that probe different aspects of citation
+  As a central contribution, REASONS (REtrieval and Au-   knowledge. Task T1 (Direct Attribution) provides the model
+tomated  citationS Of  scieNtific Sentences)  is a sentence-   with a paper  title and asks  it to return the author  list or
+level citation attribution benchmark comprising 12,723 citation  Abstain if uncertain. This tests whether models can ground
+instances extracted from 3,944 arXiv papers spanning 12   metadata when the source identity is explicitly given, isolating
+subject categories. Rather than artificially balancing domain   their ability to recall or verify authorship information. Task
+representation, the dataset preserves the natural long-tail dis-  T2 (Indirect Attribution) provides a citing sentence with an
+tribution (Table II), enabling systematic analysis of how attri-   inline citation placeholder and asks the model to identify the
+bution reliability varies between well-represented and highly   cited paper’s title or abstain. This simulates deployed settings
+specialized fields. This design allows us to disentangle whether   in which models must infer which source supports a claim
+
+=== PDF第4页 ===
+                                                   ABSTAIN.
+                                                         Naive  retrieval augmentation. A bi-encoder maps  queries
+                                                       and  documents  into  a  shared  embedding  space.  Docu-
+                                                       ments  are  retrieved  based  on  cosine  similarity:  di  ∈
+                                                    Top-Kd∈D⟨E(x), E(d)⟩, where E(·) denotes the embedding
+                                                               function and ⟨·, ·⟩denotes dot-product similarity. The top-k
+                                                                    retrieved documents are concatenated with the query:  ˆc =
+                                                         f(x, d1..dk). This represents standard dense retrieval without
+                                                                  re-ranking.
+                                                      Advanced  retrieval augmentation. The bi-encoder  first  re-
+                                                                      trieves a larger candidate  set, which  is then re-ranked us-
+                                                              ing a cross-encoder that jointly scores each query-document
+                                                                           pair. Documents are reordered according to π(d   | x) =
+                                                             rank(g(x, d)), where g(·, ·) is the cross-encoder scoring func-
+                                                                         tion. The top-ranked documents from this reordered set are
+Fig. 2: CMP prompting as a staged attribution decision process. Under zero-   supplied to the generator:  ˆc = f(x, dπ(1)..dπ(k)). The cross-
+shot indirect prompting (Task T2), the model abstains when asked to identify   encoder is fine-tuned on REASONS using listwise context
+the cited paper from a sentence alone. As additional metadata is progressively   loss to optimize re-ranking. All retrieval conditions index the
+revealed—first the abstract, then author information—the model transitions
+from abstention to confident attribution.                          same corpus, D, to ensure a controlled comparison.
+                                                                    d) Models: We evaluate seven LLMs: GPT-o1 (G1),
+without author-provided citations, thereby testing attribution  GPT-4o  (G2),  GPT-3.5-Turbo  (G3),  pplx-7b-chat   (P),
+behavior when source identity must be determined. These  DeepSeek-R1 (D), Mistral-7B-v0.2-Instruct (M), and Llama-
+tasks separate memorization of paper-author mappings (T1)   3.1-8B-Chat (L). All models are evaluated on T1 and T2 under
+from claim-to-source attribution reasoning (T2) (prompts in   zero-context, metadata-augmented, and CMP conditions, as
+the supplementary).                                              applicable.  For  retrieval-augmented  evaluation,  we  use
+     b) Prompting Strategies: We examine three prompting   Mistral and Llama as generators with  Na¨ıve RAG (RM,
+strategies. Let x denote the query input (paper title for T1,  RL) and Advanced RAG (AM, AL). Na¨ıve RAG retrieves
+citing sentence for T2), m denote citation metadata (abstract,   the top-k = 2 documents, while Advanced RAG retrieves
+authors), and f(·) the model’s generation function producing  k = 40 candidates and re-ranks them using a cross-encoder.
+either an  attribution  ˆc or the abstention token Abstain  Complete model and retrieval configurations are provided in
+(PASS).  In  zero-context prompting, models  receive only   the Supplementary Material.
+the query  (ˆc = f(x)) and must either rely on parametric   Citation-aware    systems:  We    additionally    evaluate
+knowledge or abstain, thereby exposing baseline attribution  GraphRAG  [8], HLM-Cite  [27], and LitFM [28] on T2.
+behavior without retrieval. In metadata-augmented prompting,  We provide the citing sentence as input and compare the
+models receive verified citation metadata alongside the query   top-ranked citation against ground truth; incorrect predictions
+(ˆc =  f(x, m)), revealing how structured evidence  affects   are counted as hallucinations and null outputs as abstentions.
+the abstention-hallucination tradeoff. In Cascaded metadata-   These systems are not evaluated on T1 because they perform
+augmented prompting (CMP), the model first attempts T2 with   claim-to-citation  mapping  rather  than  metadata  lookup.
+no context; if it abstains or produces an error, we then provide   Results are reported separately in Table V; implementation
+metadata and re-query, enabling analysis of how models revise   details  are provided  in  the Supplementary  Material, with
+attribution decisions as evidence accumulates. This staged   retrieval components summarized in Supplementary Table VII.
+disclosure tests whether additional context shifts systems from                                                                         e) Evaluation Metrics: We evaluate attribution behavior
+cautious abstention to confident error. Figure 2 illustrates CMP                                                             using metrics that distinguish abstention, incorrect attribution
+as a staged attribution decision process. CMP is not proposed                                                                     (hallucination), and partial surface overlap, rather than reduc-
+as a training or calibration method but as a diagnostic tool:                                                              ing performance to accuracy alone.
+by staging evidence disclosure, it isolates whether a model’s                                                              Abstention Rate (AR). AR measures abstention frequency:
+abstention behavior is driven by genuine uncertainty or simply
+                                                                         1by the absence of context. The key finding is that models
+                                             AR =                          X I[ˆci = PASS].
+with poor uncertainty calibration cannot be rescued by better                        |Q|
+                                                                             i∈Q
+prompting alone, motivating the need for calibration-aware
+training as future work.                                  where Q denotes the set of evaluation queries. AR reflects
+     c) Retrieval Strategies: Let D denote the retrieval corpus   epistemic caution, not correctness. Abstention lacks instance-
+from REASONS. We evaluate two retrieval conditions that   level ground truth—whether models should abstain depends
+differ in how supporting documents are selected and provided  on evidence availability. We validate AR through aggregate
+to the model. x is the query input, f(·) the model’s generation   trends: it decreases with verified metadata but increases under
+function, and  ˆc either an attribution or the abstention token   adversarial perturbations (Supplementary Table VIII), demon-
+
+=== PDF第5页 ===
+strating  sensitivity  to evidence quality  rather than prompt   Category       Domain  # Papers HR (Zero-Context) HR (Metadata)
+compliance.                                                    CV        5488         71.3%           12.8%
+Hallucination Rate (HR). HR measures incorrect attribution    Well-represented  IR         1741         68.9%           14.2%
+frequency conditional on responding. Here, hallucination de-             QC        421          94.6%           31.7%
+notes any non-abstaining attribution that does not match the    Specialized       Bio        119          96.1%           28.9%
+benchmark ground truth, including both fabricated citations
+                                          TABLE IV: Hallucination Rate (HR) stratified by domain representation.
+and incorrect attribution to real sources. Let Q¬PASS = {i ∈    Specialized, low-resource domains exhibit substantially higher epistemic risk
+Q | ˆci ̸= PASS}:                                                          than well-represented domains, even when metadata grounding is provided.
+                    1
+        HR =   X   I[ˆci ̸= ci].               systems show extremely high HR (often >90%), indicating
+                    |Q¬PASS|                                 i∈Q¬PASS                           strong “authority-assertion” tendencies even when evidence
+                                                                               is absent. T2 (indirect attribution) is consistently harder: HR
+Citation correctness is determined through exact string match-
+                                                                 increases sharply across models (often >70%), and model
+ing after standard text normalization. For title attribution (T2),
+                                                                      strategies diverge. GPT-4–class models respond by abstaining
+the generated title must match the ground truth exactly. For
+                                                               heavily (AR approaching   90%), while RAG/task-specific
+author attribution (T1), we require the generated list to contain
+                                                          systems continue answering despite high error (Figure 3c).
+precisely the same authors as ground truth. Author matching is
+                                                              Zero-context diagnoses whether a model defaults to calibrated
+order-invariant and handles standard name variations (e.g., A.
+                                                               caution (high AR, low HR) or overconfident fabrication (low
+Smith ≡Andrew Smith). We treat partial matches as incorrect;
+                                                AR, high HR).
+incomplete author lists or truncated titles count as attribution
+                                                                Effect of metadata on attribution behavior: Adding verifiedfailures. This strict criterion ensures HR measures identity-
+                                                           metadata drastically reduces HR for T1, and AR collapses;level precision rather than approximate similarity.
+                                                       models answer because the evidence is explicit (Figure 3b).Joint interpretation. AR and HR must be interpreted together
+                                                         Metadata reduces error, but can also shift the failure mode.to characterize epistemic safety. A system with high AR and
+                                                          For T2, HR drops but remains nontrivial, while AR oftenlow HR  is cautious,  it frequently declines  to answer but
+                                                           approaches zero for many models despite residual mistakes. T1rarely hallucinates when it does respond. Conversely, a system
+                                                     becomes almost “copy-from-evidence.” Authorship is explic-with low AR and high HR is overconfident; it answers most
+                                                                               itly present in metadata, so the task is closer to extraction thanqueries but produces many incorrect attributions. To illustrate
+                                                                  inference. T2 still requires alignment and selection. Even withthe extremes: a model that always abstains achieves AR =
+                                                              metadata, models must connect a cited claim to the correct100% with zero hallucinations but provides no utility, while a
+                                                                        paper/title among plausible candidates;  this invites surfacerandom citation from our corpus yields HR ≈99.99% (only
+                                                                     similarity bias (choosing what “looks right” rather than what1 in 12,723 citations would be correct by chance). Effective
+                                                                               is correct). Metadata can create evidence-induced confidence:attribution systems must balance informativeness (low AR,
+                                                       models stop abstaining because something looks grounded,high frequency of answers) with reliability (low HR, high
+                                                               but the grounding may be misapplied (wrong paper/title isaccuracy). BLEU and F1 supplement HR to distinguish near-
+                                                                     selected), leaving HR at 15–20% for some models.miss from spurious errors; correctness  is validated through
+                                        RAG models: RAG variants reduce HR relative to zero-contexthuman evaluation on 1,000 stratified outputs.
+                                                                 baselines and improve F1/BLEU, but they often show near-Evaluation Process: We report performance aggregated across
+                                                             zero AR even when HR remains high (Table V). Naive RAGthe 12 REASONS domains. Domain-level variability is re-
+                                                                               is especially prone to confident errors; advanced RAG reducesported using standard deviations in the Supplementary Ma-
+                                      HR but does not restore abstention. Retrieval injects text thatterial. Retrieval indices and re-ranking components remain
+                                                             looks like evidence, which increases the model’s tendencyfixed across  all generator models, ensuring  that observed
+                                                                    to answer. Therefore, retrieval strength  is not a proxy fordifferences reflect attribution behavior rather than variations
+                                                                            reliability; AR–HR jointly identify whether RAG is helpingin retrieval quality. Complete generation parameters, prompt
+                                                                 correctness or merely suppressing abstention.templates, and human validation protocols are provided in the
+Supplementary Material.                       CMP reduces HR and improves attribution quality relative
+                                                                    to zero-context, but model families respond differently: GPT-
+                       IV. RESULTS                          4–class models retain higher AR, while RAG-based systems
+  Figure 3 reports AR (refusal rate) and HR (error rate when    still suppress AR and keep asserting attributions (Figure 3d).
+answering), with  error bars showing  variability across 12   Staging prevents models from committing prematurely by
+domains, revealing model caution versus overconfidence.       forcing incremental reasoning.  If a model always answers
+  Baseline  attribution  behavior under minimal  context:  when given context, adding more stages does not help  it
+Under zero-context prompting, attribution  is unreliable for   abstain. CMP works best for models that already know when
+both  tasks, but  failures  differ by  task  type. For T1  (di-   to say “I don’t know.” For overconfident models,  it reduces
+rect  attribution), proprietary models achieve moderate AR   errors somewhat but does not fix the abstention problem.
+(≡35–40%) yet  still exhibit substantial HR (>30%) among  Domain   effects  across   tasks   (Specialized   vs.   Well-
+non-abstaining outputs (Figure 3a). Smaller or task-specific   represented): Specialized domains (QC, Biomolecules) show
+
+=== PDF第6页 ===
+             F-1 Score          BLEU Score                       F-1 Score          BLEU Score
+     0.8                       0.8                             1
+     0.6                       0.6                                                    1
+     0.4                       0.4                                 0.5                       0.5
+     0.2                       0.2
+      0                     0                             0                     0
+          G1G2G3 P DRM MRL LALAM         G1G2G3 P DRM MRL LALAM                   G1G2G3 P DRM MRL LALAM         G1G2G3 P DRM MRL LALAM
+          Hallucination Rate         Abstention Rate                   Hallucination Rate         Abstention Rate
+                                                         100                     1    100                   100
+     50                    50                            50                       0.5
+      0                     0                             0                     0
+          G1G2G3 P DRM MRL LALAM         G1G2G3 P DRM MRL LALAM                   G1G2G3 P DRM MRL LALAM         G1G2G3 P DRM MRL LALAM
+
+                           (a) T1 zero-context.                                                       (b) T1 +metadata.
+             F-1 Score          BLEU Score                       F-1 Score          BLEU Score     0.6                       0.6                                                                                             0.8                                                                   0.8     0.4                       0.4                                                           0.6                                                                   0.6
+     0.2                       0.2                                 0.4                       0.4
+                                                                   0.2                       0.2
+      0                     0                             0                     0
+                                                           P DRM MRL LALAM         G1G2G3 P DRM MRL LALAM       G1G2G3 P DRMMRL L      G1G2G3 P DRMMRL L                   G1G2G3
+          Hallucination Rate         Abstention Rate                   Hallucination Rate         Abstention Rate
+    100                   100                                                         100                   100
+     50                    50                                                          50                    50
+      0                     0                             0                     0
+                                                           P DRM MRL LALAM         G1G2G3 P DRM MRL LALAM       G1G2G3 P DRMMRL L      G1G2G3 P DRMMRL L                   G1G2G3
+
+                           (c) T2 zero-context.                                                     (d) T2 staged (CMP).
+
+Fig. 3: Attribution behavior (AR/HR) across models and tasks, averaged over 12 REASONS domains. RAG-based systems (RM, RL, AL, AM) suppress
+abstention even when hallucination remains high, while G1 and G2 retain higher AR at the cost of responsiveness. Other models (G3, M, L, D, P) tend
+toward overconfident hallucination, revealing distinct epistemic risk profiles across model and retrieval configurations. Error bars show variability across the
+12 domains.
+
+
+    Method      AR (%)  HR (%)   F1  BLEU       added context suppresses abstention without eliminating error.
+     Naive RAG         5.03      87.56     0.14    0.09        These regimes emerge from interactions among task type,
+     Advanced RAG     0.00      65.41     0.58    0.32         evidence availability, retrieval design, and domain structure.
+    GraphRAG         2.14      68.33     0.52    0.38
+    HLM-Cite         12.45      71.22     0.41    0.31      Human validation of HR Metric: To validate that HR ac-
+     LitFM              8.91      74.16     0.48    0.35         curately captures attribution behavior, we conduct a human
+                                                                evaluation on a stratified sample of 1,000 model outputs. These
+TABLE V: Citation-aware systems trade abstention for responsiveness.
+GraphRAG exhibits near-zero AR, while HLM-Cite retains limited abstention.   instances were stratified across three dimensions to ensure
+F1 and BLEU reveal  that even lower-HR systems produce only  partial   representativeness: (a) Model coverage: 200 instances each
+matches, indicating that attribution errors are systematic rather than incidental.  from GPT-o1, GPT-4o, Advanced RAG (Mistral), Perplexity
+                                                  AI (7B), and DeepSeek; (b) Domain diversity: Proportionalconsistently higher HR than well-represented ones (CV, IR),
+                                                          sampling across well-represented domains (CV, IR) and spe-even with metadata  (Table  IV). Subsampling  to  equalize
+                                                                    cialized domains (QC, Biomolecules); (c) Behavioral distri-domain size preserves the gap, indicating the effect  is not
+                                                                  bution: Deliberate oversampling of abstention cases yieldsjust data volume. Specialized fields use dense jargon, uncom-
+                                                     500 non-pass instances (50%) and 500 pass instances (50%),mon venues, and long-tail author/title distributions, conditions
+                                                             enabling robust analysis of both attribution correctness and ab-where “plausible guessing” is easier than correct identification.
+                                                                   stention appropriateness. This balanced distribution contrastsRetrieval is also noisier: similar terms or nearby topics produce
+                                                           with the natural model behavior (which exhibits >90% non-highly plausible but wrong candidates. Domain specialization
+                                                             pass rates) and provides sufficient power to analyze abstentionis a structural risk factor: even good prompting and retrieval
+                                                                  decisions, a critical but underrepresented behavior in typicalcan leave substantial residual HR, so deployment in special-
+                                                     model outputs.ized areas needs stronger verification than “more context.”
+Summary: We observe three recurring behaviors: (1) cautious   Annotation protocol. Three domain experts (PhD students
+abstention (high AR, low HR); (2) confident hallucination (low   with >3 years of research experience) independently evaluate
+AR, high HR); and (3) metadata-induced confidence, where   each instance. Annotators receive: (1) the input query (paper
+
+=== PDF第7页 ===
+       Model     n     Auto HR Human Incorrect   r           paraphrases, indicating that most detected errors were factual
+                 (non-pass)    (%)         (%)                       attribution failures rather than lexical variations. Additional
+      G1        98        17.99          19.39        0.91          analyses of paraphrase and abstention behavior are provided
+      G2        97        17.59          18.39        0.85           in the Supplementary Material.
+     AM       102       75.41          73.53        0.88
+       P         101       86.78          84.16        0.87
+                                                                         V. ETHICAL CONSIDERATIONS     D         102       71.34          69.61        0.90
+
+         Total      500        –            –          0.89          The dataset consists of publicly available arXiv papers; we
+                                                             follow arXiv usage policies, exclude restricted content, and useTABLE VI: Human evaluation validates automated HR measurement.
+HR is computed only over non-pass instances and compared against human  no private or personal data. This is an observational study of
+judgments of attribution correctness on the same subset. Strong correlation   system behavior, and we do not release fine-tuned generator
+(r = 0.89, p < 0.001) confirms that lexical-level metrics capture human-
+perceived errors with minimal confounding from acceptable paraphrases.      checkpoints trained on restricted material. We evaluate two
+                                                                      tasks: T1 (direct attribution), which  tests whether systems
+title for T1, cited sentence for T2); (2) the model output   assert or withhold authority cues, and T2 (indirect attribution),
+(attribution or PASS); (3) ground-truth citation metadata (ti-  which tests whether systems link claims to sources. Across
+tle, authors, abstract); (4) evidence condition (zero-context,   both tasks, we characterize behavior via the joint dynamics of
+metadata-augmented, or CMP).                   AR and HR; unless stated otherwise, results are averaged over
+  Annotators apply a two-stage judgment process depending    all 12 domains. Because REASONS is derived from arXiv,
+on model behavior: Stage 1. For non-pass outputs (n=500):  some benchmark instances may overlap with LLM pretraining
+Rate attribution correctness: (a) Correct: Model output matches   corpora. T1 may partly reflect memorized title–author associ-
+ground truth semantically, allowing minor formatting varia-   ations, whereas T2 requires claim-to-source attribution and is
+tions (e.g., “Reliable Attribution in Scientific Language Mod-   therefore less directly dependent on metadata recall.
+els” vs. “A Trustworthy Attribution for Scholarly Language   REASONS evaluates attribution fidelity to original author
+Models”); (b) Partially Correct: Model identifies the correct   citation choices, not  attribution correctness in an absolute
+paper but with incomplete information  (e.g., missing co-   sense. Authors may miscite or overcite, meaning a model that
+authors, abbreviated title); (c) Incorrect: Model output does   identifies a more appropriate citation than the original may still
+not match ground truth (hallucination).                      be penalized. Author citation choices provide scalable ground
+Stage 2—Pass outputs (n=500): Annotators judged whether   truth for this benchmark, and the same evaluation criterion
+each abstention was appropriate given the available evidence.    is applied consistently across models. The human annotations
+An abstention was marked appropriate if the model correctly   are not released because of institutional review requirements;
+declined when evidence was insufficient  (e.g., zero-context   however, we release the annotation rubric, protocol, examples,
+with an ambiguous query), and unnecessary  if the model  and aggregation procedure to facilitate reproduction.
+declined despite having  sufficient evidence  (e.g., complete
+metadata provided).                                                                           VI. CONCLUSION
+Inter-annotator agreement. Fleiss’ κ was computed separately
+for attribution correctness (κ = 0.81) and abstention appropri-   We introduced REASONS, a sentence-level benchmark for
+ateness (κ = 0.74), yielding an overall κ = 0.78, indicating   scientific source attribution across 12 arXiv subject categories,
+substantial agreement across  all judgment types. Disagree-  and used  it to systematically evaluate how LLMs attribute
+ments were resolved by majority vote. Among the 500 non-   paper titles and authors under varying evidence conditions.
+pass instances, 330 (66.0%) were judged factually incorrect.  Our experiments reveal a consistent abstention–hallucination
+Among the 500 pass instances, 271 (54.2%) abstentions were   tradeoff: models that answer more readily often reduce ap-
+judged appropriate and 229 (45.8%) unnecessary.               parent abstention but may increase confident misattributions,
+Validation of automated metrics. We validate automated HR   especially when contextual cues resemble authoritative meta-
+by comparing  it to human-judged error rates on the same   data. RAG and enriched citation context typically improve
+outputs (Table VI), confirming strong alignment despite minor   attribution fidelity, yet can also suppress abstention even when
+paraphrase variation. The strong correlation (r = 0.89, p <   the retrieved evidence is incomplete or misleading, creating
+0.001) between automated HR and human-judged error rates   a different form of reliability risk. Our results suggest that
+demonstrates that: 1) Lexical-level metrics effectively capture   evaluating scientific attribution systems requires metrics be-
+attribution  errors without being confounded by acceptable  yond accuracy alone, explicitly accounting for when models
+paraphrases. 2) When models hallucinate, they typically pro-   should  abstain. Our findings are limited  to the 12 arXiv
+duce factually different content (wrong paper, wrong authors),   subject  categories studied and should not be assumed  to
+not mere rewordings. 3) Small divergences (e.g., G1: 17.99%   generalize to other scientific disciplines. Future work includes
+automated vs. 19.39% human)  reflect cases where human   improving evidence-grounding under noisy retrieval, designing
+experts  identified subtle errors (author name typos, venue   calibration methods that preserve appropriate abstention, and
+misattributions) that lexical metrics missed.                    extending the benchmark to broader citation styles and full-
+  Only 5.2% of non-pass outputs corresponded to acceptable  document attribution settings.
+
+=== PDF第8页 ===
+                 REFERENCES                                 large language models to generate text with citations,”
+                                                                         in Proceedings of the 2023 Conference on Empirical
+ [1] W. H. Walters and E. I. Wilder, “Fabrication and errors       Methods in Natural Language Processing.  Singapore:
+      in the bibliographic citations generated by chatgpt,” Sci-        Association for Computational Linguistics, Dec. 2023,
+      entific Reports, vol. 13, no. 1, p. 14045, 2023.                 pp. 6465–6488. [Online]. Available: https://aclanthology.
+ [2] N.  Shmatko, A. Adam, and  P.  Esau.  (2026,  Jan.)        org/2023.emnlp-main.398/
+     Gptzero  finds  100  new  hallucinations  in  neurips   [14] F. Petroni, A. Piktus, A. Fan,  P. Lewis, M. Yazdani,
+    2025 accepted papers. GPTZero. [Online]. Available:       N. De  Cao,  J.  Thorne,  Y.  Jernite,  V.  Karpukhin,
+     https://gptzero.me/news/neurips/                                          J. Maillard, V. Plachouras, T. Rockt¨aschel, and S. Riedel,
+ [3] Z. Xu, S. Jain, and M. Kankanhalli, “Hallucination is in-       “KILT: A benchmark for knowledge intensive language
+      evitable: An innate limitation of large language models,”         tasks,”  in  Proceedings  of  the  2021  Conference  of
+     arXiv preprint arXiv:2401.11817, 2024.                         the  North  American  Chapter  of  the  Association
+ [4] D. Tilwani, R. Venkataramanan, and A. P. Sheth, “Neu-         for  Computational   Linguistics:  Human  Language
+     rosymbolic ai approach to attribution in large language        Technologies.   Online: Association for Computational
+     models,” IEEE Intelligent Systems, vol. 39, no. 6, pp.         Linguistics, 2021, pp. 2523–2544. [Online]. Available:
+     10–17, 2024.                                                   https://aclanthology.org/2021.naacl-main.200
+ [5] Y. Saxena, R. Bommireddy, A. Padia, and M. Gaur,   [15] C. Wagner and  L.  Jiang, “Death by  ai: Will  large
+     “Generation-time vs. post-hoc citation: A holistic eval-       language models diminish wikipedia?” Journal of the
+     uation of llm attribution,” in NeurIPS 2025 Workshop        Association  for Information Science and Technology,
+    on Evaluating the Evolving LLM Lifecycle: Benchmarks,         vol. 76, no. 5, pp. 743–751, 2025.
+     Emergent Abilities, and Scaling, 2025.                    [16] S. Lin, J. Hilton, and O. Evans, “TruthfulQA: Measuring
+ [6] K. Roose, “Can this a.i.-powered search engine replace      how models mimic human falsehoods,” in Proceedings
+     google? it has for me,” The New York Times, Feb. 2024,         of  the  60th  Annual  Meeting  of  the  Association
+     published February 1, 2024.                                      for  Computational   Linguistics  (Volume   1:  Long
+ [7] Y. Mehdi. (2023, Feb.) Reinventing search with a new        Papers).  Dublin, Ireland: Association for Computational
+     ai-powered microsoft bing and edge: Your copilot for         Linguistics, 2022, pp. 3214–3252. [Online]. Available:
+     the web. Microsoft Official Blog. [Online]. Available:        https://aclanthology.org/2022.acl-long.229
+     https://blogs.microsoft.com/blog/2023/02/07/               [17] S.  Borgeaud,  A.  Mensch,   J.  Hoffmann,  T.  Cai,
+ [8] H. Han, Y. Wang, H. Shomer, K. Guo, J. Ding, Y. Lei,        E. Rutherford, K. Millican, G. B. Van Den Driessche,
+    M. Halappanavar, R. A. Rossi, S. Mukherjee, X. Tang         J.-B. Lespiau, B. Damoc, A. Clark, D. de Las Casas,
+      et  al.,  “Retrieval-augmented  generation  with  graphs       A. Guy,  J. Menick, R. Ring, T. Hennigan, S. Huang,
+     (graphrag),” CoRR, 2025.                                     L.  Maggiore,  C.  Jones,  A.  Cassirer,  A.  Brock,
+ [9] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin,      M.  Paganini,  G.  Irving,  O.  Vinyals,  S.  Osindero,
+    N. Goyal, H. K¨uttler, M. Lewis, W.-t. Yih, T. Rockt¨aschel       K. Simonyan, J. Rae, E. Elsen, and L. Sifre, “Improving
+      et al., “Retrieval-augmented generation for knowledge-       language models by retrieving from trillions of tokens,”
+     intensive nlp  tasks,” Advances in Neural Information         in Proceedings  of  the 39th  International Conference
+     Processing Systems, vol. 33, pp. 9459–9474, 2020.           on Machine  Learning,  ser.  Proceedings  of Machine
+[10] Y.-S. Chuang, B. Cohen-Wang, Z. Shen, Z. Wu, H. Xu,       Learning Research, vol. 162.  PMLR, 2022, pp. 2206–
+    X. V. Lin, J. R. Glass, S.-W. Li, and W.-T. Yih, “SelfCite:       2240. [Online]. Available: https://proceedings.mlr.press/
+     Self-supervised alignment for context attribution in large       v162/borgeaud22a.html
+     language models,” in Proceedings of the 42nd Interna-   [18] L.   Huang,   X.   Feng,   W.   Ma,   L.   Zhao,
+      tional Conference on Machine Learning, ser. Proceedings        Y.  Fan,  W.  Zhong,  D.  Xu,  Q.  Yang,  H.  Liu,
+     of Machine Learning Research, A. Singh, M. Fazel,       and  B.  Qin,  “Advancing   large  language  model
+    D. Hsu, S. Lacoste-Julien, F. Berkenkamp, T. Maharaj,         attribution  through  self-improving,”  in  Proceedings
+    K. Wagstaff, and J. Zhu, Eds., vol. 267.  PMLR, 13–19         of  the  2024  Conference  on  Empirical  Methods
+      Jul 2025, pp. 10 839–10 858.                                      in  Natural  Language  Processing,  Y.  Al-Onaizan,
+[11] M. Khalifa, D. Wadden, E. Strubell, H. Lee, L. Wang,      M.  Bansal, and  Y.-N. Chen, Eds.   Miami,  Florida,
+       I. Beltagy, and H. Peng, “Source-aware training enables      USA:  Association   for  Computational   Linguistics,
+    knowledge attribution in language models,” in First Con-       Nov.  2024,  pp.  3822–3836.   [Online].   Available:
+     ference on Language Modeling, 2024.                          https://aclanthology.org/2024.emnlp-main.223/
+[12] B. Bohnet, V. Q. Tran, P. Verga, R. Aharoni, D. Andor,   [19]  J.  Thorne, A.  Vlachos,  C.  Christodoulopoulos, and
+     L. B. Soares, M. Ciaramita, J. Eisenstein, K. Ganchev,       A.  Mittal, “FEVER:  a  large-scale  dataset  for  fact
+       J. Herzig et al., “Attributed question answering: Evalua-        extraction and  VERification,”  in Proceedings  of  the
+      tion and modeling for attributed large language models,”       2018 Conference  of the North American Chapter  of
+     arXiv preprint arXiv:2212.08037, 2022.                         the Association for Computational Linguistics: Human
+[13] T.  Gao,  H.  Yen,  J.  Yu,  and  D.  Chen,  “Enabling       Language  Technologies,  Volume  1  (Long  Papers).
+
+=== PDF第9页 ===
+   New Orleans, Louisiana: Association for Computational
+      Linguistics, Jun. 2018, pp. 809–819. [Online]. Available:
+     https://aclanthology.org/N18-1074/
+[20] A. Cohan, W. Ammar, M. van Zuylen, and F. Cady,
+     “Structural scaffolds for citation intent classification in
+      scientific publications,” in Proceedings of the 2019 Con-
+     ference of the North American Chapter of the Association
+      for Computational Linguistics: Human Language Tech-
+     nologies, Volume 1 (Long and Short Papers).  Associa-
+      tion for Computational Linguistics, 2019, pp. 3586–3596.
+[21] K. Lo, L. L. Wang, M. Neumann, R. Kinney, and D. S.
+     Weld, “S2orc: The semantic scholar open research cor-
+     pus,” in Proceedings of the 58th Annual Meeting of the
+     Association for Computational Linguistics.  Association
+      for Computational Linguistics, 2020, pp. 4969–4983.
+[22] A.  Abolghasemi,  L.  Azzopardi,  S.  H.  Hashemi,
+    M. de Rijke, and S. Verberne, “Evaluation of attribution
+     bias  in  retrieval-augmented  large  language  models,”
+     2024.  [Online].  Available:  https://arxiv.org/abs/2410.
+    12380
+[23] S. Gururangan, A. Marasovi´c, S. Swayamdipta, K. Lo,
+       I. Beltagy, D. Downey, and N. A. Smith, “Don’t stop
+      pretraining: Adapt language models  to domains and
+      tasks,” in Proceedings of the 58th Annual Meeting of
+     the Association for Computational Linguistics, 2020, pp.
+     8342–8360.
+[24] D. Tilwani, Y. Saxena, A. Padia, S. Parthasarathy, and
+    M. Gaur, “Neurosymbolic ai for legal ai-trism: Trustwor-
+      thy, reliable, interpretable, safe models,” Neurosymbolic
+     AI: Foundations and Applications, pp. 429–454, 2026.
+[25] T. Saier and M.  F¨arber, “unarxive: a large scholarly
+     data set with publications’  full-text, annotated in-text
+      citations, and links to metadata,” Scientometrics, vol.
+     125, no. 3, pp. 3085–3108, 2020.
+[26] Y. Liu, Z.-Y. Dou, and P. Liu, “RefSum: Refactoring
+     neural  summarization,”  in  Proceedings  of  the 2021
+     Conference  of  the  North American  Chapter  of  the
+     Association  for  Computational  Linguistics: Human
+    Language Technologies, K. Toutanova, A. Rumshisky,
+     L. Zettlemoyer, D. Hakkani-Tur, I. Beltagy, S. Bethard,
+     R.  Cotterell,  T.  Chakraborty,  and  Y.  Zhou,  Eds.
+     Online:  Association  for  Computational  Linguistics,
+     Jun. 2021, pp. 1437–1448. [Online]. Available: https:
+     //aclanthology.org/2021.naacl-main.113/
+[27] Q. Hao, J. Fan, F. Xu, J. Yuan, and Y. Li, “Hlm-cite:
+     Hybrid language model workflow for text-based scien-
+       tific citation prediction,” Advances in Neural Information
+     Processing Systems, vol. 37, pp. 48 189–48 223, 2024.
+[28]  J. Zhang, A. Maatouk, J. Chen, N. Bui, Q. Xie, L. Tas-
+      siulas, H. Xu, J. Shao, and R. Ying, “Litfm: A retrieval
+    augmented structure-aware foundation model for citation
+     graphs,” in Proceedings of the 31st ACM SIGKDD Con-
+     ference on Knowledge Discovery and Data Mining V. 2,
+     2025, pp. 3728–3739.
+
+=== PDF第10页 ===
+                                                             Component        Model           SUPPLEMENTARY MATERIAL
+                                                              Embedding Model   BAAI/bge-small-en-v1.5
+  The REASONS  dataset  is  publicly  available on Zen-        Cross Encoder      ms-marco-MiniLM-L-12-v2
+odo (https://zenodo.org/records/18264033). The supplemen-       Llama Tokenizer     NousResearch/Llama-3.1-8b-chat-hf
+                                                                            Mistral Tokenizer    mistralai/Mistral-7B-v0.2tary material provides prompt templates, domain-level eval-
+uation results, model outputs, configuration files, retrieval and     TABLE VII: Retrieval and tokenization components.
+generation settings, and additional documentation required for
+                                                                  ture=1.0, top-p=1.0). For RAG-based experiments using Mis-reproduction.
+                                                                               tral and Llama models, generation employed stochastic de-
+A. Prompt Templates and Model Specifications                coding (temperature=1.0, top-p=0.95, max new tokens=300).
+ Task T1: Author Attribution                             For DeepSeek adversarial and retrieval experiments, greedy
+ Given the following paper title, identify the complete list of   decoding (do sample=False) was used to ensure reproducible
+  authors. If you are uncertain, output PASS.                     attribution behavior under controlled retrieval conditions.
+ Input: Paper title                                              All implementation details, including generation parame-
+ Output: Author list or PASS                                      ters (temperature, max tokens,  top-p), embedding models,
+                                                                        retrieval hyperparameters, and top-k values, are provided in
+ Task T2: Title Attribution                                 Suppl. Table  VII. The  cost  associated with  this research
+ Given the following citation sentence, identify the cited    includes expenses for utilizing OpenAI API, totaling $640.37.
+ paper title. If you are uncertain, output PASS.                 Additionally, the use of Perplexity API incurred costs
+ Input: Citation sentence                                 amounting to $259.39. Furthermore, GPU resources, we used
+ Output: Paper title or PASS                                  Replicate1 API for our experiments, amounted to $466.22. For
+                                                                   dataset creation, we used Oxylab for $249 for a month. In total,
+ Metadata-Augmented Prompt (T2)                                                                 the expenses for APIs were $1614.98.
+ Given the following citation sentence and metadata, identify                                                            Quality Control and Challenging Instances: We validate
+  the cited paper title.                                                                      citation  instances through exact matching between  in-text
+  If you are uncertain, output PASS.                                                                      citation strings and verified bibliographic metadata, removing
+ Sentence: citation sentence                                                      unmatched or malformed entries. However, we intentionally
+ Abstract: paper abstract                                                                      retain citation contexts that are fragmented, numeric-heavy, or
+ Authors: author list                                                                            difficult to interpret in isolation. Such cases naturally occur in
+ Output: Paper title or PASS                                                                         scientific writing and represent realistic attribution challenges.
+ CMP Prompt (T2)                                         Preserving these difficult examples enables a more rigorous
+  Identify the cited paper title.                                  evaluation of abstention and hallucination behavior, rather than
+  If uncertain, output PASS.                                        restricting the benchmark to only clean, self-contained citation
+ Stage 1 Input: Sentence only                                  contexts.
+ Stage 2 Input: Sentence + Abstract
+ Stage 3 Input: Sentence + Abstract + Authors               B. Adversarial attribution setting:
+ Output: Paper title or PASS                                                     To examine how attribution behavior changes when credibil-
+                                                                           ity cues are misleading, we introduce an adversarial evaluationModel Specifications
+                                                                        setting. In this setting, the attribution task remains unchanged,
+   • GPT-o1 (G1): OpenAI API with default decoding param-                                                               but the metadata provided to the model is deliberately per-
+      eters.                                                              turbed to be plausible yet incorrect. This allows us to test
+   • GPT-4o (G2): OpenAI API, temperature = 1.0, top-p =                                                         whether systems rely on surface-level similarity rather than
+     1.0, max tokens = 256.                                                                contextual alignment when justifying sources. Let x denote
+   • GPT-3.5-Turbo (G3): OpenAI API, temperature = 1.0,                                                                 the query input (paper  title for Task T1 or cited sentence
+     top-p = 1.0, max tokens = 256.                                                                    for Task T2), and let m denote the correct citation metadata.
+   • pplx-7b-chat (P): evaluated through the Perplexity API.                                                     Under standard conditions, the model produces an attribution
+   • DeepSeek-R1        (D):       greedy       decoding                                                                                                     ˆc =  f(x, m). For  adversarial  evaluation, we  replace m
+    (do_sample=False).                                                           with perturbed metadata ˜m such that ˜m ̸= m but remains
+   • Mistral-7B-v0.2-Instruct (M): temperature = 1.0, top-p                     adv                                                              highly  similar:  ˆc   =  f(x, ˜m), where sim(m, ˜m) ≥τ.
+    = 0.95, max new tokens = 300.                                                            Here, sim(·, ·) denotes a similarity function and τ ≥0.85
+   • Llama-3.1-8B-Chat (L): temperature = 1.0, top-p = 0.95,                                                                               is a threshold chosen  to ensure  substitutions are  realistic
+   max new tokens = 300.                                                       and difficult to distinguish based on surface cues alone. For
+  Experiments were conducted on NVIDIA A100 and L40S   Task T1, adversarial inputs are constructed by replacing the
+GPUs. Resources will be released upon publication. For zero-   correct paper  title with a  similar but  incorrect  title. For
+context, metadata-augmented, and CMP experiments, API-   Task T2, adversarial inputs are created by substituting either
+based models (GPT-4o, GPT-3.5,  Perplexity) were  evalu-
+ated using their standard sampling configuration (tempera-      1https://replicate.com/
+
+=== PDF第11页 ===
+  Group         AR (%)    HR (%)    BLEU          detection problem, thereby validating our automated measure-
+      Adversarial Setting: Changing Paper Title (Task T2)       ment approach. The remaining 144 instances (28.8%) were
+                                                          judged as “Partially Correct” by human annotators—cases
+  GPT-o1             96.23         17.99         0.6210
+   (reasoning)                                            where models identified the correct general paper but with
+  GPT-4o             31.45         83.66         0.0524         incomplete or slightly inaccurate information (e.g., missing co-
+  GPT-3.5            68.55         87.35         0.0389          authors, abbreviated journal names, minor title variations that
+  D                  89.31         61.31         0.0178
+                                                       changed meaning). Our automated HR metric conservatively
+  RAG(M)            3.14          86.78         0.0796
+  RAG(L)             5.03          87.56         0.0628         counts these as errors, accounting for the slight divergence
+  AdvRAG(L)         0.00          85.72         0.1322        between automated and human-judged error rates in Table VI.
+  AdvRAG(M)        0.00          75.41         0.1569         Abstention appropriateness findings. Across the 500 pass
+    Adversarial Setting: Changing Paper Abstract (Task T2)       instances, human experts judged 271 abstentions (54.2%) as
+                                                                appropriate (the model correctly declined when evidence was  GPT-o1             95.60         38.49         0.4595
+   (reasoning)                                                           insufficient,  e.g., zero-context ambiguous queries) and 229
+  GPT-4o             32.70         86.22         0.0396         (45.8%) as unnecessary  (the model could have answered
+  GPT-3.5            76.10         91.64         0.0034         given available evidence, e.g., when complete metadata was
+  DeepSeek           93.08         94.72         0.0000
+  RAG(M)            7.55          89.44         0.0520          provided). This near-even split indicates that current LLMs
+  RAG(L)             2.52          90.16         0.0445          miscalibrate abstention decisions, oscillating between over-
+  AdvRAG(L)         0.00          39.67         0.4101         caution when evidence suffices and answering when abstention
+  AdvRAG(M)        0.00          39.57         0.4904                                                                               is warranted. It also motivates evaluating AR and HR jointly
+TABLE VIII: Attribution behavior under adversarial metadata   rather than optimizing either in isolation: very low AR can
+in Task T2. Either the cited paper title or abstract is replaced   yield confident but incorrect answers (epistemic risk), while
+with a highly similar but incorrect alternative. Adversarial   very high AR can lead to unnecessary abstentions (reduced
+metadata substantially increases hallucination while suppress-    utility).
+ing abstention, revealing a tendency to assert sources under
+misleading credibility cues.
+
+the cited paper title or abstract with a highly similar alternative.
+No additional training or fine-tuning  is performed in  this
+setting. This isolates attribution behavior under misleading
+evidence and allows us to observe whether systems abstain
+or confidently assert incorrect attribution.
+Attribution  behavior under  adversarial  metadata: When
+titles/abstracts are replaced with highly similar but incorrect
+alternatives, HR increases sharply and AR often decreases (Ta-
+ble VIII). Some proprietary models increase AR, but retrieval-
+driven systems commonly continue to answer. Models over-
+weight semantic proximity and “credibility signals” (paper-
+like text), treating them as confirmation. RAG pipelines can
+inadvertently validate the wrong candidate by retrieving a
+coherent-looking neighbor document. This is not just a worst-
+case  attack;  it demonstrates a common real-world  failure:
+near-duplicate literature and ambiguous citations can trigger
+confident misattribution.
+
+C. Human Evaluation
+
+Analysis  of paraphrase  cases. Among the 500 non-pass
+instances evaluated, only 26 (5.2%) involved semantically
+correct paraphrases  that automated metrics incorrectly pe-
+nalized  (e.g., “Reliable Attribution  in  Scientific Language
+Models” vs. “Trustworthy Attribution for Scholarly Language
+Models”, author name variations like “A. Vaswani” vs. “Ashish
+Vaswani”). Conversely, 330 instances (66.0%) were factually
+incorrect hallucinations that both automated metrics and hu-
+man experts identified (wrong paper, wrong authors, fabricated
+titles). This 12.7:1 ratio (330:26) confirms that hallucination
+is predominantly a factual error problem, not a paraphrase-

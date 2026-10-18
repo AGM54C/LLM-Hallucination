@@ -1,0 +1,941 @@
+
+=== PDF第1页 ===
+     Scientific Fact-Checking: A Survey of Resources and Approaches
+
+                         Juraj Vladika and Florian Matthes
+                          Department of Computer Science
+                              Technical University of Munich
+                                  Garching, Germany
+                 {juraj.vladika, matthes}@tum.de
+
+
+                Abstract                   One way how the Internet has benefited society
+                                                               is by making scientific knowledge easily accessi-
+   The task of fact-checking deals with assessing         ble, transferable, and searchable in a matter of sec-
+    the veracity of factual claims based on credi-       onds. Inevitably, this has introduced new risks and
+    ble evidence and background knowledge. In                                                   challenges – it has become difficult to discern reli-
+     particular, scientific fact-checking is the varia-                                                     able sources from dubious content. Many scientific
+    tion of the task concerned with verifying claims
+                                                  claims found in online articles, social media posts,    rooted in scientific knowledge. This task has
+    received significant attention due to the grow-       or news reports are not always trustworthy and
+    ing importance of scientific and health discus-      backed by reliable evidence. Furthermore, not only
+    sions on online platforms. Automated scientific        are humans prone to creating inaccurate informa-
+    fact-checking methods based on NLP can help        tion – modern generative language models can also
+   combat the spread of misinformation, assist       produce misleading text that sounds convincing.
+    researchers in knowledge discovery, and help                                                   All of these factors, combined with the quick pace
+    individuals understand new scientific break-
+                                                           at which content is proliferated online, contribute    throughs.  In this paper, we present a com-
+                                                      to the spread of misinformation, which has nega-    prehensive survey of existing research in this
+    emerging field and its related tasks. We provide        tive societal consequences (West and Bergstrom,
+    a task description, discuss the construction pro-       2021).
+    cess of existing datasets, and analyze proposed         Fact-checking is the task of assessing the verac-
+    models and approaches. Based on our findings,                                                               ity of factual claims appearing in written or spoken
+   we identify intriguing challenges and outline
+                                                     sources. It is traditionally performed manually by    potential future directions to advance the field.
+                                                    experts in journalism and dedicated applied fields.
+                                            Automated fact-checking appeared as an approach1  Introduction                                           where methods of Natural Language Processing
+In today’s digital age, vast amounts of data are gen-   (NLP) and Machine Learning (ML) are used to as-
+erated and new scientific breakthroughs achieved     sist experts in making these decisions or completely
+at a rapid pace. With millions of scientific articles    automating the whole process (Nakov et al., 2021).
+being published annually, it has become increas-   Fact-checking becomes especially relevant during
+ingly challenging for researchers and the general   major political events like elections or referendums
+public to stay informed about the latest develop-   because of a sharp increase in deceptive and propa-
+ments and discoveries across various fields. On    gandist content. Most recently, the COVID-19 pan-
+top of that, an especially challenging task for re-   demic has brought the scientific discourse and the
+searchers is finding appropriate evidence for sci-   misinformation that comes with it into the spotlight.
+entific claims and research hypotheses they are   Medical misinformation is especially dangerous be-
+currently investigating. Exploring large academic    cause it has influenced people to try unproven cures
+databases and thoroughly examining scientific pub-   and treatments and make harmful health-related de-
+lications in them in order to verify specific facts is    cisions. (Roozenbeek et al., 2020; Pennycook et al.,
+a time-consuming process. Automating the process    2020).
+of fact-checking scientific claims using methods    We define scientific fact-checking as a subset of
+based on Natural Language Processing (NLP) for    the fact-checking task concerned with verifying the
+knowledge exploration and evidence mining can    veracity of claims related to scientific knowledge.
+greatly aid researchers in these efforts.            While the primary role of general fact-checking is
+
+                                        6215
+                 Findings of the Association for Computational Linguistics: ACL 2023, pages 6215–6230
+                             July 9-14, 2023 ©2023 Association for Computational Linguistics
+
+=== PDF第2页 ===
+to help detect misinformation and curb its spread,    this task in NLP contain rewritten Wikipedia sen-
+scientific fact-checking additionally aids scientists    tences as claims and annotated articles as evidence
+in testing their hypotheses and helps wider audi-   (Thorne et al., 2018; Jiang et al., 2020). For real-
+ences contextualize new scientific findings. The   world settings, datasets were constructed by col-
+most popular scientific domain in scientific NLP    lecting claims and expert-written verdicts from ded-
+research is the biomedical domain (Rajpurkar et al.,    icated fact-checking websites, such as PolitiFact
+2022), but insights learned from it can be gener-   (Vlachos and Riedel, 2014), Snopes (Hanselowski
+alized to other scientific domains. Scientific fact-    et al., 2019), or MultiFC (Augenstein et al., 2019)
+checking can be performed both over the highly   which draws from 26 fact-checking portals. This
+structured and complex language of science found    type of datasets usually contains claims currently
+in research publications and over the more easily    trending in society, related to topics from world
+understandable language found in news articles and   news, politics, media, or online rumors and hoaxes.
+online postings meant for lay audiences. Many sci-
+                                                    2.2   Scientific Fact-checkingentists have decried the misinterpretation of their
+work when presented in the news press (Yavchitz  We define scientific fact-checking as a variation
+et al., 2012), which makes scientific fact-checking    of the fact-checking task that deals with assessing
+even more relevant in bridging the gap between    claims rooted in scientific knowledge. The dom-
+these two registers by performing an evidence-   inant purpose of general fact-checking is to com-
+based assessment of scientific discoveries.           bat the spread of misinformation, while scientific
+  Considering the constantly increasing amount of    fact-checking has the additional motive of helping
+misinformation in the digital era and the expanding    scientists verify their research hypotheses, discover
+number of scientific publications, the interest in    evidence, and facilitate scientific work. Scientific
+developing automated fact-checking solutions and    fact-checking comes with specific challenges not
+efficient resources for it is on the rise. We present   always present in general fact-checking, such as:
+this survey to systematize the existing work in this
+                                                                 • Claims:  Facts to be checked can be re-area. To the best of our knowledge, this is the first
+                                                       search hypotheses that scientists want to ver-survey on fact-checking with a specific focus on
+                                                                       ify, claims made by everyday social mediathe scientific domain. Our three main contributions
+                                                            users, or queries posed to search enginesare:
+                                                       dealing with scientific concepts (e.g., health-
+  1. We describe existing datasets for scientific         related concerns).
+     fact-checking, including their construction
+                                                                 • Evidence: Scientific knowledge is constantly     process and main characteristics.
+                                                      evolving when new research is conducted,
+  2. We analyze the developed approaches and       which can make previous evidence obsolete
+    models for solving the task of scientific fact-       and invalid. Moreover, different studies can
+     checking, focusing on their components and      come to diverging conclusions which com-
+     design choices.                                        plicates the final assessment of a claim. In
+                                                                clinical settings, this obstacle is facilitated by
+  3. We outline general findings, identify chal-        systematic reviews, which provide levels of
+     lenges, and highlight promising future direc-        evidence and strength of recommendations for
+     tions for this emergent task.                      any decision.
+
+2  Task Definition                                        • Domain: The scientific language used in re-
+                                                      search publications is highly complex and
+2.1  General Fact-checking                                                         contains domain-specific terminology, which
+In general, fact-checking can be defined as the task         presents a challenge for a general-purpose lan-
+of assessing whether a factual claim is valid based        guage model. This requires adapting the NLP
+on evidence. It is a time-consuming task that is still        systems to the scientific domain. On top of
+usually performed manually by journalists. Auto-          that, scientific text often contains relations be-
+mated approaches based on NLP have emerged to       tween concepts spanning multiple sentences,
+help assist humans in parts of the fact-checking       which makes representation of the full context
+process. Popular datasets used for benchmarking       and long-text modeling an essential aspect.
+
+                                        6216
+
+=== PDF第3页 ===
+    • Structure: The highly structured nature of   2022) and by Zuo et al. (2022), where annotators
+      scientific knowledge makes it convenient to    helped construct a dataset of health-related claims
+    model it with structured representations like   from news articles.
+    knowledge graphs, which can aid the fact-     Automatic gathering of evidence for scientific
+    checking process. On the other hand, sci-   claims constitutes another line of research. There is
+      entific publications commonly include differ-   work in this area focusing on humanities and social
+     ent visualization techniques like tables, charts,   sciences (Stahlhut, 2021), although the majority
+    and figures, all of which introduce additional    of work we found is once again in life sciences.
+    multimodal challenges to verification.         Numerous tools have been developed for searching
+                                         PubMed, the largest database of biomedical pub-
+  These characteristics and other challenges with                                                        lications (Lu, 2011), such as PubTator (Wei et al.,
+scientific fact-checking will be discussed in more                                                 2019), Textpresso (Müller et al., 2018), LitSense
+detail in the following sections, especially in the                                                     (Allot et al., 2019), and EvidenceMiner (Wang
+Discussion section.                                                           et al., 2020). These methods usually look at the
+                                               posed query (claim) and detect named entities, key-3  Related Tasks
+                                                words, or metadata patterns to retrieve relevant re-
+In this section, we present tasks related to scientific    sults from the database. The end goal of this pro-
+fact-checking. We group them into three categories:   cess is to help scientists gather evidence for their
+(1) tasks related to misinformation detection; (2)    research, while in fact-checking, evidence retrieval
+retrieval of claims, arguments, and evidence from     is just one component of the whole process.
+text; and (3) NLP tasks in the scientific domain.
+                                                    3.3   Scientific NLP Tasks3.1  Misinformation Detection
+                                                          Scientific fact-checking belongs to a group of NLPSince the principal function of fact-checking is to
+                                                     tasks dealing with scientific text understanding.curb the spread of misinformation, it naturally be-
+                                            These tasks share a common challenge: workinglongs to a group of NLP tasks concerned with mis-
+                                                with highly complex scientific language and spe-information detection. Related tasks in this domain
+                                                             cific terminology.  This has become even moreinclude fake news detection (Zhou and Zafarani,
+                                                  apparent with the underwhelming performance of2020), propaganda detection (Da San Martino et al.,
+                                                        large language models, pre-trained on vast amounts2021), rumor detection (Bian et al., 2020), or stance
+                                                    of news data and web content, on NLP tasks in thedetection (Hardalov et al., 2022). While most of
+                                                            scientific domain. Domain adaption is an essentialthese tasks deal with misinformation related to
+                                                   cornerstone of modern NLP models working withpolitics and society, recently, there has been an
+                                                     specialized domains.increase in scientific and health-related misinfor-
+mation detection, especially pertaining to content     The task of Natural Language Inference (NLI),
+related to the COVID-19 pandemic (Shahi and Nan-   commonly equated with Recognizing Textual En-
+dini, 2020; Hossain et al., 2020; Antypas et al.,   tailment (RTE), is the task of inferring whether a
+2021).                                         premise entails or contradicts a given hypothesis.
+                                                 This task is a crucial component of automated fact-
+3.2  Claim Detection and Evidence Mining       checking since predicting the final veracity of the
+A crucial prerequisite for automated fact-checking   claim is modeled entailment recognition between
+is devising methods that detect claims in the open   a claim and found evidence. For the scientific do-
+domain. To achieve this, Yuan and Yu (2019) used a   main, datasets like MedNLI, which features medi-
+rule-based system to identify health claims in news    cal claims rooted in the medical history of patients
+headlines, while Wührl and Klinger (2021) develop   (Romanov and Shivade, 2018); SciNLI, which has
+a BERT-based model to detect biomedical claims    claims from the domain of computational linguis-
+in social media posts. After the claims are detected,    tics (Sadat and Caragea, 2022); and NLI4CT, with
+an important next step is determining whether a    claims and evidence that originate from clinical
+claim is check-worthy since all claims are deemed     trials reports of breast cancer patients (Vladika and
+relevant or interesting enough to be fact-checked.   Matthes, 2023).
+Check-worthiness for scientific claims was studied     Another knowledge-intensive NLP task related
+in the shared task CLEF-CheckThat! (Nakov et al.,    to fact-checking is question answering.  In par-
+
+                                        6217
+
+=== PDF第4页 ===
+    Dataset                                 # Claims   Claim Origin   Evidence Source   Domain
+
+   SCIFACT (Wadden et al., 2020)                 1,409     Researchers     Research papers     Biomedical
+
+   PUBHEALTH (Kotonya and Toni, 2020b)        11,832    Fact-checkers    Fact-checking sites   Public health
+
+   CLIMATE-FEVER (Diggelmann et al., 2020)     1,535    News articles    Wikipedia articles    Climate change
+
+   HEALTHVER (Sarrouti et al., 2021)              1,855     Search queries   Research papers      Health
+
+   COVID-FACT (Saakyan et al., 2021)            4,086     Reddit posts     Research, news     COVID-19
+
+   COVERT (Mohr et al., 2022)                  300      Twitter posts     Research, news      Biomedical
+
+
+                Table 1: Datasets for the task of scientific fact-checking and claim verification
+
+ticular, open-domain question answering aims to   IEEE Explore,2 and ACM Digital Library3 with
+find answers to given questions in unstructured    the search string ("scientific" OR "biomedical")
+textual corpora (Karpukhin et al., 2020), reminis-  AND ("fact checking" OR "fact verification" OR
+cent of the process of finding relevant evidence for   "claim verification"). Retrieved articles were col-
+given claims in fact-checking. Popular datasets    lected and the list was further expanded with any
+for biomedical QA are BioASQ (Tsatsaronis et al.,    cited or citing paper from the initial batch of arti-
+2015) and PubMedQA (Jin et al., 2019). Another    cles, according to Semantic Scholar.4 In order for
+important benchmark is BLURB (Biomedical Lan-   a dataset to be considered a fact-checking dataset,
+guage Understanding and Reasoning Benchmark),  we stipulate it needs to provide claims, evidence
+introduced by Gu et al. (2022) to measure the per-    (either documents or sentences), and final verac-
+formance of models in six different natural lan-    ity labels. Such a dataset enables both the task of
+guage understanding tasks over biomedical text.   evidence retrieval and verdict prediction. This is
+Finally, automated evidence synthesis is a task that    important because the end goal of many automated
+aims to automate the process of creating systematic    fact-checking systems is to emulate the work of
+reviews for clinical trials (Brassey et al., 2021).       experts, where both seeking the evidence and mak-
+                                                  ing conclusions based on them constitute the pro-
+3.4  Related Surveys                                 cess. This requirement narrowed the final list to the
+                                                      datasets summarized in Table 1. In the remainderThere are already existing surveys that cover gen-
+                                                   of the section, we will describe the process anderal automated fact-checking (Thorne and Vlachos,
+                                                   challenges related to constructing datasets.2018; Zeng et al., 2021; Guo et al., 2022) by formal-
+izing the task, outlining the most important datasets
+                                                    4.1  Claim Creationand proposed solutions, and discussing challenges.
+The survey by Kotonya and Toni (2020a) focuses   The starting point in the dataset construction pro-
+on explainability methods in existing fact-checking    cess is collecting the claims that will later be fact-
+approaches and present the most important explain-   cheked. Claims in fact-checking are usually di-
+ability aspects these systems should satisfy. The   vided into synthetic, referring to claims written
+survey by Bekoulis et al. (2021) focuses on ap-   by annotators (e.g., by modifying sentences from
+proaches for tackling FEVER, the most popular   Wikipedia), and natural, which are those claims
+dataset for fact verification (Thorne et al., 2018).     crawled from real-world sources like fact-checking
+                                                              sites or social media posts. The first type of claims
+4  Datasets                                 end up being fluent, atomic, and decontextualized,
+                                           which is very appropriate for processing by NLP
+In this section, we outline the existing datasets for                                              models (Wright et al., 2022b). Other authors focus
+scientific fact-checking that we found in the liter-                                           on more organic and noisy claims found in online
+ature. The discovery process started with query-
+ing the well-known databases ACL Anthology,1      2https://ieeexplore.ieee.org/
+                                               3https://dl.acm.org/
+  1https://aclanthology.org/                  4https://www.semanticscholar.org//
+
+                                        6218
+
+=== PDF第5页 ===
+posts since such claims are usually relevant and     The SCIFACT dataset pairs the claims with ab-
+interesting to be fact-checked automatically (Mohr    stracts of those scientific publications where they
+et al., 2022).                                        originated from, adding distractor abstracts to
+  One common approach is to take original sen-   make detecting appropriate evidence more chal-
+tences from an appropriate source and have anno-   lenging. Likewise, claims in HEALTHVER are also
+tators reformulate them to a cleaner form. The   mapped to appropriate scientific publications found
+dataset SCIFACT features biomedical claims that   by the annotators.  Datasets COVID-FACT and
+originate from human-written citation sentences in  COVERT feature a combination of both scientific
+research articles but with the final form rewritten    publications and news articles as their evidence
+by annotators to make them more atomic and easily    source, while PUBHEALTH uses solely the web
+processed. Similarly, claims in HEALTHVER origi-    articles from fact-checking websites where their
+nate from Bing snippets of the most-searched user   claims originated from. In the same way as the
+queries related to health and COVID-19, eventu-    original FEVER dataset, CLIMATE-FEVER uses
+ally reformulated by annotators. In the same vein,   Wikipedia articles as its evidence source.
+CLIMATE-FEVER contains sentences related to
+                                                    4.3  Class Labelsclimate change extracted from online blogs and
+news websites, rewritten by annotators.             Another integral component of dataset construction
+  The remaining datasets from Table 1 relied on     is labeling the claims with appropriate veracity la-
+completely automatically retrieving claims. PUB-    bels. Following the tradition set by the FEVER
+HEALTH used news titles from fact-checking ar-   dataset (Thorne et al., 2018), most of the datasets
+ticles related to public health as its claims. This    include three labels: SUPPORTED, REFUTED, and
+assumption works in many cases where titles are   NOT ENOUGH INFORMATION (NEI). The defini-
+indeed factual claims, but some examples in the    tion of the NEI label has a different meaning in
+final dataset are generic titles with no relevance for    different datasets. In SCIFACT , this label refers
+fact-checking. COVID-FACT scraped claims from    to those claims for which none of the candidate
+posts of a highly moderated subreddit r/COVID19,    abstracts contain suitable evidence to make a deci-
+where users were already required to make atomic    sion. In other datasets, it refers to the case where
+claims in their post titles. They also automatically    relevant evidence itself implies or states that there
+constructed all of their negative (refuted) claims     is currently not enough information to make a re-
+with word in-filling from masked language models,    liable and informed conclusion about the claim’s
+which ended with some unusable examples.  Fi-    veracity. Additionally, the dataset PUBHEALTH
+nally, COVERT  is the only dataset in the list that     is the only one to feature a MIXED label, a label
+features completely organic claims found in Twit-   denoting a claim that consists of multiple factual
+ter posts. They used a biomedical claim detection    statements with opposite veracity labels.
+model Wührl and Klinger (2021) to extract claims
+that feature a causative relation and also included   5  Approaches
+mentions of any biomedical entities.
+                                                   In this section, we describe different modeling
+                                               approaches devised for the task of scientific fact-
+4.2  Evidence Set Construction                                                   checking. The standard framework usually consists
+Once the claims are collected, the next step is pair-   of three major components that can all be mod-
+ing them with appropriate evidence that addresses    eled as well-established NLP tasks: document re-
+their veracity. The evidence source are often sci-    trieval, evidence (rationale) selection, and verdict
+entific publications, featuring highly complex and    prediction (Zeng et al., 2021). This framework is
+structured scientific language, or more easily under-   visualized in Figure 1.
+standable sources like news articles and Wikipedia      Table 2 summarizes the models we found in
+articles. While working with text from scientific    the literature, developed for the scientific fact-
+publications is more challenging both for humans   checking datasets from the previous chapter, with
+and NLP models alike, they provide more rigor-    three framework components in each of them high-
+ous scientific evidence. On the other hand, the    lighted. While the most common approach is build-
+general-purpose text provides evidence in a more    ing separate models for each element and applying
+explainable and intuitive form to a wider audience.   them in a pipeline, the best-performing systems
+
+                                        6219
+
+=== PDF第6页 ===
+                                          on the MS MARCO passage dataset used for ma-
+                                                   chine reading comprehension (Nguyen et al., 2016).
+                                   On the other hand, ParagraphJoint and ARSJoint
+                                              used the dense vector representation BioSentVec
+                                           (Chen et al., 2019), which was trained from 30
+                                                    million biomedical publications and clinical notes.
+                                                   Searching for evidence in a small corpus of doc-
+                                            uments (5k in SCIFACT ) is useful for experimen-
+                                                                tal settings but not realistic for real-world settings
+                                           where large databases with millions of scientific
+                                                    publications have to potentially be queried to find
+                                                    appropriate evidence. When expanding document
+                                                            retrieval for SCIFACT to 500k documents in (Wad-
+                                            den et al., 2022a) and using the same BM25 + T5
+Figure 1: The standard three components of the frame-   re-ranking approach, the authors noticed perfor-
+work for automated scientific fact-checking           mance drops of at least 15 points in the final F1
+                                                  score of veracity prediction. This shows the need
+                                                         for a more precise semantic search of evidence doc-
+jointly learn the rationale selection and verdict pre-                                                uments. The authors of COVID-FACT tackle this
+diction with a shared representation. The dataset                                           by using snippets of the top 10 results returned by
+SCIFACT has the most models developed for it,                                             Google Search API for a given claim. This mimics
+partly owing to the shared task SCIVER (Wadden                                     how humans would approach fact-checking, but
+and Lo, 2021). For some of the datasets, we did                                                       usually, additional verification of source quality
+not find dedicated models other than baselines pro-                                             and trustworthiness is needed in such an approach.
+vided in their originating papers. We analyze each
+part of the framework in more detail.                                                    5.2  Evidence Selection
+5.1  Document Retrieval                       Evidence selection is the task of selecting relevant
+Given a corpus of documents that serve as the    rationale sentences from the previously retrieved
+knowledge source, document retrieval is concerned   documents to be used as evidence for claim veracity
+with retrieving the relevant documents that might    prediction in the next step. Even though this step
+contain evidence related to the claim. It is usually   can be modeled as a span detection task, evidence
+solved with approaches typical for Information Re-    is usually modeled at a sentence level. It can then
+trieval. These can be separated into sparse retrieval   be taken as a binary classification task of predicting
+and dense retrieval approaches. Sparse retrieval   whether a sentence is relevant or irrelevant. Most
+uses ranking functions such as TF-IDF and BM25,   commonly, top k sentences are selected, similarly
+which match exact keywords in a query with an    to the document retrieval step.
+inverted index of all words from the corpus. Con-   A common approach to evidence selection is
+versely, dense retrieval deploys dense vector repre-    to deploy models for sentence similarity and take
+sentations of queries, which consider the semantic    those sentences that are the most similar to the
+meaning of the query and can catch synonyms and   claim being checked.  The baselines for PUB-
+related concepts (Karpukhin et al., 2020).         HEALTH and COVID-FACT both use the Sentence-
+  For SCIFACT, the document retrieval task fo-  BERT model (Reimers and Gurevych, 2019) to
+cuses on retrieving relevant abstracts from a cor-    retrieve the top 5 most similar sentences. Sentence-
+pus of around 5 thousand given scientific abstracts.  BERT is a model based on siamese networks and
+The baseline model VeriSci uses the simple TF-IDF    provides semantically rich sentence embeddings
+metric to retrieve top k relevant abstracts. The mod-    that can easily be compared using cosine-similarity.
+els VerT5erini and later MultiVerS use the approach   VerT5erini uses a T5 model fine-tuned on MS
+of first retrieving top k relevant abstracts using the  MARCO (same as in the previous step) for this
+BM25 metric and then adjusting the rankings using    task.
+a T5 (Raffel et al., 2020) neural pointwise re-ranker     While using sentence similarity for evidence se-
+based on (Nogueira et al., 2020), which is trained    lection is a straightforward and intuitive approach,
+
+                                        6220
+
+=== PDF第7页 ===
+                            Document       Rationale        Verdict
+ Dataset     Model              Retrieval         Selection        Prediction       Result
+                                                                                      (F1)
+                VeriSci  (Wadden  TF-IDF       BERT        BERT           0.395
+                   et al., 2020)
+                ParagraphJoint (Li  BioSentVec     BERT + MLP /  BERT + MLP    0.609
+                   et al., 2021)                  BERT + KGAT
+               VerT5erini       BM25 + T5 re-  T5  (tuned  on  T5   (no   fine-  0.634
+  SCIFACT    (Pradeep   et   al.,  ranker (tuned on  MS MARCO)     tuning)
+              2021)         MS MARCO)
+             ARSJoint (Zhang  BioSentVec      BioBERT, MLP  BioBERT, MLP   0.655
+                   et al., 2021)
+              MultiVerS  (Wad- BM25 + T5 re-  Longformer (bi-  Longformer      0.672
+              den et al., 2022b)    ranker           nary head)        (ternary head)
+ COVERT     Zero-shot   Mul- BM25 + T5 re-  Longformer (bi-  Longformer      0.620
+                tiVerS (Wührl and   ranker           nary head)        (ternary head)
+                Klinger, 2022)
+ PUBHEALTH  Baseline (Kotonya  provided        Sentence-BERT  SciBERT        0.705
+              and Toni, 2020b)
+ CLIMATE-   ClimateBERT (We-  provided         provided        ClimateBERT    0.757
+ FEVER        bersinke et al., 2021)
+ HEALTHVER  Baseline (Sarrouti  provided         provided         T5-base          0.796
+                   et al., 2021)
+ COVID-     Baseline (Saakyan  Google Search   Sentence-BERT  RoBERTa (fine-  0.820
+ FACT           et al., 2021)                                            tuned on GLUE)
+
+Table 2: Models developed for scientific fact-checking with three pipeline components and verdict prediction
+performance on their respective dataset
+
+
+it can fall short because evidence sentences could    during final label prediction. ParagraphJoint uses
+be paraphrased or use rather different wording from  BERT (Devlin et al., 2019) as the encoder model,
+the original claim.  Consequently, Wright et al.   while ARSJoint uses the domain-specific BioBERT
+(2022a) improve the performance of evidence selec-   model (Lee et al., 2020), pre-trained on the text of
+tion on COVERT and COVID-FACT datasets by   biomedical research publications. Evidence selec-
+fine-tuning sentence similarity models on pairs of    tion is performed by passing the representation of
+sentences about scientific findings from scientific   each candidate sentence (extracted from the full
+articles matched with paraphrased sentences from    abstract representation) to a multi-layer perceptron
+news and social media reporting on these findings.  (MLP) classifier. Likewise, MultiVerS obtains the
+                                                            joint claim-abstract representations and perform ra-
+  In all mentioned approaches, evidence selection                                                        tionale selection with the Longformer model (Belt-
+and verdict prediction are made with two separate                                            agy et al., 2020), a transformer model for long
+models, which means that the final claim veracity                                             documents that takes up to 4096 tokens.
+predictor might not have knowledge of the full con-
+text of evidence. ParagraphJoint, ARSJoint, and                                                    5.3  Verdict Prediction
+MultiVerS are so-called joint models because they
+all use multi-task learning to jointly learn the tasks   The final step of the fact-checking pipeline is for a
+of rationale selection and verdict prediction. For   model to produce the verdict on a given claim’s
+this purpose, they use a shared representation of    veracity. As mentioned in the datasets section,
+the claim and the abstract obtained by concatenat-   the most common setting is to have three labels
+ing the claim with the full abstract of a candidate   (SUPPORTED, REFUTED, NOT ENOUGH INFOR-
+document and converting it to a dense representa-   MATION), although models developed for one set
+tion. This alleviates the problem of missing context    of labels can be adapted to a dataset with a differ-
+
+                                        6221
+
+=== PDF第8页 ===
+ent set of labels. This component can easily be   come supported with more substantial, more recent
+modeled as a classification task where the classifier    evidence. Time-aware scoring for evidence rank-
+learns to predict one of the three classes. All the    ing was explored for general fact-checking (Allein
+baselines from Table 2 perform this task by fine-    et al., 2021). Additionally, scientific sources can
+tuning large language models for label prediction    contradict one another and give differing results
+on their respective datasets. The base models used    for the same research hypotheses, which is related
+include the general-purpose BERT or T5 and the    to the ML concept of learning with label disagree-
+domain-specific BioBERT and SciBERT (Beltagy   ment (Uma et al., 2021). In the medical field, sys-
+et al., 2019) models. These models receive as their    tematic reviews provide evidence-based clinical
+input pairs of claims and accompanying rationale   recommendations with the level of evidence (how
+sentences selected in the previous step and then   much testing was performed) and the strength of
+give the final output as output.                    recommendation (is it just a hint or a strict medical
+  As described previously, the joint models devel-   recommendation) (Cro et al., 2020). So far, none
+oped for solving SCIFACT use multi-task learning    of the datasets have taken into account the evidence
+to learn both the evidence selection and verdict    that is changing with time, disagreeing evidence, or
+prediction steps with a shared claim+abstract repre-    differing levels and strength of evidence. A promis-
+sentation. Both ParagraphJoint and ARSJoint again    ing research direction is constructing resources and
+use a dedicated MLP that takes the previous step’s   benchmarks that would consider these intricacies
+representation. At the same time, ParagraphJoint    of scientific fact-checking.
+also experimented with Kernel Graph Attention                                             Reasoning and Explainability. Fact-checking
+Network (KGAT), which performed well for gen-                                                               is one of the NLP tasks where making the mod-
+eral fact-checking datasets by learning relations                                                         els and their decision process transparent and ex-
+between evidence sentences using a graph struc-                                                      plainable to humans is of high importance for their
+ture (Liu et al., 2020). MultiVerS once again uses                                                  wide-scale adoption (Augenstein, 2021). Modern
+the Longformer model, this time with a three-way                                               deep neural models for NLP tasks are generally de-
+classification head over the encoding of the entire                                                     scribed as black-box models, and their inner work-
+claim and rationale sentences.                                                    ings are still hard to grasp completely. While there
+  The MultiVerS model was also used in a zero-                                               have been explainable approaches for general fact-
+shot setting by Wührl and Klinger (2022) to fact-                                                  checking, the only explainable method in this sur-
+check the COVERT dataset. Since this dataset con-                                             vey was proposed by Kotonya and Toni (2020b).
+sists of tweets and is pretty noisy when compared                                                                       It uses a combination of extractive and abstractive
+to expert-written claims found in SCIFACT , the                                                          text summarization of evidence source documents
+authors transformed the tweets into atomic claims                                                        to provide end users with a concise explanation of
+consisting of triples (entity, cause, entity). Such                                     why a certain verdict was produced. Considering
+a representation significantly improved the perfor-                                                         that scientists often present their thoughts with ar-
+mance on this dataset and showed that models de-                                               gumentative structures (Lauscher et al., 2018), a
+veloped for one scientific fact-checking dataset can                                                 promising research approach is learning the concep-
+provide promising results for other datasets when                                                         tual relations between multiple pieces of evidence
+the claims are represented in an appropriate form.                                                      to come up with a conclusion. This was used by
+                                               Krishna et al. (2022) to develop a neuro-symbolic
+6  Discussion                                          model that learns logical relations between evi-
+                                             dence sentences for FEVER. Another promisingIn this chapter, we discuss the current challenges
+                                                   research avenue is using counterfactual explana-in scientific fact-checking and provide directions
+                                                            tions, which have proven useful in many NLP tasksfor future work and trends.
+                                             (Keane et al., 2021).  Evidence quality. A common challenge in fact-
+checking is ensuring that the evidence used for mak-     Dataset size.  A common obstacle in fact-
+ing veracity decisions is appropriate and of high   checking for all domains and related misinfor-
+quality. Especially in scientific fact-checking, the   mation detection tasks is the small size of exist-
+nature of scientific knowledge is such that it is up-   ing datasets. One way to overcome this perfor-
+dated and readjusted as new discoveries appear, so   mance hindrance is combining multiple scientific
+a claim that was once refuted by evidence could be-   fact-checking datasets or datasets for related NLP
+
+                                        6222
+
+=== PDF第9页 ===
+tasks that deal with seeking rationale in text. The    of world languages, which calls for the develop-
+model MultiVerS described in the previous chap-   ment of efficient multilingual models for scientific
+ter utilized this approach by combining datasets    fact-checking.
+HEALTHVER, COVID-FACT, and SCIFACT to-     Human-centered fact-checking. Most of the
+gether with FEVER, PubMedQA, and EvidenceIn-                                               developed fact-checking systems are still limited
+ference datasets to improve the final performance                                                       in practical use because their system design often
+on the fact-checking task. Other than combining                                              does not take into account how fact-checking is
+datasets for training purposes, another emerging                                            done in the real world (Glockner et al., 2022) and
+approach to mitigate the lack of training data is gen-                                                  ignores the insights and needs of various stake-
+erating new scientific claims to augment the exist-                                                  holder groups core to the fact-checking process
+ing data. Wright et al. (2022b) apply this approach                                                    (Juneja and Mitra, 2022). Several works started to
+by using the generative model BART and external                                                        investigate human evaluation in fact-checking sys-
+biomedical knowledge sources to construct claims                                                  tems. Examples include effectively delivering the
+while showing promising zero-shot performance.                                                  misinformation detection results to users (Seo et al.,
+  External knowledge. Scientific knowledge is   2019) or guiding the user toward fact-checked news
+complex and contains lots of interconnected con-   (Lo et al., 2022). Making the process of NLP-based
+cepts. This makes it suitable for representation    fact-checking more human-centered is a promising
+with structures like Knowledge Graphs (KGs) that    future direction that will make it more reliable,
+model world knowledge in the form of entities    trustworthy, and easier for wide-scale adoption.
+and relations between them. KGs have been con-
+structed for various scientific disciplines, while                                       7  Conclusion
+the most well-known one for biomedical knowl-
+edge is Unified Medical Language System (UMLS)
+                                                     In this survey, we reviewed and systematized exist-
+(Bodenreider, 2004), which models various inter-
+                                                   ing datasets and solutions for the task of scientific
+actions between proteins, drugs, diseases, genes,
+                                                    fact-checking. We introduced the task and com-
+and other concepts. KGs have proven useful in
+                                                pared it to its related NLP endeavors, described
+enhancing a wide array of NLP tasks (Schneider
+                                                      the existing datasets and their construction process,
+et al., 2022). Enhancing BERT with infused dis-
+                                            and explained the models used for scientific fact-
+ease knowledge from MeSH (He et al., 2020b) and
+                                               checking with their pipeline components. Finally,
+structured medical knowledge from UMLS (He
+                                    we provided a critical discussion of current chal-
+et al., 2020a) showed improved performance over
+                                                   lenges and highlighted promising future directions
+knowledge-intensive biomedical NLP tasks, as well
+                                                        for the task of scientific fact-checking.
+as for the open-domain question answering (Yu
+et al., 2021). Recent work has shown that reasoning
+over knowledge graphs can improve encyclopedic   8  Limitations
+fact verification (Kim et al., 2023).
+  Multimodality and multilinguality. Misinfor-   Even though we performed a rigorous literature
+                                                    search to try to cover all existing work on scientificmation is increasingly being spread in forms other
+                                                     fact-checking, there is possibly work that was leftthan text, including misleading images, artificially
+                                               uncovered due to different keywords, naming con-constructed videos, or incorrect figures (Nielsen
+                                                    ventions (e.g., fact-checking vs. claim verification).and McConville, 2022).  Visuals were an espe-
+                                          Whenever possible, we tried covering all relatedcially popular tool for spreading misinformation
+                                          work and all relevant cited papers.about the COVID-19 pandemic (Brennen et al.,
+2020). Particularly in scientific publications, au-      All approaches for automated scientific fact-
+thors present their data in the forms of figures, ta-   checking described in this work are still not safe for
+bles, and other visualizations. The FEVEROUS   widespread adoption in practice due to constraints
+shared task (Aly et al., 2021) made progress in this    to their performance. Having deployed automated
+direction by requiring participants to develop sys-   fact-checking systems that would produce incorrect
+tems that verify claims over evidence in the struc-   verdicts could lead to mistrust in their usefulness
+tured format (tables and lists). Other than multiple   and the process of fact-checking itself, including
+modalities, online claims are made in a multitude    the work of dedicated manual fact-checkers.
+
+                                        6223
+
+=== PDF第10页 ===
+Acknowledgements                                   Iz Beltagy, Matthew E. Peters, and Arman Cohan.
+                                                       2020. Longformer: The long-document transformer.
+This research has been supported by the Ger-      arXiv:2004.05150.
+man Federal Ministry of Education and Research                                                    Tian Bian, Xi Xiao, Tingyang Xu, Peilin Zhao, Wen
+(BMBF) grant 01IS17049 Software Campus 2.0      bing Huang, Yu Rong, and Junzhou Huang. 2020.
+(TU München). We would like to thank the anony-     Rumor detection on social media with bi-directional
+mous reviewers for their helpful feedback.             graph convolutional networks. In AAAI Conference
+                                                 on Artificial Intelligence.
+
+                                                          Olivier Bodenreider. 2004. The Unified Medical Lan-
+References                                         guage System (UMLS): integrating biomedical termi-
+                                                        nology. Nucleic Acids Research, 32(suppl1):D267–Liesbeth  Allein,  Isabelle Augenstein,  and Marie-                                                  D270.   Francine Moens. 2021. Time-aware evidence rank-
+   ing for fact-checking.  Journal of Web Semantics,   Jon Brassey, Christopher Price, Jonny Edwards, Markus
+  71:100663.                                               Zlabinger, Alexandros Bampoulidis, and Allan Han-
+                                                             bury. 2021. Developing a fully automated evidence
+Alexis Allot, Qingyu Chen, Sun Kim, Roberto Vera Al-                                                            synthesis tool for identifying, assessing and collat-
+   varez, Donald C Comeau, W John Wilbur, and Zhiy-                                                         ing the evidence. BMJ Evidence-Based Medicine,
+  ong Lu. 2019. LitSense: making sense of biomedical                                                         26(1):24–27.
+   literature at sentence level. Nucleic Acids Research,
+  47(W1):W594–W599.                                  J Brennen, Felix Simon, and Rasmus Nielsen. 2020.
+                                               Beyond (mis)representation:  Visuals in covid-19
+Rami Aly, Zhijiang Guo, Michael Sejr Schlichtkrull,      misinformation.   The  International Journal  of
+  James  Thorne,   Andreas  Vlachos,   Christos       Press/Politics, 26.
+   Christodoulopoulos, Oana Cocarascu, and Arpit
+   Mittal. 2021. The fact extraction and VERification   Qingyu Chen, Yifan Peng, and Zhiyong Lu. 2019.
+   over  unstructured  and  structured  information      BioSentVec:  creating sentence embeddings  for
+  (FEVEROUS) shared task.  In Proceedings of the      biomedical texts. In 2019 IEEE International Con-
+  Fourth Workshop on Fact Extraction and VERifica-      ference on Healthcare Informatics (ICHI). IEEE.
+   tion (FEVER), pages 1–13, Dominican Republic.                                                    Suzie Cro, Tim P Morris, Michael G Kenward, and   Association for Computational Linguistics.                                                  James R Carpenter. 2020.  Sensitivity analysis for
+                                                                   clinical trials with missing continuous outcome dataDimosthenis Antypas, Jose Camacho-Collados, Alun
+                                                        using controlled multiple imputation: a practical   Preece, and David Rogers. 2021. COVID-19 and
+                                                            guide. Statistics in medicine, 39(21):2815–2842.   misinformation: A large-scale lexical analysis on
+   Twitter. In Proceedings of the 59th Annual Meeting                                                  Giovanni Da San Martino, Stefano Cresci, Alberto
+   of the Association for Computational Linguistics and                                                     Barrón-Cedeño, Seunghak Yu, Roberto Di Pietro,
+   the 11th International Joint Conference on Natural                                                  and Preslav Nakov. 2021. A survey on computa-
+  Language Processing: Student Research Workshop,                                                                tional propaganda detection. In Proceedings of the
+  pages 119–126, Online. Association for Computa-                                                        Twenty-Ninth International Joint Conference on Arti-
+   tional Linguistics.                                                                          ficial Intelligence, IJCAI’20.
+Isabelle Augenstein. 2021. Towards Explainable Fact    Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+  Checking. Ph.D. thesis.                                   Kristina Toutanova. 2019. BERT: Pre-training of
+                                                   deep bidirectional transformers for language under-
+Isabelle Augenstein,  Christina Lioma, Dongsheng                                                             standing. In Proceedings of the 2019 Conference of
+  Wang, Lucas Chaves Lima, Casper Hansen, Christian                                                            the North American Chapter of the Association for
+  Hansen, and Jakob Grue Simonsen. 2019. Multifc: A                                                     Computational Linguistics: Human Language Tech-
+   real-world multi-domain dataset for evidence-based                                                            nologies, Volume 1 (Long and Short Papers), pages
+   fact checking of claims. In Conference on Empirical                                                     4171–4186, Minneapolis, Minnesota. Association for
+  Methods in Natural Language Processing.                                                      Computational Linguistics.
+Giannis Bekoulis, Christina Papagiannopoulou, and   Thomas Diggelmann, Jordan L. Boyd-Graber, Jannis
+  Nikos Deligiannis. 2021. A review on fact extraction       Bulian, Massimiliano Ciaramita, and Markus Leip-
+  and verification. ACM Comput. Surv., 55(1).               pold. 2020. Climate-fever: A dataset for verification
+                                                             of real-world climate claims. ArXiv, abs/2012.00614.
+Iz Beltagy, Kyle Lo, and Arman Cohan. 2019. SciB-
+  ERT: A pretrained language model for scientific text.   Max Glockner, Yufang Hou, and Iryna Gurevych. 2022.
+   In Proceedings of the 2019 Conference on Empirical      Missing counter-evidence renders NLP fact-checking
+  Methods in Natural Language Processing and the       unrealistic for misinformation.  In Proceedings of
+   9th International Joint Conference on Natural Lan-      the 2022 Conference on Empirical Methods in Nat-
+  guage Processing (EMNLP-IJCNLP), pages 3615–      ural Language Processing, pages 5916–5936, Abu
+   3620, Hong Kong, China. Association for Computa-      Dhabi, United Arab Emirates. Association for Com-
+   tional Linguistics.                                         putational Linguistics.
+
+                                        6224
+
+=== PDF第11页 ===
+Yu Gu, Robert Tinn, Hao Cheng, Michael Lucas, Naoto       ternational Joint Conference on Natural Language
+  Usuyama, Xiaodong Liu, Tristan Naumann, Jianfeng      Processing (EMNLP-IJCNLP), pages 2567–2577.
+  Gao, and Hoifung Poon. 2022. Domain-specific lan-
+  guage model pretraining for biomedical natural lan-    Prerna Juneja and Tanushree Mitra. 2022. Human and
+  guage processing. ACM Transactions on Computing       technological infrastructures of fact-checking. Proc.
+   for Healthcare, 3(1):1–23.                   ACM Hum.-Comput. Interact., 6(CSCW2).
+                                                     Vladimir Karpukhin, Barlas Oguz, Sewon Min, PatrickZhijiang Guo, Michael Schlichtkrull, and Andreas Vla-
+                                                        Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, and   chos. 2022. A survey on automated fact-checking.
+  Transactions of the Association for Computational      Wen-tau Yih. 2020. Dense passage retrieval for open-
+                                                domain question answering. In Proceedings of the   Linguistics, 10:178–206.
+                                                2020 Conference on Empirical Methods in Natural
+Andreas Hanselowski, Christian Stab, Claudia Schulz,     Language Processing (EMNLP), pages 6769–6781,
+   Zile Li, and Iryna Gurevych. 2019. A richly anno-      Online. Association for Computational Linguistics.
+   tated corpus for different tasks in automated fact-
+                                           Mark T. Keane, Eoin M. Kenny, Eoin Delaney, and   checking. In Proceedings of the 23rd Conference on
+                                                     Barry Smyth. 2021. If only we had better counter-  Computational Natural Language Learning (CoNLL),
+                                                               factual explanations: Five key deficits to rectify in  pages 493–503, Hong Kong, China. Association for
+                                                           the evaluation of counterfactual xai techniques. In  Computational Linguistics.
+                                                       Proceedings of the Thirtieth International Joint Con-
+Momchil Hardalov, Arnav Arora, Preslav Nakov, and       ference on Artificial Intelligence, IJCAI-21, pages
+   Isabelle Augenstein. 2022. A survey on stance de-     4466–4474. International Joint Conferences on Arti-
+   tection for mis- and disinformation identification. In        ficial Intelligence Organization. Survey Track.
+  Findings of the Association for Computational Lin-
+                                                          Jiho Kim, Sungjin Park, Yeonsu Kwon, Yohan Jo, James   guistics: NAACL 2022, pages 1259–1277, Seattle,
+                                                      Thorne, and Edward Choi. 2023. Factkg: Fact veri-  United States. Association for Computational Lin-
+                                                                  fication via reasoning on knowledge graphs. In Pro-   guistics.
+                                                        ceedings of the 61st Annual Meeting of the Associa-
+                                                                tion for Computational Linguistics, Toronto, Canada.Bin He, Di Zhou, Jinghui Xiao, Xin Jiang, Qun Liu,
+                                                         Association for Computational Linguistics.  Nicholas Jing Yuan, and Tong Xu. 2020a. Bert-mk:
+   Integrating graph contextualized knowledge into pre-                                         Neema Kotonya and Francesca Toni. 2020a. Explain-   trained language models. In Findings of the Associ-                                                            able automated fact-checking: A survey. In Proceed-   ation for Computational Linguistics: EMNLP 2020,                                                          ings of the 28th International Conference on Com-  pages 2281–2290.                                                             putational Linguistics, pages 5430–5443, Barcelona,
+                                                      Spain (Online). International Committee on Compu-Yun He, Ziwei Zhu, Yin Zhang, Qin Chen, and James
+                                                                  tational Linguistics.   Caverlee. 2020b. Infusing Disease Knowledge into
+  BERT for Health Question Answering, Medical In-                                         Neema Kotonya and Francesca Toni. 2020b. Explain-
+   ference and Disease Name Recognition. In Proceed-                                                             able automated fact-checking for public health claims.
+   ings of the 2020 Conference on Empirical Methods                                                            In Proceedings of the 2020 Conference on Empirical
+   in Natural Language Processing (EMNLP), pages                                                   Methods in Natural Language Processing (EMNLP),
+  4604–4614, Online. Association for Computational                                                       pages 7740–7754, Online. Association for Computa-
+   Linguistics.                                                                 tional Linguistics.
+Tamanna Hossain, Robert L. Logan IV, Arjuna Ugarte,                                                  Amrith Krishna, Sebastian Riedel, and Andreas Vlachos.
+  Yoshitomo Matsubara, Sean Young, and Sameer                                                      2022. Proofver: Natural logic theorem proving for
+  Singh. 2020.  COVIDLies: Detecting COVID-19                                                                   fact verification. Transactions of the Association for
+  misinformation on social media. In Proceedings of                                                     Computational Linguistics, 10:1013–1030.
+   the 1st Workshop on NLP for COVID-19 (Part 2)
+   at EMNLP 2020, Online. Association for Computa-   Anne Lauscher, Goran Glavaš, and Simone Paolo
+   tional Linguistics.                                       Ponzetto. 2018. An argument-annotated corpus of
+                                                                   scientific publications.  In Proceedings of the 5th
+Yichen Jiang, Shikha Bordia, Zheng Zhong, Charles     Workshop on Argument Mining, pages 40–46, Brus-
+  Dognin, Maneesh Singh, and Mohit Bansal. 2020.                                                                     sels, Belgium. Association for Computational Lin-
+  HoVer: A dataset for many-hop fact extraction and                                                                   guistics.
+  claim verification.  In Findings of the Association
+   for Computational Linguistics: EMNLP 2020, pages    Jinhyuk Lee, Wonjin Yoon, Sungdong Kim, Donghyeon
+  3441–3460, Online. Association for Computational     Kim, Sunkyu Kim, Chan Ho So, and Jaewoo Kang.
+   Linguistics.                                         2020. Biobert: a pre-trained biomedical language
+                                                            representation model for biomedical text mining.
+Qiao Jin, Bhuwan Dhingra, Zhengping Liu, William       Bioinformatics, 36(4):1234–1240.
+  Cohen, and Xinghua Lu. 2019. Pubmedqa: A dataset
+   for biomedical research question answering. In Pro-   Xiangci Li, Gully A Burns, and Nanyun Peng. 2021. A
+   ceedings of the 2019 Conference on Empirical Meth-      paragraph-level multi-task learning model for scien-
+  ods in Natural Language Processing and the 9th In-        tific fact-verification. In SDU@ AAAI.
+
+                                        6225
+
+=== PDF第12页 ===
+Zhenghao Liu, Chenyan Xiong, Maosong Sun, and    Rodrigo Nogueira, Zhiying Jiang, Ronak Pradeep, and
+  Zhiyuan Liu. 2020.  Fine-grained fact verification     Jimmy Lin. 2020. Document ranking with a pre-
+  with kernel graph attention network. In Proceedings       trained sequence-to-sequence model.  In Findings
+   of the 58th Annual Meeting of the Association for       of the Association for Computational Linguistics:
+  Computational Linguistics, pages 7342–7351, On-    EMNLP 2020, pages 708–718, Online. Association
+   line. Association for Computational Linguistics.           for Computational Linguistics.
+
+Kuan-Chieh Lo, Shih-Chieh Dai, Aiping Xiong, Jing   Gordon Pennycook,  Jonathon McPhetres, Yunhao
+   Jiang, and Lun-Wei Ku. 2022. Victor: An implicit      Zhang, Jackson G. Lu, and David G. Rand. 2020.
+  approach to mitigate misinformation via continuous      Fighting covid-19 misinformation on social media:
+   verification reading.  In Proceedings of the ACM      Experimental evidence for a scalable accuracy-nudge
+  Web Conference 2022, WWW ’22, page 3511–3519,       intervention. Psychological Science, 31(7):770–780.
+  New York, NY, USA. Association for Computing     PMID: 32603243.
+  Machinery.
+                                             Ronak Pradeep, Xueguang Ma, Rodrigo Nogueira, and
+Zhiyong Lu. 2011. PubMed and beyond: a survey     Jimmy Lin. 2021. Scientific claim verification with
+   of web tools for searching biomedical literature.      VerT5erini. In Proceedings of the 12th International
+  Database, 2011. Baq036.                          Workshop on Health Text Mining and Information
+                                                              Analysis, pages 94–103, online. Association for Com-
+Isabelle Mohr, Amelie Wührl, and Roman Klinger. 2022.       putational Linguistics.
+   Covert: A corpus of fact-checked biomedical covid-
+                                                     Colin Raffel, Noam Shazeer, Adam Roberts, Katherine  19 tweets. In Proceedings of the Language Resources
+                                                       Lee, Sharan Narang, Michael Matena, Yanqi Zhou,  and Evaluation Conference, pages 244–257, Mar-
+                                              Wei Li, and Peter J. Liu. 2020. Exploring the limits   seille, France. European Language Resources Asso-
+                                                          of transfer learning with a unified text-to-text trans-   ciation.
+                                                           former. J. Mach. Learn. Res., 21(1).
+H.-M Müller, Kimberly Auken, Y. Li, and P. Sternberg.
+                                                  Pranav Rajpurkar, Emma Chen, Oishi Banerjee, and  2018. Textpresso central: A customizable platform
+                                                          Eric J Topol. 2022. Ai in health and medicine. Na-   for searching, text mining, viewing, and curating
+                                                               ture medicine, 28(1):31–38.  biomedical literature. BMC Bioinformatics, 19.
+                                                          Nils Reimers and Iryna Gurevych. 2019. Sentence-bert:Preslav Nakov,  Alberto Barrón-Cedeño, Giovanni                                                      Sentence embeddings using siamese bert-networks.  da San Martino, Firoj Alam, Julia Maria Struß,                                                            In Proceedings of the 2019 Conference on Empirical  Thomas Mandl, Rubén Míguez, Tommaso Caselli,                                                   Methods in Natural Language Processing and the 9th  Mucahid Kutlu, Wajdi Zaghouani, Chengkai Li,                                                              International Joint Conference on Natural Language  Shaden Shaar, Gautam Kishore Shahi, Hamdy                                                        Processing (EMNLP-IJCNLP), pages 3982–3992.  Mubarak,  Alex  Nikolov,  Nikolay  Babulkov,
+  Yavuz Selim Kartal, Michael Wiegand, Melanie                                                 Alexey Romanov  and  Chaitanya  Shivade.  2018.
+   Siegel, and Juliane Köhler. 2022. Overview of the                                                      Lessons from natural language inference in the clini-
+  clef–2022 checkthat! lab on fighting the covid-19                                                               cal domain. In Proceedings of the 2018 Conference
+  infodemic and fake news detection. In Experimental                                                  on Empirical Methods in Natural Language Process-
+  IR  Meets  Multilinguality,  Multimodality,  and                                                                 ing, pages 1586–1596.
+   Interaction: 13th International Conference of the
+  CLEF Association, CLEF 2022, Bologna,  Italy,   Jon Roozenbeek, Claudia R. Schneider, Sarah Dryhurst,
+  September 5–8, 2022, Proceedings, page 495–520,      John Kerr, Alexandra L. J. Freeman, Gabriel Recchia,
+   Berlin, Heidelberg. Springer-Verlag.                Anne Marthe van der Bles, and Sander van der Lin-
+                                                         den. 2020. Susceptibility to misinformation about
+Preslav Nakov, David Corney, Maram Hasanain, Firoj      covid-19 around the world. Royal Society Open Sci-
+  Alam, Tamer Elsayed, Alberto Barr’on-Cedeno,      ence, 7(10):201199.
+  Paolo Papotti, Shaden Shaar, and Giovanni Da San
+  Martino. 2021. Automated fact-checking for assist-   Arkadiy Saakyan, Tuhin Chakrabarty, and Smaranda
+   ing human fact-checkers. In IJCAI.                    Muresan. 2021. COVID-fact: Fact extraction and
+                                                                 verification of real-world claims on COVID-19 pan-
+Tri Nguyen, Mir Rosenberg, Xia Song, Jianfeng Gao,      demic.  In Proceedings of the 59th Annual Meet-
+  Saurabh Tiwary, Rangan Majumder, and Li Deng.      ing of the Association for Computational Linguistics
+  2016. Ms marco: A human generated machine read-     and the 11th International Joint Conference on Natu-
+   ing comprehension dataset. In CoCo@ NIPs.              ral Language Processing (Volume 1: Long Papers),
+                                                       pages 2116–2129, Online. Association for Computa-
+Dan S. Nielsen and Ryan McConville. 2022. Mumin:       tional Linguistics.
+ A large-scale multilingual multimodal fact-checked
+  misinformation social network dataset. In Proceed-   Mobashir Sadat and Cornelia Caragea. 2022. Scinli: A
+   ings of the 45th International ACM SIGIR Confer-      corpus for natural language inference on scientific
+  ence on Research and Development in Information        text. In Proceedings of the 60th Annual Meeting of
+   Retrieval, SIGIR ’22, page 3141–3153, New York,      the Association for Computational Linguistics (Vol-
+  NY, USA. Association for Computing Machinery.       ume 1: Long Papers), pages 7399–7409.
+
+                                        6226
+
+=== PDF第13页 ===
+Mourad Sarrouti, Asma Ben Abacha, Yassine Mrabet,    Juraj Vladika and Florian Matthes. 2023.  Sebis at
+  and Dina Demner-Fushman. 2021. Evidence-based      semeval-2023 task 7: A joint system for natural lan-
+   fact-checking of health-related claims. In Findings      guage inference and evidence retrieval from clinical
+   of the Association for Computational Linguistics:        trial reports. In Proceedings of the 17th International
+  EMNLP 2021, pages 3499–3512, Punta Cana, Do-     Workshop on Semantic Evaluation (SemEval-2023),
+  minican Republic. Association for Computational       Toronto, Canada. Association for Computational Lin-
+   Linguistics.                                                    guistics.
+Phillip Schneider, Tim Schopf, Juraj Vladika, Mikhail   David Wadden, Shanchuan Lin, Kyle Lo, Lucy Lu
+   Galkin, Elena Simperl, and Florian Matthes. 2022.     Wang, Madeleine van Zuylen, Arman Cohan, and
+ A decade of knowledge graphs in natural language      Hannaneh Hajishirzi. 2020. Fact or fiction: Verifying
+   processing: A survey.  In Proceedings of the 2nd        scientific claims. In Proceedings of the 2020 Con-
+  Conference of the Asia-Pacific Chapter of the Asso-      ference on Empirical Methods in Natural Language
+   ciation for Computational Linguistics and the 12th      Processing (EMNLP), pages 7534–7550, Online. As-
+   International Joint Conference on Natural Language       sociation for Computational Linguistics.
+  Processing (Volume 1: Long Papers), pages 601–614,
+  Online only. Association for Computational Linguis-   David Wadden and Kyle Lo. 2021. Overview and in-
+   tics.                                                       sights from the SCIVER shared task on scientific
+                                                       claim verification.  In Proceedings of the Second
+Haeseung Seo, Aiping Xiong, and Dongwon Lee. 2019.                                                  Workshop on Scholarly Document Processing, pages
+   Trust it or not: Effects of machine-learning warnings                                                      124–129, Online. Association for Computational Lin-
+   in helping individuals mitigate misinformation. In                                                                   guistics.
+  Proceedings of the 10th ACM Conference on Web
+   Science, WebSci ’19, page 265–274, New York, NY,                                                David Wadden, Kyle Lo, Bailey Kuehl, Arman Cohan,
+  USA. Association for Computing Machinery.                                                                Iz Beltagy, Lucy Lu Wang, and Hannaneh Hajishirzi.
+                                                      2022a. SciFact-open: Towards open-domain scien-Gautam Kishore Shahi and Durgesh Nandini. 2020.
+                                                                                 tific claim verification. In Findings of the Association  FakeCovid- A Multilingual Cross-domain Fact Check
+                                                                for Computational Linguistics: EMNLP 2022, pages  News Dataset for COVID-19. ICWSM.
+                                                   4719–4734, Abu Dhabi, United Arab Emirates. As-
+Chris Stahlhut. 2021. Interactive Evidence Detection.       sociation for Computational Linguistics.
+  Ph.D. thesis, Technische Universität, Darmstadt.
+                                                David Wadden, Kyle Lo, Lucy Wang, Arman Cohan,
+James Thorne and Andreas Vlachos. 2018. Automated       Iz Beltagy, and Hannaneh Hajishirzi. 2022b. Mul-
+   fact checking: Task formulations, methods and fu-       tiVerS: Improving scientific claim verification with
+   ture directions.  In Proceedings of the 27th Inter-     weak supervision and full-document context. In Find-
+   national Conference on Computational Linguistics,       ings of the Association for Computational Linguistics:
+  pages 3346–3359, Santa Fe, New Mexico, USA. As-    NAACL 2022, pages 61–76, Seattle, United States.
+   sociation for Computational Linguistics.                 Association for Computational Linguistics.
+James Thorne, Andreas Vlachos, Oana Cocarascu,                                             Xuan Wang, Yingjun Guan, Weili Liu, Aabhas Chauhan,   Christos Christodoulopoulos, and Arpit Mittal. 2018.                                                     Enyi Jiang, Qi Li, David Liem, Dibakar Sigdel, John  The  fact extraction and VERification (FEVER)                                                            Caufield, Peipei Ping, and Jiawei Han. 2020. EVI-   shared task. In Proceedings of the First Workshop on                                        DENCEMINER: Textual evidence discovery for life  Fact Extraction and VERification (FEVER), pages 1–                                                             sciences. In Proceedings of the 58th Annual Meet-   9, Brussels, Belgium. Association for Computational                                                           ing of the Association for Computational Linguistics:
+   Linguistics.                                                     System Demonstrations, pages 56–62, Online. Asso-
+George Tsatsaronis, Georgios Balikas, Prodromos       ciation for Computational Linguistics.
+   Malakasiotis, Ioannis Partalas, Matthias Zschunke,
+                                                     Nicolas Webersinke, Mathias Kraus, Julia Anna Bin-  Michael R Alvers, Dirk Weissenborn, Anastasia
+                                                                     gler, and Markus Leippold. 2021. Climatebert: A   Krithara, Sergios Petridis, Dimitris Polychronopou-
+                                                            pretrained language model for climate-related text.   los, et al. 2015. An overview of the bioasq large-scale
+                                                        arXiv preprint arXiv:2110.12010.  biomedical semantic indexing and question answer-
+   ing competition. BMC bioinformatics, 16(1):1–28.
+                                                Chih-Hsuan Wei, Alexis Allot, Robert Leaman, and
+Alexandra N Uma, Tommaso Fornaciari, Dirk Hovy, Sil-     Zhiyong Lu. 2019.  PubTator central: automated
+   viu Paun, Barbara Plank, and Massimo Poesio. 2021.      concept annotation for biomedical full text articles.
+  Learning from disagreement: A survey. Journal of      Nucleic Acids Research, 47(W1):W587–W593.
+   Artificial Intelligence Research, 72:1385–1470.
+                                                       Jevin D. West and Carl T. Bergstrom. 2021.  Misin-
+Andreas Vlachos and Sebastian Riedel. 2014.  Fact      formation in and about science. Proceedings of the
+  checking: Task definition and dataset construction.      National Academy of Sciences, 118.
+   In Proceedings of the ACL 2014 Workshop on Lan-
+  guage Technologies and Computational Social Sci-   Dustin Wright, Jiaxin Pei, David Jurgens, and Isabelle
+   ence, pages 18–22, Baltimore, MD, USA. Associa-      Augenstein. 2022a. Modeling information change in
+   tion for Computational Linguistics.                      science communication with semantically matched
+
+                                        6227
+
+=== PDF第14页 ===
+   paraphrases. In Proceedings of the 2022 Conference
+  on Empirical Methods in Natural Language Process-
+   ing, pages 1783–1807, Abu Dhabi, United Arab Emi-
+   rates. Association for Computational Linguistics.
+
+Dustin Wright, David Wadden, Kyle Lo, Bailey Kuehl,
+  Arman Cohan, Isabelle Augenstein, and Lucy Wang.
+  2022b.  Generating scientific claims for zero-shot
+   scientific fact checking. In Proceedings of the 60th
+  Annual Meeting of the Association for Computational
+   Linguistics (Volume 1: Long Papers), pages 2448–
+  2460, Dublin, Ireland. Association for Computational
+   Linguistics.
+
+Amelie Wührl and Roman Klinger. 2021. Claim detec-
+   tion in biomedical Twitter posts. In Proceedings of
+   the 20th Workshop on Biomedical Language Process-
+   ing, pages 131–142, Online. Association for Compu-
+   tational Linguistics.
+
+Amelie Wührl and Roman Klinger. 2022. Entity-based
+   claim representation improves fact-checking of medi-
+   cal content in tweets. In Proceedings of the 9th Work-
+  shop on Argument Mining, pages 187–198, Online
+  and in Gyeongju, Republic of Korea. International
+  Conference on Computational Linguistics.
+
+Amélie  Yavchitz,  Isabelle Boutron,  Aida  Bafeta,
+  Ibrahim Marroun, Pierre Charles, Jean Mantz, and
+   Philippe Ravaud. 2012.  Misrepresentation of ran-
+  domized controlled trials in press releases and news
+   coverage: A cohort study. PLOS Medicine, 9(9):1–
+  11.
+
+Donghan Yu, Chenguang Zhu, Yuwei Fang, Wenhao
+  Yu, Shuohang Wang, Yichong Xu, Xiang Ren, Yim-
+   ing Yang, and Michael Zeng. 2021.  Kg-fid:  In-
+   fusing knowledge graph in fusion-in-decoder for
+  open-domain question answering.  arXiv preprint
+  arXiv:2110.04330.
+
+Shi Yuan and Bei Yu. 2019. Hclaime: A tool for iden-
+   tifying health claims in health news headlines. Inf.
+   Process. Manage., 56(4):1220–1233.
+
+Xia Zeng, Amani S. Abumansour, and Arkaitz Zubiaga.
+  2021. Automated fact-checking: A survey.  Lan-
+  guage and Linguistics Compass, 15(10):e12438.
+
+Zhiwei Zhang, Jiyi Li, Fumiyo Fukumoto, and Yanming
+  Ye. 2021. Abstract, rationale, stance: A joint model
+   for scientific claim verification. In Proceedings of the
+  2021 Conference on Empirical Methods in Natural
+  Language Processing, pages 3580–3586.
+
+Xinyi Zhou and Reza Zafarani. 2020. A survey of fake
+  news: Fundamental theories, detection methods, and
+   opportunities. ACM Comput. Surv., 53(5).
+
+Chaoyuan Zuo, Kritik Mathur, Dhruv Kela, Noushin
+   Faramarzi, and Ritwik Banerjee. 2022. Beyond be-
+   lief: a cross-genre study on perception and validation
+   of health information online. International Journal
+   of Data Science and Analytics, 13:1–16.
+
+
+                                        6228
+
+=== PDF第15页 ===
+ ACL 2023 Responsible NLP Checklist
+A  For every submission:
+ □ A1. Did you describe the limitations of your work?
+    8
+
+ □ A2. Did you discuss any potential risks of your work?
+    8
+
+ □ A3. Do the abstract and introduction summarize the paper’s main claims?
+    1
+
+ □ A4. Have you used AI writing assistants when working on this paper?
+     Left blank.
+
+B □ Did you use or create scientiﬁc artifacts?
+   Left blank.
+
+ □B1. Did you cite the creators of artifacts you used?
+   No response.
+
+ □B2. Did you discuss the license or terms for use and / or distribution of any artifacts?
+   No response.
+
+ □B3. Did you discuss if your use of existing artifact(s) was consistent with their intended use, provided
+     that it was speciﬁed? For the artifacts you create, do you specify intended use and whether that is
+     compatible with the original access conditions (in particular, derivatives of data accessed for research
+     purposes should not be used outside of research contexts)?
+   No response.
+
+ □B4. Did you discuss the steps taken to check whether the data that was collected / used contains any
+     information that names or uniquely identiﬁes individual people or offensive content, and the steps
+     taken to protect / anonymize it?
+   No response.
+
+ □B5. Did you provide documentation of the artifacts, e.g., coverage of domains, languages, and
+     linguistic phenomena, demographic groups represented, etc.?
+   No response.
+
+ □B6. Did you report relevant statistics like the number of examples, details of train / test / dev splits,
+      etc. for the data that you used / created? Even for commonly-used benchmark datasets, include the
+    number of examples in train / validation / test splits, as these provide necessary context for a reader
+     to understand experimental results. For example, small differences in accuracy on large test sets may
+    be signiﬁcant, while on small test sets they may not be.
+   No response.
+
+C □ Did you run computational experiments?
+   Left blank.
+
+ □C1. Did you report the number of parameters in the models used, the total computational budget
+      (e.g., GPU hours), and computing infrastructure used?
+   No response.
+
+The Responsible NLP Checklist used at ACL 2023 is adopted from NAACL 2022, with the addition of a question on AI writing
+assistance.
+
+
+                                        6229
+
+=== PDF第16页 ===
+ □C2. Did you discuss the experimental setup, including hyperparameter search and best-found
+    hyperparameter values?
+   No response.
+
+ □C3. Did you report descriptive statistics about your results (e.g., error bars around results, summary
+      statistics from sets of experiments), and is it transparent whether you are reporting the max, mean,
+      etc. or just a single run?
+   No response.
+
+ □C4. If you used existing packages (e.g., for preprocessing, for normalization, or for evaluation), did
+    you report the implementation, model, and parameter settings used (e.g., NLTK, Spacy, ROUGE,
+     etc.)?
+   No response.
+
+D □ Did you use human annotators (e.g., crowdworkers) or research with human participants?
+   Left blank.
+
+ □D1. Did you report the full text of instructions given to participants, including e.g., screenshots,
+     disclaimers of any risks to participants or annotators, etc.?
+   No response.
+
+ □D2. Did you report information about how you recruited (e.g., crowdsourcing platform, students)
+    and paid participants, and discuss if such payment is adequate given the participants’ demographic
+      (e.g., country of residence)?
+   No response.
+
+ □D3. Did you discuss whether and how consent was obtained from people whose data you’re
+     using/curating? For example, if you collected data via crowdsourcing, did your instructions to
+    crowdworkers explain how the data would be used?
+   No response.
+
+ □D4. Was the data collection protocol approved (or determined exempt) by an ethics review board?
+   No response.
+
+ □D5. Did you report the basic demographic and geographic characteristics of the annotator population
+     that is the source of the data?
+   No response.
+
+
+
+
+
+                                        6230

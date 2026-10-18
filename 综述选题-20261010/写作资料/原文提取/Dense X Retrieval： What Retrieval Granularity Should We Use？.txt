@@ -1,0 +1,1228 @@
+
+=== PDF第1页 ===
+                                              EMNLP 2024 Main Conference
+
+         X            Dense    Retrieval: What Retrieval Granularity Should We Use?
+
+
+                     Tong Chen♣* Hongwei Wang♢Sihao Chen♡Wenhao Yu♢
+                       Kaixin Ma♢Xinran Zhao♠Hongming Zhang♢Dong Yu♢
+                                  ♣University of Washington ♢Tencent AI Lab
+                           ♡University of Pennsylvania ♠Carnegie Mellon University
+
+
+
+
+                          Abstract
+                                                                              Question: What is the angle of the Tower of Pisa?
+
+               Dense  retrieval  has become  a prominent          Passage      Prior to restoration work performed be-
+               method to obtain relevant context or world           Retrieval    tween 1990 and 2001, the tower leaned at
+                                                                                    an angle of 5.5 degrees, but the tower now                knowledge in open-domain NLP tasks. When
+                                                                                              leans at about 3.99 degrees. This means
+             we use a learned dense retriever on a retrieval                                                                                                 the top of the Leaning Tower of Pisa is dis-
+                 corpus at inference time, an often-overlooked                        placed horizontally 3.9 meters (12 ft 10 in)2024
+                  design choice is the retrieval unit in which the                     from the center.
+                 corpus is indexed, e.g. document, passage, or                                                                         Sentence     Prior to restoration work performed be-Oct            sentence. We discover that the retrieval unit           Retrieval    tween 1990 and 2001, the tower leaned at
+                  choice significantly impacts the performance of                      an angle of 5.5 degrees, but the tower now
+4
+                 both retrieval and downstream tasks. Distinct                         leans at about 3.99 degrees.
+                from the typical approach of using passages or           Proposition  The Leaning Tower of Pisa now leans at
+                   sentences, we introduce a novel retrieval unit,           Retrieval     about 3.99 degrees.
+                   proposition, for dense retrieval. Propositions
+                   are defined as atomic expressions within text,               Passage        Sentence          Proposition
+                 each encapsulating a distinct factoid and pre-[cs.CL]                                                                                          Passage Retrieval                 Open-domain QA
+                  sented in a concise, self-contained natural lan-            75                               45
+                                                                                                                                      65.2 66.7 68.0                                 40.1 41.3
+                guage format. We conduct an empirical com-          (%) 65                            (%) 40            37.3   38.5                                                                                                                                                                    36.2
+                  parison of different retrieval granularity. Our             55            52.7                  35   34.1
+                                                                                                                           47.3                 experiments reveal that indexing a corpus by                                                                                                                                                                                                                                                      EM@500 30                                                                                                                                                                                                                                               Recall@5 45   43.0
+                   fine-grained units such as propositions signif-
+                                                                                          35                               25
+                   icantly outperforms passage-level units in re-                      Contriever      GTR                 Contriever      GTR
+                     trieval tasks. Moreover, constructing prompts
+                                                                   Figure 1: (Top) An example of three granularities of                 with fine-grained retrieved units for retrieval-
+                                                                                retrieval units of Wikipedia text when using dense re-                augmented language models improves the per-
+                                                                                       trieval. (Bottom) We observe that retrieving by proposi-                 formance of downstream QA tasks given a spe-
+                                                                           tions yields the best retrieval performance in both pas-                      cific computation budget.
+                                                                 sage retrieval task and downstream open-domain QA
+                                                                                task, e.g. with Contriever (Izacard et al., 2022) or GTR          1  Introduction
+                                                                   (Ni et al., 2022) as the backbone retriever. Highlight in-
+                                                                            dicates the part that contains the answer to the question.arXiv:2312.06648v3      Dense retrievers are a popular class of techniques
+              for accessing external information sources for open-
+           domain NLP tasks (Karpukhin et al., 2020). Before
+                                                     on how the dense retrieval model is instantiated
+         we use a learned dense retriever to retrieve from a
+                                                                or trained (Lewis et al., 2020; Lee et al., 2021a;
+             corpus, an imperative design decision we have to
+                                                       Santhanam et al., 2022; Ni et al., 2022).
+          make is the retrieval unit – i.e. the granularity at
+                                                                  In this paper, we investigate an overlooked re-
+           which we segment and index the retrieval corpus
+                                                               search question with dense retrieval inference – at
+              for inference. In practice, the choice of retrieval
+                                                       what retrieval granularity should we segment and
+               units, e.g. documents, fixed-length passage chunks
+                                                            index the retrieval corpus? We aim to investigate
+             or sentences, etc, is usually pre-determined based
+                                                                           this question in two aspects.
+                        * Work was done during internship at Tencent AI Lab,   • First, we examine how the granularity of the
+                Bellevue.
+                                                             index affects passage retrieval performance.         §  https://github.com/chentong0/
+           factoid-wiki                               • Second, we investigate whether fine-grained units
+
+
+                                                    1
+
+=== PDF第2页 ===
+   A     Prior to restoration work performed between                              B           Corpus      C
+      1990 and 2001, the tower leaned at an angle of                         Query
+      5.5          degrees                             , // but the                            tower                           now                                          leans                                                   at
+      about            3.99 degrees.                         // This                            means                                          the                                           top                                                   of the                     ?                    Retrieval
+       Learning Tower of Pisa is displaced horizontally                                                               Units
+      3.9 meters (12 ft 10 in) from the center.            WIkipedia                                            Passage Retrieval
+                                                                                      Retriever
+          1. Prior to restoration work performed           Propositionizer
+      between 1990 and 2001, the Leaning Tower                               Retrieval                D  QA Model       of Pisa leaned at an angle of 5.5 degrees.                                  Units
+                                                                              Query          Answer
+         2. The Leaning Tower of Pisa now leans at
+                                                                           ✓      about 3.99 degrees.                                                                      Sentences            ?
+         3. The top of the Leaning Tower of Pisa is                                                                    Retrieval Units
+      displaced horizontally 3.9 meters (12 ft 10 in)
+      from the center.                            FactoidWiki          Passages    Propositions
+
+Figure 2: We discover that segmenting and indexing a retrieval corpus on the proposition level can be a simple yet
+effective strategy to increase dense retrievers’ generalization performance at inference time (A, B). We empirically
+compare the retrieval and downstream open-domain QA task performance when dense retrievers work with
+Wikipedia indexed at the level of 100-word passages, sentences, or propositions (C, D).
+
+
+can replace passages in downstream QA tasks.       of Pisa’s current leaning angle in a self-contained
+                                      way and precisely responds to what the question  Based on our empirical experiments, we discover
+                                                                 is querying. We provide a more detailed definitionthat selecting the proper retrieval granularity at in-
+                                            and description of proposition in §2. To validateference time can be a simple yet effective strategy
+                                                     the efficacy of using proposition as a retrieval unitfor improving dense retrievers’ retrieval and down-
+                                                        for dense retrievers inference, we first process andstream QA performance. We illustrate our intuition
+                                                index an English Wikipedia dump with all docu-with an example of open-domain QA in Table 1.
+                                              ments segmented into propositions, which we referThe example shows retrieved text by the same re-
+                                                        to as FACTOIDWIKI.triever at three different granularities. The pas-
+sage, which represents a coarser retrieval unit with    We conduct experiments on five different open-
+a longer context, is theoretically able to provide   domain QA datasets and empirically compare the
+more relevant information for the question. How-   performance of four dual-encoder retrievers when
+ever, a passage often includes extraneous details   Wikipedia is indexed by passages, sentences, and
+(e.g., restoration period and horizontal displace-   our proposed propositions. Notably, our findings in-
+ment in the example of Table 1) that could poten-    dicate that proposition-based retrieval outperforms
+tially distract both the retriever and the language    sentence and passage-based retrieval, especially in
+model in downstream tasks (Shi et al., 2023; Yu   terms of generalization, as discussed in §5. This
+et al., 2023b). On the other hand, sentence-level in-   suggests that propositions, being both compact and
+dexing provides a finer-grained approach but does    rich in context, enable dense retrievers to access
+not entirely address the issue (Akkalyoncu Yilmaz    precise information while maintaining adequate
+et al., 2019; Yang et al., 2020). This is because    context. The average improvement over passage-
+sentences can still be complex and compounded,   based retrieval of Recall@20 is +10.1 on unsuper-
+and they are often not self-contained, lacking nec-   vised dense retrievers and +2.7 on supervised re-
+essary contextual information (e.g., in the example    trievers, even though these retrievers were directly
+of Table 1, “the tower” is the coreference of “Pisa    trained on passage-level retrieval. Furthermore,
+Tower”) for judging the query-document relevance.  we observe a distinct advantage of proposition-
+                                               based retrieval in downstream QA performance  To address these shortcomings of typical re-
+                                        when using retrieval-augmented language models,trieval units such as passages or sentences, we pro-
+                                                     as elaborated in §6. Retrieval by finer-grained unitspose using proposition as a novel retrieval unit for
+                                                    inherently provides a higher density of question-dense retrieval. Propositions are defined as atomic
+                                                     relevant information. This finding implies usingexpressions within text, where each encapsulates
+                                                        finer-grained units in the prompts achieves the samea distinct factoid and is presented in a concise,
+                                                performance with a shorter input length, and hence,self-contained natural language format. We show
+                                                 a faster inference time.an example proposition in Table 1. The proposi-
+tion describes the information regarding the Tower     Our main contributions are:
+
+
+                                         2
+
+=== PDF第3页 ===
+• We provide a systemic study on how retrieval                         # units     Avg. # words
+  granularity impacts retrieval and downstream           Passages       41,393,528       58.5
+  task performance. We observe that the retrieval           Sentences     114,219,127       21.0
+                                                                       Propositions   256,885,003       11.2  units have a significant impact on performance.
+
+• We introduce FACTOIDWIKI, a processed En-   Table 1: Statistics of text units in the English Wikipedia.
+  glish Wikipedia dump, where each page is seg-
+  mented into multiple granularities: passages, sen-
+                                                    the original text, e.g. the reference of the tower is  tences, and our proposed propositions.
+                                                  resolved into its full mention, the Leaning Tower
+• We propose retrieval by proposition as an alter-                                                      of Pisa, in the first proposition. We expect each
+  native strategy, which achieves better retrieval                                                     proposition to describe exactly one atomic fact, and
+  and QA accuracy and generalization performance                                                 so our intuition is that propositions would suitably
+  (with unsupervised retriever), compared to pas-                                         work as a retrieval unit for information-seeking
+  sage or sentence as retrieval unit.                                                      questions.
+
+2  Proposition as a Retrieval Unit
+                                       3  FACTOIDWIKI: Proposition-Level
+The goal of our study is to understand how the gran-      Index and Retrieval for Wikipedia
+ularity of a retrieval corpus influences the dense
+                                 We empirically compare passages, sentences, andretrieval models’ performance empirically. Aside
+                                                   propositions as retrieval units on Wikipedia, afrom commonly-used retrieval units such as 100-
+                                           commonly-used retrieval source for knowledge-word passages (Karpukhin et al., 2020) or sen-
+                                                        intensive NLP tasks (Petroni et al., 2021). To allowtences, we propose using proposition as an alterna-
+                                                a fair comparison across granularities, we processtive retrieval unit choice. Here, propositions repre-
+                                             an English Wikipedia dump from 2021-10-13, assent atomic expressions of meanings in text (Min
+                                                used by Bohnet et al. (2022). We segment each doc-et al., 2023) with three defining principles below.
+                                          ument text into three different granularities: pas-
+1. Each proposition should correspond to a distinct    sages, sentences, and propositions. We include the
+   piece of meaning in text, where the composition    details on passage- and sentence-level segmenta-
+   of all propositions would represent the seman-    tion of the corpus in Appendix A.
+    tics of the entire text.
+                                             Parsing Passage to Propositions.  To segment
+2. A proposition should be minimal, i.e. it cannot                                                      the Wikipedia pages into propositions, we finetune
+   be further split into separate propositions.                                                a text generation model, which we refer to as the
+3. A proposition should be contextualized and self-   Propositionizer. The Propositionizer takes a pas-
+   contained (Choi et al., 2021). A proposition    sage as input and generates the list of propositions
+   should include all the necessary context from the    within the passage.
+   text (e.g. coreference) to interpret its meaning.      Following Chen et al. (2023b), we train the
+                                                     Propositionizer with a two-step distillation process.
+  The use of proposition as a retrieval unit is in-                                We first prompt GPT-4 (OpenAI, 2023) with an
+spired by a recent line of work (Min et al., 2023;                                                      instruction containing the proposition definition
+Kamoi et al., 2023; Chen et al., 2023a,b), which                                            and 1-shot demonstration. We include the details
+finds success in representing and evaluating text                                                   of the prompt in Figure 8. We start with a set of
+semantics at the level of propositions. We demon-                                          42k passages and use GPT-4 to generate the seed
+strate the concept of proposition and how a passage                                                         set of paragraph-to-proposition pairs.  Next, we
+can be split into a set of propositions by an example                                                use the seed set to finetune a Flan-T5-large model
+on the left side of Figure 2. The passage contains                                          (Chung et al., 2022). We refer to the processed
+three propositions, each of which corresponds to                                                corpus as FACTOIDWIKI. The statistics of FAC-
+a distinct factoid about the Leaning Tower of Pisa:                                        TOIDWIKI are shown in Table 1.
+the angle before the restoration, the current angle,
+and the horizontal displacement.                  Quality Analysis. We conduct a manual error
+  Within each proposition, necessary context from    analysis to understand the quality of propositions
+the passage is incorporated so that the meaning of    generated by GPT-4 and the Propositionizer. While
+the proposition can be interpreted independently of    there does not exist a fixed standard on deciding
+
+
+                                         3
+
+=== PDF第4页 ===
+                     GPT-4       Propositionizer         encoder. Contriever is contrastively trained by
+   Not Faithful      0.7% (3/408)    1.3% (6/445)        segment pairs constructed from unlabeled docu-
+   Not Minimal     2.9% (12/408)   2.0% (9/445)        ments from Wikipedia and web crawl data.
+   Not Stand-alone   4.9% (20/408)   3.1% (14/445)
+                                                              • DPR (Karpukhin et al., 2020) is a dual-encoder
+Table 2: Frequency of errors occurred in the generated     BERT-base model fine-tuned on passage retrieval
+propositions. Most generated propositions are faithful,      tasks directly using the question-passage pair la-
+while a small portion of them are not stand-alone.                                                        bels from NQ, TQA, WebQ and SQuAD.
+
+                                                              • GTR (Ni et al., 2022) is a T5-base encoder (Raf-
+a ground truth set of propositions for a passage,      fel et al., 2020) pretrained on online forum QA
+we estimate the frequency of error cases where      data, and fine-tuned with question-passage pair
+(1) a proposition is not fully supported by the pas-      labels on MS MARCO (Nguyen et al., 2016) and
+sage, (2) a proposition can be further split into   NQ datasets.
+separate propositions, and (3) propositions are not
+self-contained, respectively (Table 2). On a random                                                    4.3  Passage Retrieval Evaluation
+sample of 50 passages, we observe that almost all
+                                We evaluate the retrieval performance at the pas-propositions generated by both models are faithful,
+                                                sage level when the corpus is indexed at the pas-while a small portion of the propositions are not
+                                                    sage, sentence, or proposition level respectively.stand-alone.
+                                              For sentence and proposition level retrieval, we
+4  Experimental Settings                      follow the setting introduced in Lee et al. (2021b),
+                                             where the score of the passage is based on the max-
+To evaluate the impact of the three retrieval unit                                    imum similarity score between the query and all
+choices, we conduct experiments on five differ-                                                   sentences or propositions in a passage. In practice,
+ent open-domain QA datasets with FACTOIDWIKI.                                    we first retrieve a slightly larger number of text
+With each dataset, we evaluate both passage re-                                                          units, then map each unit to the source passage,
+trieval and downstream QA performance when                                            and eventually return the top-k unique passages.
+dense retrievers work with Wikipedia indexed in                                  We use Passage Recall@k as our evaluation metric,
+different granularities.                                             which is defined as the percentage of questions for
+                                             which the correct answer is found within the top-k4.1  Open-Domain QA Datasets
+                                                       retrieved passages.
+We experiment on five different open-domain QA                                           To further understand how different retrieved
+datasets with Wikipedia as the retrieval source: Nat-                                                  passages affect the downstream QA. We use Fusion-
+ural Questions (NQ, Kwiatkowski et al., 2019),                                                in-Decoder (FiD, Izacard and Grave, 2021) model
+TriviaQA (TQA, Joshi et al., 2017), Web Ques-                                                         to extract answers from retrieved passages. We use
+tions (WebQ, Berant et al., 2013), SQuAD (Ra-                                                 a T5-large sized FiD model trained on NQ dataset
+jpurkar et al., 2016), and Entity Questions (EQ,                                                      in our experiments. The exact match (EM) score
+Sciavolino et al., 2021).                                              computes the percentage of questions for which the
+                                                     predicted answer exactly matches the ground truth.4.2  Dense Retrieval Models
+
+We compare the performance of the four following    4.4  Open-domain QA Evaluation on
+supervised or unsupervised dense retriever mod-        Retrieval-Augmented Language Models
+els.  Here, supervised models refer to ones that
+                                             Another aspect of the choice of granularity lieshave used human-labeled query-passage pairs as
+                                                      in what units should be used in the prompt forsupervision during training, and vice versa.
+                                                  retrieval-augmented language models. For large
+• SimCSE (Gao et al., 2021) is a BERT-base (De-                                               language models, retrieval-augmented generation
+  vlin et al., 2019) encoder trained on unlabeled                                                                  is achieved by prepending retrieved units to user in-
+  sentences sampled randomly from Wikipedia.                                                         struction and taking them as the input for language
+ SimCSE can be transferred to use as an unsu-                                                models. We aim to understand the implications of
+  pervised retriever (Chen et al., 2023b).                                                   using retrieved units of different granularity within
+• Contriever (Izacard et al., 2022) is an unsuper-   the same computational budget at inference time.
+  vised retriever, instantiated with a BERT-base   To fairly compare using different granularity in the
+
+
+                                         4
+
+=== PDF第5页 ===
+                      NQ        TQA       WebQ      SQuAD       EQ           Avg.
+     Retriever    Granularity
+                   R@5  R@20  R@5  R@20  R@5  R@20  R@5  R@20  R@5  R@20  R@5  R@20
+
+                                               Unsupervised Dense Retrievers
+
+   SimCSE    Passage       28.8    44.3    44.9    59.4    39.8    56.0    29.5    45.5    28.4    40.3    34.3    49.1
+                Sentence      35.5    53.1    50.5    64.3    45.3    64.1    37.1    52.3    36.3    50.1    40.9    56.8
+                Proposition   41.1    58.9    52.4    66.5    50.0    66.8    38.7    53.9    49.5    62.2    46.3    61.7
+
+     Contriever  Passage       42.5    63.8    58.1    73.7    37.1    60.6    40.8    59.8    36.3    56.3    43.0    62.8
+                Sentence      46.4    66.8    60.6    75.7    41.7    63.1    45.1    63.5    42.7    61.3    47.3    66.1
+                Proposition   50.1    70.0    65.1    77.9    45.9    66.8    50.7    67.7    51.7    70.1    52.7    70.5
+
+                                                  Supervised Dense Retrievers
+
+   DPR        Passage       66.0    78.0    71.6    80.2    62.9    74.9    38.3    53.9    47.5    60.4    57.3    69.5
+                Sentence      66.0    78.0    71.8    80.5    64.1    74.4    40.3    55.9    53.7    66.0    59.2    71.0
+                Proposition   65.4    77.7    70.7    79.6    62.8    75.1    41.4    57.2    59.4    71.3    59.9    72.2
+
+   GTR       Passage       66.3    78.4    70.1    79.4    63.3    76.5    54.4    68.1    71.7    80.5    65.2    76.6
+                Sentence      66.4    79.4    71.6    80.9    62.2    76.8    60.9    73.4    72.5    81.3    66.7    78.4
+                Proposition   66.5    79.6    72.2    80.9    63.2    77.4    63.3    75.0    74.9    83.0    68.0    79.2
+
+Table 3: Passage retrieval performance (Recall@k = 5, 20) on five different open-domain QA datasets when
+pre-trained dense retrievers work with the three different granularity from the retrieval corpus. Underline denotes
+cases where the training split of the target dataset was included in the training data of the dense retriever.
+
+
+prompts under the same computation budget, we    retrieval by sentences or passages on most tasks for
+set a token length limit for retrieved units.           both unsupervised and supervised retrievers.
+  For this reason, we follow an evaluation setup                                             With all dense retrievers tested, proposition-
+where the maximum number of retrieved tokens                                                        level retrieval consistently outperforms sentence
+is capped at l = 100 or 500, i.e.  only the top                                            and passage-level retrieval on average across the
+l tokens from passage, sentence, or proposition                                                           five datasets. With the unsupervised retrievers, i.e.
+level retrieval are fed into the language model as                                     SimCSE and Contriever, we see an averaged Re-
+input. We evaluate the percentage of questions for                                            call@5 improvement of +12.0 and +9.3 (35.0%
+which the predicted answer exactly matches (EM)                                             and 22.5% relative improvement) on five datasets.
+the ground truth. We denote our metric as EM @
+                                               With the supervised retrievers, proposition-level
+l tokens. We use LLaMA-2-7B (Touvron et al.,
+                                                          retrieval still shows an advantage on average, yet
+2023) in our evaluation. To ensure the model’s out-
+                                                      the sizes of improvements are smaller. We hypothe-
+put aligns with the format of each dataset, we em-
+                                                         size that this is due to these retrievers being trained
+ploy in-context learning, incorporating four-shot
+                                          on query-passage pairs. For instance, with DPR,
+demonstrations as illustrated in Figure 9.
+                                             which have been trained on NQ, TQA, WebQ, and
+                                      SQuAD, we observe that proposition and sentence5  How Does Granularity Influence
+                                                         level retrieval perform slightly worse compared to   Passage Retrieval?
+                                                  passage level on three out of the four datasets, with
+In this section, we report and discuss how index-   the exception of SQuAD. As shown in Table 3, all
+ing the corpus at various granularity influences the    supervised retrievers demonstrate comparable per-
+passage retrieval performance.  Surprisingly, de-   formance across three levels of retrieval granularity
+spite all of the dense retrieval models being trained    in NQ, TQA, and WebQ.
+on only passage-level documents, all the models     However, on datasets that the retriever model has
+demonstrate on-par or superior performance when    not seen during training, we observe that retrieval
+the corpus is indexed at the proposition level. Our   by proposition demonstrates a clear advantage. For
+results suggest that indexing the corpus at the finer-   instance, most notably on SQuAD or EntityQues-
+grained units improves the cross-task generaliza-    tions, we observe that proposition-based retrieval
+tion on passage retrieval.                              significantly outperforms the other two granulari-
+                                                                 ties. We see 25% Recall@5 relative improvement
+5.1  Passage Retrieval Performance                                           on EntityQuestions with relatively weak retrievers
+We report our evaluation results in Table 3. We    like DPR. Furthermore, the Recall@5 of retrieval
+observe that retrieval by propositions outperforms   by proposition on SQuAD improved most on GTR,
+
+
+                                         5
+
+=== PDF第6页 ===
+                                                Passage        Sentence          Proposition
+                         SimCSE                   Contriever                DPR                   GTR
+                  60                       60                                                 80
+                                                                     60
+                                                                                              70
+                  40                       40                                                                     50                                          Recall@5                                                             Recall@5                                                             Recall@5                                                             Recall@5 60
+                  20                       20                       40                       50
+                           101  102  103               101  102  103               101  102  103               101  102  103
+                           Frequency                 Frequency                 Frequency                 Frequency
+Figure 3: Document retrieval recall vs. the frequency of the target entity in each question from the Entity Questions
+dataset. The frequency of each entity (i.e. smaller value ⇒less common entities, and vice versa) is estimated by
+the frequency of the entity in its top-1000 passage retrieved by BM25. On queries with less common entities, we
+observe that retrieving by proposition shows a larger advantage over retrieval by proposition.
+
+
+                      NQ        TQA       WebQ      SQuAD       EQ           Avg.
+     Retriever    Granularity
+                                top-5   top-20   top-5   top-20   top-5   top-20   top-5   top-20   top-5   top-20   top-5   top-20
+
+                                               Unsupervised Dense Retrievers
+
+   SimCSE    Passage       16.6    23.6    32.3    40.8    15.5    19.1    14.6    20.7    16.1    20.3    19.0    24.9
+                Sentence      20.7    28.1    36.0    44.5    18.5    21.9    19.6    25.8    19.9    25.1    23.0    29.1
+                Proposition   24.5    33.1    37.5    46.2    19.7    23.0    21.4    27.6    26.8    32.0    26.0    32.4
+
+     Contriever  Passage       23.2    35.1    40.8    50.8    16.3    22.1    23.9    32.7    20.2    27.9    24.9    33.7
+                Sentence      26.0    36.8    43.4    52.9    18.4    23.9    26.7    34.7    23.7    30.3    27.6    35.7
+                Proposition   28.9    39.2    47.2    55.6    19.5    25.2    30.8    37.6    28.8    35.8    31.1    38.7
+
+                                                  Supervised Dense Retrievers
+
+   DPR        Passage       41.1    45.6    50.6    57.0    23.7    25.5    18.8    25.4    25.3    29.7    31.9    36.6
+                Sentence      40.3    45.6    51.7    57.6    24.0    26.9    21.1    27.4    28.6    32.9    33.1    38.1
+                Proposition   39.7    45.2    51.0    56.8    24.3    27.5    22.2    28.3    32.0    36.0    33.9    38.8
+
+   GTR       Passage       39.8    46.1    49.7    55.9    23.0    25.9    29.9    35.1    37.8    39.6    36.0    40.5
+                Sentence      39.4    45.9    51.7    58.0    23.2    26.1    35.7    39.1    38.0    39.9    37.6    41.8
+                Proposition   40.0    46.9    52.5    58.4    24.2    26.5    37.8    40.4    39.2    41.0    38.7    42.6
+
+Table 4: Open-domain QA performance (Exact Match) using Fusion-in-Decoder model (Izacard and Grave, 2021)
+to extract answer from top-5 and top-20 passages retrieved on the index of passages, sentences, and propositions.
+
+
+with 16% relative improvements.                    occurrences of the entity in its relevant passages as
+                                             an estimate of its frequency. With the 20,000 test
+5.2  Retrieval on Finer-grained Index ⇒          queries, around 25% of the target entities have an
+     Better Cross-Task Generalization           frequency value of less or equal to 3.
+                                                   Figure 3 shows the passage retrieval perfor-Our results show the advantage of retrieval on
+                                         mance vs.  the frequency of the target entity inproposition-level index in cross-task generalization
+                                              each question. Across all four dense retrievers,settings. We observe that on SQuAD and Entity
+                                     we observe that retrieving by proposition shows aQuestions, retrieval on the proposition-level index
+                                       much larger advantage over retrieving by passagesbrings more performance gain over the passage-
+                                                with questions targeting less common entities. Aslevel index and sentence-level index.
+                                                      the frequency of entities increases, the performance
+  To better understand where the improvements
+                                            gap decreases. Our findings indicate that the per-
+can be attributed, we conduct an additional analysis
+                                             formance gain from retrieval by proposition canon Entity Questions. As Entity Questions features
+                                                 mostly be attributed to queries for long-tailed infor-
+questions targeting the properties of longer-tail enti-
+                                                  mation. This echoes our observation that retrieval
+ties, we study how the retrieval performance under
+                                            on proposition-level index improves the cross-taskthree different granularities is affected by the occu-
+                                                     generalization performance of dense retrievers.rance of the target entity in question, i.e. whether
+the entity appears frequently in Wikipedia or not.
+                                                    5.3  Higher Passage Recall ⇒Higher
+We estimate the frequency of each entity with the
+                                            Downstream QA Accuracy
+following method. Given the surface form of an en-
+tity, we use BM25 to retrieve the top 1000 relevant   To further understand whether the passage retrieval
+passages from Wikipedia. We use the number of   on a finer-grained index achieves higher down-
+
+
+                                         6
+
+=== PDF第7页 ===
+stream QA performance, we extract the answer    6.2  Finer-grained Granularity ⇒Higher
+from the retrieved passage by a QA reader, Fusion-        Density of Question-Related Information
+in-decoder. The results are shown in Table 4.                                                           Intuitively, compared to sentences or passages as
+   Retrieval by proposition-level index achieves the    retrieval units, the advantage of propositions is that
+highest average exact match (EM) on all four re-   the retrieved propositions have a higher density
+triever models. Apart from limited exceptions, the    of relevant information to the query. With finer-
+proposition-level index achieves the highest EM    grained retrieval units, the correct answer to the
+for most retrieval tasks and on most datasets. We   query would more likely appear in the top-l re-
+observe that the trend of downstream QA perfor-    trieved words by a dense retriever.
+mance is highly consistent with passage retrieval    We illustrate this phenomenon by an analysis
+recall, suggesting higher passage recall implies bet-   shown in Figure 4. Here, we investigate the posi-
+ter downstream QA performance.                     tion at which the ground truth answer appears in
+                                                    the top-l retrieved words. Specifically, we calcu-
+6  How Does Granularity Influence             late the recall of the gold answer within the initial l
+   Retrieval-Augmented LMs?                  retrieved words with GTR working with Wikipedia
+                                                indexed in three different granularities.
+                                  We show the results in Figure 4 and 7 with lIn this section, we study how the choice of different
+                                                 ranging from 0 to 500 across all five datasets. Forgranularity used in the prompts affects the retrieval-
+                                                 a fixed word retrieval budget, proposition retrievalaugmented generation across open-domain QA
+                                            shows a higher success rate than sentence and pas-tasks. To fairly compare different granularity with
+                                                  sage retrieval methods. The largest improvement ofthe same computation budget, we limit the num-
+                                                    proposition retrieval over passage retrieval occursber of retrieved tokens for input to the language
+                                                  within the range of 100-200 words, which corre-model at l = 100 or 500 tokens. Our results sug-
+                                               sponds to roughly 10 propositions, 5 sentences, orgest that retrieval by finer-grained units enables a
+                                            2 passages. As word count increases, the recall ratehigher density of question-related information in
+                                                     of the three granularities converges, encompassingthe prompts, leading to better performance.
+                                                                 all relevant information.
+
+6.1  Open-domain QA Performance           7  Related Work
+
+Table 5 shows the evaluation results with LLaMA-   Recent works on dense retrievers typically adopt
+2-7B as the language model. Across different re-   a dual-encoder architecture (Yih  et  al., 2011;
+trievers, we observe higher QA performance in   Reimers and Gurevych, 2019; Karpukhin et al.,
+terms of the EM@l metric on average when using   2020; Ni  et  al., 2022).   With dual-encoders,
+propositions as the retrieval unit.                  each query and document is encoded into a low-
+  Using propositions rather than passages in the   dimensional feature vector respectively, and their
+prompts, the four dense retrievers—SimCSE, Con-   relevance is measured by a non-parametric similar-
+Retriever, DPR, and GTR—improve by +4.1, +3.2,    ity function between the embedding vectors (Muss-
++2.7, and +2.8 in the EM@500 score. The improve-   mann and Ermon, 2016). Due to the limited expres-
+ments for using sentences over passages for the    sivity from the similarity function, dual encoder
+four retrieval models are +2.4, +2.1, +2, and +1.6,   models often generalize poorly to new tasks with
+respectively.  It is interesting to note that in the    scarce training data (Thakur et al., 2021). Previous
+LLaMA-2-7B model, the QA accuracy on TQA    studies use techniques such as data augmentation
+and WebQ is not sensitive to retrieval type. The   (Wang et al., 2022; Yu et al., 2023a; Izacard et al.,
+highest improvements over the closed-book setting   2022; Gao and Callan, 2022; Lin et al., 2023; Dai
+are only +4.9 and +3.2, achieved by GTR with    et al., 2023), continual pre-training (Chang et al.,
+propositions. Nevertheless, we observe that using   2020; Sachan et al., 2021; Oguz et al., 2022), task-
+sentences and propositions in the prompts results   aware training (Xin et al., 2022; Cheng et al., 2023),
+in higher performance than using passages for all    hybrid sparse-dense retrieval (Luan et al., 2021;
+retrieval models on these two datasets. The results   Chen et al., 2022), or mixed strategy retrieval (Ma
+suggest that using finer-grained units in the prompts    et al., 2022, 2023) and so on to improve cross-task
+is beneficial to retrieval-augmented generation.       generalization performance of dense retrievers.
+
+
+                                         7
+
+=== PDF第8页 ===
+                      NQ        TQA        WebQ       SQuAD       EQ           Avg.
+      Retriever    Granularity
+                     EM       EM       EM       EM       EM       EM
+                       @100  @500  @100  @500  @100  @500  @100  @500  @100  @500  @100  @500
+
+           Closed-book             23.4            57.4            25.9            13.0            23.2            28.6
+
+                                                 Unsupervised Dense Retrievers
+
+    SimCSE    Passage       20.5    22.9    49.7    52.9    24.5    24.6    13.7    16.6    20.7    25.5    25.8    28.5
+                 Sentence      21.1    24.3    52.1    54.2    24.2    26.1    17.7    21.5    22.9    28.3    27.6    30.9
+                 Proposition   22.0    26.0    51.0    53.9    23.5    27.0    18.6    22.7    25.9    33.6    28.2    32.6
+
+     Contriever  Passage       24.5    28.7    54.7    57.9    25.7    26.9    17.7    24.2    25.6    32.5    29.6    34.1
+                 Sentence      25.0    30.2    56.3    59.2    26.8    29.2    22.5    28.1    26.1    34.1    31.3    36.2
+                 Proposition   25.8    30.3    56.8    60.0    26.8    29.9    24.8    29.7    27.1    36.5    32.3    37.3
+
+                                                    Supervised Dense Retrievers
+
+    DPR        Passage       30.6    33.7    56.5    60.3    25.0    26.8    14.2    18.9    26.4    31.6    30.6    34.3
+                 Sentence      32.5    34.1    58.3    61.7    25.4    28.0    17.6    22.1    29.8    35.6    32.7    36.3
+                 Proposition   31.5    33.8    57.6    60.6    27.1    28.2    18.2    22.6    32.9    39.7    33.5    37.0
+
+   GTR       Passage       30.0    33.9    56.9    60.0    24.5    25.9    21.5    27.4    42.2    45.3    35.0    38.5
+                 Sentence      30.9    34.0    58.9    61.9    24.5    27.0    29.8    31.7    42.9    45.9    37.4    40.1
+                 Proposition   32.1    33.8    58.8    62.3    25.7    29.1    32.5    33.1    43.0    48.1    38.4    41.3
+
+ Table 5: Open-domain QA performance (EM = Exact Match) with LLaMA-2-7B model (Touvron et al., 2023). The
+ context in the prompts is constructed by passage, sentence, or propositions limiting at l = 100 or 500 tokens. We
+ prompt the LLaMA-2-7B model with four-shot demonstrations for each test case.
+
+                                             Passage        Sentence          Proposition
+          GTR / NQ               GTR / TQA              GTR / WebQ             GTR / SQuAD              GTR / EQ
+                                                                                                        80   70                                                 70
+(%)                       (%) 70                     (%)                       (%) 60                     (%)
+   60                                                 60                                                 70
+                                                                               50Recall 50                                          Recall 60                                          Recall 50                                          Recall                                              Recall
+                                                                                                        60                                                                               40
+      0     200    400         0     200    400         0     200    400         0     200    400         0     200    400
+           #Words                 #Words                 #Words                 #Words                 #Words
+ Figure 4: Recall of the gold answer in the retrieved text limited to first k words for the GTR retriever. Finer-grained
+ retrieval has a higher recall across all numbers of words.
+
+
+  The motivation of our work echoes in part with   complementary, as they address different aspects
+ multi-vector retrieval, e.g. ColBERT (Khattab and    of retrieval enhancement.
+ Zaharia, 2020), DensePhrase (Lee et al., 2021a,b),                                           The use of propositions as a unit of text rep-
+ME-BERT (Luan et al., 2021), and MVR (Zhang                                                      resentation dates back to the Pyramid method in
+ et al., 2022), where the retrieval model learns to                                               summarization evaluation (Nenkova and Passon-
+ encode a candidate retrieval unit into multiple vec-                                                  neau, 2004), where a model-generated summary
+ tors to increase model expressivity and improve                                                                is evaluated by each proposition. Proposition ex-
+ retrieval granularity (Seo et al., 2019; Humeau                                                        traction from text has been a long-standing task,
+ et al., 2019). Our work instead focuses on the                                                with earlier formulations focusing on a structured
+ setting where we do not update the dense retriever                                                       representation of propositions (Etzioni et al., 2008;
+ model or its parameters. We show that indexing                                                Gildea and Jurafsky, 2000). More recent studies
+ the retrieval corpus by different granularity can be                                              have found success in extracting free-text propo-
+ a simple and orthogonal strategy for improving the                                                         sitions via few-shot prompting with LLMs (Min
+ generalization of dense retrievers at inference time.                                                           et al., 2023; Kamoi et al., 2023), or fine-tuning
+                                                 compact-sized models (Chen et al., 2023b).   In line with generating retrieval units from the
+ original corpus, Sarthi et al. (2024) propose using      Retrieve-then-read, or more broadly retrieval
+ generative summaries as additional retrieval units   augmented generation, has recently emerged as
+ alongside the original text, enhancing queries with   a popular paradigm for open-domain question an-
+ document-level understanding.  In contrast, our   swering (Lewis et al., 2021; Jiang et al., 2023; Asai
+work generates propositions to improve queries    et al., 2023). While earlier works provide up to
+ related to long-tailed entities. These approaches are    the top 100 retrieved passages for the downstream
+
+
+                                          8
+
+=== PDF第9页 ===
+reader (Izacard and Grave, 2021; Kedia et  al.,    effects, environmental impact, fairness considera-
+2022), the amount of context allowed is signifi-    tions, or privacy considerations.
+cantly reduced when using recent large language
+                                      Acknowledgementsmodels (Touvron et al., 2023; Yu et al., 2023b), due
+to the limited context window length and inability                                         The authors sincerely appreciate anonymous re-
+to reason over long context (Liu et al., 2023). Re-                                                  viewers for helpful discussions and comments. The
+cent efforts try to improve the quality of the reader                                                  authors would like to thank Xuanyu Ben Zhou,
+context by filtering or compressing the retrieved                                                 Ruixin Hong, Ning Dai, and Linfeng Shen for valu-
+documents (Wang et al., 2023; Xu et al., 2023).                                                   able feedback on the project. Xinran Zhao is sup-
+Our work offers a new perspective by changing                                                   ported by the ONR Award N000142312840.
+the retrieval granularity, in order to achiev greater
+information density with a fixed context length.
+                                          References
+8  Conclusion                                                Zeynep Akkalyoncu Yilmaz, Wei Yang, Haotian Zhang,
+                                                  and Jimmy Lin. 2019. Cross-domain modeling of
+This paper studies how the choice of granularity       sentence-level evidence for document retrieval. In
+for indexing a corpus, as well as the granularity      Proceedings of the 2019 Conference on Empirical
+used in the prompts, influences retrieval and down-     Methods in Natural Language Processing and the
+                                                         9th International Joint Conference on Natural Lan-stream QA performance. Our results show that
+                                                  guage Processing (EMNLP-IJCNLP), pages 3490–
+retrieval by propositions outperforms passage-level                                                       3496, Hong Kong, China. Association for Computa-
+and sentence-level retrieval on passage retrieval       tional Linguistics.
+and downstream QA across five open-domain QA
+                                                    Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and
+datasets. Our analysis shows that indexing a corpus                                                Hannaneh Hajishirzi. 2023.  Self-rag: Learning to
+with finer-grained units enhances the cross-task        retrieve, generate, and critique through self-reflection.
+generalization of dense retrievers and increases       Preprint, arXiv:2310.11511.
+the density of question-related information in the
+                                                      Jonathan Berant, Andrew Chou, Roy Frostig, and Percy
+prompts. We hope that FACTOIDWIKI and our find-                                                        Liang. 2013.  Semantic parsing on freebase from
+ings will facilitate future research on information      question-answer pairs. In Proceedings of the 2013
+retrieval and retrieval-augmented generation.            conference on empirical methods in natural language
+                                                            processing, pages 1533–1544.
+Limitations                                    Bernd Bohnet, Vinh Q Tran, Pat Verga, Roee Aharoni,
+                                                         Daniel Andor, Livio Baldini Soares, Jacob Eisenstein,
+The scope of our current study on the granular-     Kuzman Ganchev, Jonathan Herzig, Kai Hui, et al.
+ity of retrieval corpus has the following limita-      2022. Attributed question answering: Evaluation and
+                                                      modeling for attributed large language models. arXivtions. (1) Retrieval Corpus – Our study only fo-
+                                                             preprint arXiv:2212.08037.
+cuses on Wikipedia as the retrieval corpus, due to
+the fact that most open-domain QA datasets adopt   Wei-Cheng Chang, X Yu Felix, Yin-Wen Chang, Yim-
+Wikipedia as the retrieval corpus.  (2) Types of       ing Yang, and Sanjiv Kumar. 2020. Pre-training tasks
+                                                              for embedding-based large-scale retrieval. In Inter-
+dense retrievers evaluated – In the current version                                                           national Conference on Learning Representations.
+of the paper, we evaluate 6 types of popular dense
+retrievers, most of which follow the bi- or dual-   Sihao Chen, Senaka Buthpitiya, Alex Fabrikant, Dan
+                                                       Roth, and Tal Schuster. 2023a. PropSegmEnt: Aencoder architecture. In future versions, we will
+                                                                large-scale corpus for proposition-level segmentation
+include and discuss results on a broader range of                                                  and entailment recognition. In Findings of the As-
+dense retrievers. (3) Language – Our current study       sociation for Computational Linguistics: ACL 2023,
+is limited to English Wikipedia only. We leave the      pages 8874–8893, Toronto, Canada. Association for
+                                                      Computational Linguistics.exploration on other languages to future work.
+
+                                                   Sihao Chen, Hongming Zhang, Tong Chen, Ben Zhou,
+Ethical Considerations                        Wenhao Yu, Dian Yu, Baolin Peng, Hongwei Wang,
+                                            Dan Roth, and Dong Yu. 2023b. Sub-sentence en-
+This article follows the ACL Code of Ethics. Our       coder: Contrastive learning of propositional semantic
+                                                               representations. arXiv preprint arXiv:2311.04335.work is a foundational research on information
+retrieval. To the best of our knowledge, we do    Xilun Chen, Kushal Lakhotia, Barlas Oguz, Anchit
+not find obvious risks related to malicious harmful      Gupta,  Patrick Lewis, Stan Peshterliev, Yashar
+
+
+                                         9
+
+=== PDF第10页 ===
+  Mehdad, Sonal Gupta, and Wen-tau Yih. 2022.   Samuel Humeau, Kurt Shuster, Marie-Anne Lachaux,
+   Salient phrase aware dense retrieval: Can a dense      and Jason Weston. 2019.  Poly-encoders:  Trans-
+   retriever imitate a sparse one?  In Findings of the      former architectures and pre-training strategies for
+  Association for Computational Linguistics: EMNLP        fast and accurate multi-sentence scoring.  arXiv
+  2022, pages 250–262, Abu Dhabi, United Arab Emi-       preprint arXiv:1905.01969.
+   rates. Association for Computational Linguistics.
+                                                        Gautier Izacard, Mathilde Caron, Lucas Hosseini, Sebas-
+Hao Cheng, Hao Fang, Xiaodong Liu, and Jianfeng       tian Riedel, Piotr Bojanowski, Armand Joulin, and
+  Gao. 2023. Task-aware specialization for efficient      Edouard Grave. 2022. Unsupervised dense informa-
+  and robust dense retrieval for open-domain question       tion retrieval with contrastive learning. Transactions
+   answering. In Proceedings of the 61st Annual Meet-     on Machine Learning Research.
+   ing of the Association for Computational Linguistics
+  (Volume 2: Short Papers), pages 1864–1875, Toronto,    Gautier Izacard and Edouard Grave. 2021. Leveraging
+  Canada. Association for Computational Linguistics.       passage retrieval with generative models for open do-
+                                                  main question answering. In Proceedings of the 16th
+Eunsol Choi, Jennimaria Palomaki, Matthew Lamm,      Conference of the European Chapter of the Associ-
+  Tom Kwiatkowski, Dipanjan Das, and Michael       ation for Computational Linguistics: Main Volume,
+   Collins. 2021.  Decontextualization: Making sen-      pages 874–880, Online. Association for Computa-
+   tences stand-alone. Transactions of the Association       tional Linguistics.
+   for Computational Linguistics, 9:447–461.
+                                               Zhengbao Jiang, Frank F. Xu, Luyu Gao, Zhiqing Sun,
+Hyung Won Chung, Le Hou, Shayne Longpre, Barret      Qian Liu, Jane Dwivedi-Yu, Yiming Yang, Jamie
+  Zoph, Yi Tay, William Fedus, Yunxuan Li, Xuezhi       Callan, and Graham Neubig. 2023. Active retrieval
+  Wang, Mostafa Dehghani, Siddhartha Brahma, et al.     augmented generation. Preprint, arXiv:2305.06983.
+  2022. Scaling instruction-finetuned language models.
+  arXiv preprint arXiv:2210.11416.                 Mandar Joshi, Eunsol Choi, Daniel S Weld, and Luke
+                                                          Zettlemoyer. 2017. Triviaqa: A large scale distantly
+Zhuyun Dai, Vincent Y Zhao, Ji Ma, Yi Luan, Jianmo       supervised challenge dataset for reading comprehen-
+   Ni, Jing Lu, Anton Bakalov, Kelvin Guu, Keith Hall,       sion. arXiv preprint arXiv:1705.03551.
+  and Ming-Wei Chang. 2023.  Promptagator: Few-
+   shot dense retrieval from 8 examples. In The Eleventh   Ryo Kamoi, Tanya Goyal, Juan Diego Rodriguez, and
+   International Conference on Learning Representa-     Greg Durrett. 2023. Wice: Real-world entailment for
+   tions.                                                  claims in wikipedia. In Proceedings of the 2023 Con-
+                                                           ference on Empirical Methods in Natural Language
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and       Processing.
+   Kristina Toutanova. 2019. BERT: Pre-training of
+  deep bidirectional transformers for language under-   Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick
+   standing. In Proceedings of the 2019 Conference of      Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, and
+   the North American Chapter of the Association for      Wen-tau Yih. 2020. Dense passage retrieval for open-
+  Computational Linguistics: Human Language Tech-     domain question answering. In Proceedings of the
+   nologies, Volume 1 (Long and Short Papers), pages     2020 Conference on Empirical Methods in Natural
+  4171–4186, Minneapolis, Minnesota. Association for     Language Processing (EMNLP), pages 6769–6781,
+  Computational Linguistics.                              Online. Association for Computational Linguistics.
+
+Oren Etzioni, Michele Banko, Stephen Soderland, and    Akhil Kedia, Mohd Abbas Zaidi, and Haejun Lee. 2022.
+  Daniel S Weld. 2008.  Open information extrac-      FiE: Building a global probability space by leverag-
+   tion from the web. Communications of the ACM,      ing early fusion in encoder for open-domain question
+  51(12):68–74.                                        answering. In Proceedings of the 2022 Conference
+                                                  on Empirical Methods in Natural Language Process-
+Luyu Gao and Jamie Callan. 2022. Unsupervised cor-       ing, pages 4246–4260, Abu Dhabi, United Arab Emi-
+  pus aware language model pre-training for dense pas-       rates. Association for Computational Linguistics.
+  sage retrieval.  In Proceedings of the 60th Annual
+  Meeting of the Association for Computational Lin-   Omar Khattab and Matei Zaharia. 2020. Colbert: Effi-
+   guistics (Volume 1: Long Papers), pages 2843–2853,       cient and effective passage search via contextualized
+   Dublin, Ireland. Association for Computational Lin-       late interaction over bert. In Proceedings of the 43rd
+   guistics.                                                 International ACM SIGIR conference on research
+                                                  and development in Information Retrieval, pages 39–
+Tianyu Gao, Xingcheng Yao, and Danqi Chen. 2021.      48.
+  Simcse: Simple contrastive learning of sentence em-
+   beddings. arXiv preprint arXiv:2104.08821.        Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-
+                                                                        field, Michael Collins, Ankur Parikh, Chris Alberti,
+Daniel Gildea and Daniel Jurafsky. 2000. Automatic       Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-
+   labeling of semantic roles. In Proceedings of the 38th       ton Lee, et al. 2019. Natural questions: a benchmark
+  Annual Meeting of the Association for Computational       for question answering research. Transactions of the
+   Linguistics, pages 512–520, Hong Kong. Association      Association for Computational Linguistics, 7:453–
+   for Computational Linguistics.                          466.
+
+
+                                         10
+
+=== PDF第11页 ===
+Jaewoong Lee, Heejoon Lee, Hwanhee Lee, and Ky-   Sewon Min,  Kalpesh Krishna,  Xinxi Lyu, Mike
+  omin Jung. 2021a.  Learning to select question-      Lewis, Wen-tau Yih, Pang Wei Koh, Mohit Iyyer,
+   relevant relations for visual question answering. In     Luke Zettlemoyer, and Hannaneh Hajishirzi. 2023.
+  Proceedings of the Third Workshop on Multimodal      FActScore: Fine-grained atomic evaluation of factual
+   Artificial Intelligence, pages 87–96, Mexico City,      precision in long form text generation. In Proceed-
+  Mexico. Association for Computational Linguistics.       ings of the 2023 Conference on Empirical Methods
+                                                                in Natural Language Processing.
+Jinhyuk Lee, Alexander Wettig, and Danqi Chen. 2021b.
+  Phrase retrieval learns passage retrieval, too. In Pro-   Sewon Min, Julian Michael, Hannaneh Hajishirzi, and
+   ceedings of the 2021 Conference on Empirical Meth-     Luke Zettlemoyer. 2020. AmbigQA: Answering am-
+  ods in Natural Language Processing, pages 3661–      biguous open-domain questions. In Proceedings of
+  3672, Online and Punta Cana, Dominican Republic.      the 2020 Conference on Empirical Methods in Nat-
+  Association for Computational Linguistics.               ural Language Processing (EMNLP), pages 5783–
+                                                      5797, Online. Association for Computational Lin-
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio                                                                   guistics.
+   Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+   rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-   Stephen Mussmann and Stefano Ermon. 2016. Learning
+   täschel, et al. 2020. Retrieval-augmented generation      and inference via maximum inner product search.
+   for knowledge-intensive nlp tasks. Advances in Neu-      In International Conference on Machine Learning,
+   ral Information Processing Systems, 33:9459–9474.      pages 2587–2596. PMLR.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio                                               Ani Nenkova and Rebecca Passonneau. 2004. Evaluat-
+   Petroni, Vladimir Karpukhin, Naman Goyal, Hein-                                                           ing content selection in summarization: The pyramid
+   rich Küttler, Mike Lewis, Wen tau Yih, Tim Rock-                                                    method.  In Proceedings of the Human Language
+   täschel, Sebastian Riedel, and Douwe Kiela. 2021.                                                       Technology Conference of the North American Chap-
+  Retrieval-augmented  generation  for  knowledge-                                                                   ter of the Association for Computational Linguistics:
+   intensive nlp tasks. Preprint, arXiv:2005.11401.                                          HLT-NAACL 2004, pages 145–152, Boston, Mas-
+                                                                sachusetts, USA. Association for Computational Lin-Sheng-Chieh Lin, Akari Asai, Minghan Li, Barlas Oguz,
+                                                                   guistics.  Jimmy Lin, Yashar Mehdad, Wen-tau Yih, and Xilun
+  Chen. 2023. How to Train Your DRAGON: Di-                                                Benjamin Newman, Luca Soldaini, Raymond Fok, Ar-
+   verse Augmentation Towards Generalizable Dense                                          man Cohan, and Kyle Lo. 2023. A controllable
+   Retrieval. In Proceedings of the 2023 Conference on                                                       qa-based framework for decontextualization. arXiv
+  Empirical Methods in Natural Language Processing.                                                             preprint arXiv:2305.14772.
+Nelson F. Liu, Kevin Lin, John Hewitt, Ashwin Paran-
+                                                          Tri Nguyen, Mir Rosenberg, Xia Song,  Jianfeng   jape, Michele Bevilacqua, Fabio Petroni, and Percy
+                                                   Gao, Saurabh Tiwary, Rangan Majumder, and   Liang. 2023. Lost in the middle: How language mod-
+                                                       Li Deng. 2016. MS MARCO: A human gener-   els use long contexts. Preprint, arXiv:2307.03172.
+                                                            ated machine reading comprehension dataset. CoRR,
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Man-      abs/1611.09268.
+   dar Joshi, Danqi Chen, Omer Levy, Mike Lewis,
+                                                Jianmo Ni, Chen Qu, Jing Lu, Zhuyun Dai, Gustavo  Luke Zettlemoyer, and Veselin Stoyanov. 2020.
+                                                  Hernandez Abrego, Ji Ma, Vincent Zhao, Yi Luan,  Ro{bert}a: A robustly optimized {bert} pretraining
+                                                         Keith Hall, Ming-Wei Chang, and Yinfei Yang. 2022.   approach.
+                                                     Large dual encoders are generalizable retrievers. In
+Yi Luan, Jacob Eisenstein, Kristina Toutanova, and      Proceedings of the 2022 Conference on Empirical
+  Michael Collins. 2021. Sparse, dense, and attentional      Methods in Natural Language Processing, pages
+   representations for text retrieval. Transactions of the      9844–9855, Abu Dhabi, United Arab Emirates. As-
+  Association for Computational Linguistics, 9:329–       sociation for Computational Linguistics.
+   345.
+                                                      Barlas Oguz, Kushal Lakhotia, Anchit Gupta, Patrick
+Kaixin Ma, Hao Cheng, Xiaodong Liu, Eric Nyberg,      Lewis, Vladimir Karpukhin, Aleksandra Piktus,
+  and Jianfeng Gao. 2022. Open-domain question an-      Xilun Chen, Sebastian Riedel, Scott Yih, Sonal
+  swering via chain of reasoning over heterogeneous      Gupta, and Yashar Mehdad. 2022. Domain-matched
+  knowledge. In Findings of the Association for Com-       pre-training tasks for dense retrieval.  In Findings
+   putational Linguistics: EMNLP 2022, pages 5360–       of the Association for Computational Linguistics:
+  5374, Abu Dhabi, United Arab Emirates. Association    NAACL 2022, pages 1524–1534, Seattle, United
+   for Computational Linguistics.                              States. Association for Computational Linguistics.
+
+Kaixin Ma, Hao Cheng, Yu Zhang, Xiaodong Liu, Eric   OpenAI. 2023.   Gpt-4 technical  report.   ArXiv,
+  Nyberg, and Jianfeng Gao. 2023.  Chain-of-skills:      abs/2303.08774.
+ A configurable model for open-domain question an-
+   swering. In Proceedings of the 61st Annual Meet-   Fabio Petroni, Aleksandra Piktus, Angela Fan, Patrick
+   ing of the Association for Computational Linguistics      Lewis, Majid Yazdani, Nicola De Cao, James Thorne,
+  (Volume 1: Long Papers), pages 1599–1618, Toronto,      Yacine Jernite, Vladimir Karpukhin, Jean Maillard,
+  Canada. Association for Computational Linguistics.       Vassilis Plachouras, Tim Rocktäschel, and Sebastian
+
+
+                                         11
+
+=== PDF第12页 ===
+   Riedel. 2021. KILT: a benchmark for knowledge      57th Annual Meeting of the Association for Computa-
+   intensive language tasks. In Proceedings of the 2021       tional Linguistics, pages 4430–4441, Florence, Italy.
+  Conference of the North American Chapter of the      Association for Computational Linguistics.
+  Association for Computational Linguistics: Human
+  Language Technologies, pages 2523–2544, Online.   Freda Shi, Xinyun Chen, Kanishka Misra, Nathan
+                                                            Scales, David Dohan, Ed H Chi, Nathanael Schärli,  Association for Computational Linguistics.
+                                                   and Denny Zhou. 2023. Large language models can
+                                                   be easily distracted by irrelevant context. In Inter-Colin Raffel, Noam Shazeer, Adam Roberts, Katherine
+                                                          national Conference on Machine Learning, pages  Lee, Sharan Narang, Michael Matena, Yanqi Zhou,
+                                                    31210–31227. PMLR.  Wei Li, and Peter J Liu. 2020. Exploring the limits
+   of transfer learning with a unified text-to-text trans-                                             Nandan Thakur, Nils Reimers, Andreas Rücklé, Ab-
+   former. The Journal of Machine Learning Research,                                                        hishek Srivastava, and Iryna Gurevych. 2021. Beir:
+  21(1):5485–5551.                                   A heterogeneous benchmark for zero-shot evaluation
+                                                           of information retrieval models. In Thirty-fifth Con-
+Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and                                                          ference on Neural Information Processing Systems
+  Percy Liang. 2016.  Squad: 100,000+ questions                                                        Datasets and Benchmarks Track (Round 2).
+   for machine comprehension of text. arXiv preprint
+  arXiv:1606.05250.                          Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-
+                                                                   bert, Amjad Almahairi, Yasmine Babaei, Nikolay
+Nils Reimers and Iryna Gurevych. 2019.  Sentence-      Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+  BERT: Sentence embeddings using Siamese BERT-      Bhosale, Dan Bikel, Lukas Blecher, Cristian Canton
+   networks. In Proceedings of the 2019 Conference on        Ferrer, Moya Chen, Guillem Cucurull, David Esiobu,
+  Empirical Methods in Natural Language Processing      Jude Fernandes, Jeremy Fu, Wenyin Fu, Brian Fuller,
+  and the 9th International Joint Conference on Natu-      Cynthia Gao, Vedanuj Goswami, Naman Goyal, An-
+   ral Language Processing (EMNLP-IJCNLP), pages      thony Hartshorn, Saghar Hosseini, Rui Hou, Hakan
+  3982–3992, Hong Kong, China. Association for Com-       Inan, Marcin Kardas, Viktor Kerkez, Madian Khabsa,
+   putational Linguistics.                                      Isabel Kloumann, Artem Korenev, Punit Singh Koura,
+                                                   Marie-Anne Lachaux, Thibaut Lavril, Jenya Lee, Di-
+Devendra Sachan,  Mostofa  Patwary, Mohammad      ana Liskovich, Yinghai Lu, Yuning Mao, Xavier Mar-
+  Shoeybi, Neel Kant, Wei Ping, William L. Hamil-        tinet, Todor Mihaylov, Pushkar Mishra, Igor Moly-
+   ton, and Bryan Catanzaro. 2021. End-to-end training      bog, Yixin Nie, Andrew Poulton, Jeremy Reizen-
+   of neural retrievers for open-domain question answer-       stein, Rashi Rungta, Kalyan Saladi, Alan Schelten,
+   ing. In Proceedings of the 59th Annual Meeting of the     Ruan Silva, Eric Michael Smith, Ranjan Subrama-
+  Association for Computational Linguistics and the       nian, Xiaoqing Ellen Tan, Binh Tang, Ross Tay-
+  11th International Joint Conference on Natural Lan-        lor, Adina Williams, Jian Xiang Kuan, Puxin Xu,
+  guage Processing (Volume 1: Long Papers), pages      Zheng Yan, Iliyan Zarov, Yuchen Zhang, Angela Fan,
+  6648–6662, Online. Association for Computational      Melanie Kambadur, Sharan Narang, Aurelien Ro-
+   Linguistics.                                                driguez, Robert Stojnic, Sergey Edunov, and Thomas
+                                                        Scialom. 2023. Llama 2: Open foundation and fine-
+Keshav Santhanam, Omar Khattab, Jon Saad-Falcon,      tuned chat models. Preprint, arXiv:2307.09288.
+   Christopher Potts, and Matei Zaharia. 2022.  Col-
+  BERTv2:   Effective and  efficient  retrieval  via    Kexin Wang, Nandan Thakur, Nils Reimers, and Iryna
+   lightweight late interaction. In Proceedings of the      Gurevych. 2022. GPL: Generative pseudo labeling
+  2022 Conference of the North American Chapter of       for unsupervised domain adaptation of dense retrieval.
+   the Association for Computational Linguistics: Hu-      In Proceedings of the 2022 Conference of the North
+  man Language Technologies, pages 3715–3734, Seat-     American Chapter of the Association for Computa-
+   tle, United States. Association for Computational       tional Linguistics: Human Language Technologies,
+   Linguistics.                                          pages 2345–2360, Seattle, United States. Association
+                                                                for Computational Linguistics.
+Parth Sarthi, Salman Abdullah, Aditi Tuli, Shubh
+                                                    Zhiruo Wang, Jun Araki, Zhengbao Jiang, Md Rizwan  Khanna, Anna Goldie, and Christopher D Manning.
+                                                            Parvez, and Graham Neubig. 2023. Learning to filter  2024. RAPTOR: Recursive abstractive processing
+                                                            context for retrieval-augmented generation. Preprint,   for tree-organized retrieval. In The Twelfth Interna-
+                                                        arXiv:2311.08377.   tional Conference on Learning Representations.
+                                                                     Ji Xin, Chenyan Xiong, Ashwin Srinivasan, Ankita
+Christopher Sciavolino, Zexuan Zhong, Jinhyuk Lee,                                                     Sharma, Damien Jose, and Paul Bennett. 2022. Zero-
+  and Danqi Chen. 2021. Simple entity-centric ques-                                                           shot dense retrieval with momentum adversarial do-
+   tions challenge dense retrievers.  arXiv preprint                                                  main invariant representations. In Findings of the As-
+  arXiv:2109.08535.                                       sociation for Computational Linguistics: ACL 2022,
+                                                     pages 4008–4020, Dublin, Ireland. Association for
+Minjoon Seo, Jinhyuk Lee, Tom Kwiatkowski, Ankur                                                      Computational Linguistics.
+   Parikh, Ali Farhadi, and Hannaneh Hajishirzi. 2019.
+  Real-time open-domain question answering with   Fangyuan Xu, Weijia Shi, and Eunsol Choi. 2023.
+   dense-sparse phrase index.  In Proceedings of the     Recomp: Improving retrieval-augmented lms with
+
+
+                                         12
+
+=== PDF第13页 ===
+  compression and selective augmentation. Preprint,  A  Retrieval Corpus Processing
+  arXiv:2310.04408.
+                                          The English Wikipedia dump used in this study, re-
+Yinfei Yang, Daniel Cer, Amin Ahmad, Mandy Guo,                                                     leased by Bohnet et al., 2022, was selected because
+  Jax Law, Noah Constant, Gustavo Hernandez Abrego,
+                                                                            it has been filtered to remove figures, tables, and  Steve Yuan, Chris Tar, Yun-Hsuan Sung, et al. 2020.
+   Multilingual universal sentence encoder for semantic     lists, and is organized into paragraphs. The dump
+   retrieval. In Proceedings of the 58th Annual Meet-   dates back to October 13, 2021. We have seg-
+   ing of the Association for Computational Linguistics:   mented Wikipedia into three retrieval units for this
+  System Demonstrations, pages 87–94.
+                                                    study: 100-word passage chunks, sentences, and
+Wen-tau Yih, Kristina Toutanova, John C. Platt, and    propositions. Paragraphs are divided into 100-word
+   Christopher Meek. 2011. Learning discriminative    passage chunks using a greedy method. We divide
+   projections for text similarity measures. In Proceed-                                                  only at the end of sentences to ensure each passage
+   ings of the Fifteenth Conference on Computational
+                                             chunk contains complete sentences. As we process  Natural Language Learning, pages 247–256, Port-
+   land, Oregon, USA. Association for Computational    the paragraph, we add sentences one by one. If in-
+   Linguistics.                                       cluding the next sentence causes the passage chunk
+                                                         to exceed 100 words, we start a new passage chunkWenhao Yu, Dan Iter, Shuohang Wang, Yichong Xu,
+  Mingxuan Ju, Soumya Sanyal, Chenguang Zhu,   with that sentence. However, if the final passage
+  Michael Zeng, and Meng Jiang. 2023a. Generate   chunk is shorter than 50 words, we merge it with
+   rather than retrieve:  Large language models are    the previous one to avoid overly small segments.
+   strong context generators.  In The Eleventh Inter-
+                                          Each passage is further segmented into sentences   national Conference on Learning Representations.
+                                                 using the widely used Python SpaCy 1 en_cor
+Wenhao Yu, Hongming Zhang, Xiaoman Pan, Kaixin   e_web_lg model. Additionally, each passage is
+  Ma, Hongwei Wang, and Dong Yu. 2023b. Chain-of-                                           decomposed into propositions by our Proposition-
+   note: Enhancing robustness in retrieval-augmented
+                                                        izer model. Decomposing the entire Wikipedia  language models. arXiv preprint arXiv:2311.09210.
+                                                corpus requires approximately 500 GPU hours on
+Shunyu Zhang, Yaobo Liang, Ming Gong, Daxin Jiang,  NVIDIA P100 GPUs using the default implementa-
+  and Nan Duan. 2022. Multi-view document repre-                                                         tion in the transformers2 package. We decomposed   sentation learning for open-domain dense retrieval.
+   In Proceedings of the 60th Annual Meeting of the   6 million pages into 41 million passages, 114 mil-
+  Association for Computational Linguistics (Volume    lion sentences, and 257 million propositions. On
+  1: Long Papers), pages 5990–6000, Dublin, Ireland.   average, a passage contains 6.3 propositions, and a
+  Association for Computational Linguistics.
+                                                  sentence contains 2.3 propositions.
+Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q.
+  Weinberger, and Yoav Artzi. 2020. Bertscore: Eval-  B  Training the Propositionizer
+   uating text generation with bert.  In International
+  Conference on Learning Representations.        We generated a list of propositions from a given
+                                                 paragraph using GPT-4 with a prompt, as shown in
+                                                  Figure 8. After filtering, 42,857 pairs were used to
+                                                      fine-tune a Flan-T5-Large model. We named the
+                                            model Propositionizer. The AdamW optimizer was
+                                               used with a batch size of 64, learning rate of 1e-4,
+                                               weight decay of 1e-4, and 3 epochs.
+                                           To compare the proposition generation perfor-
+                                          mance of different models, we set up a development
+                                                          set and an evaluation metric. The development set
+                                                     contains an additional 1,000 pairs collected by GPT-
+                                          4 using the same approach as the training set. We
+                                                   evaluated the quality of the predicted propositions
+                                          by the F1 score of two sets of propositions. Mo-
+                                                       tivated by the F1 score of two sets of tokens in
+                                                    BertScore, we designed the F1 score for two sets of
+
+                                               1https://spacy.io/
+                                               2https://huggingface.co/docs/
+                                            transformers/en/index
+
+
+                                         13
+
+=== PDF第14页 ===
+propositions. Let P = {p1, ..., pn} denote the set  C  Quality Analysis of Generated
+of labeled propositions and ˆP = {ˆp1, ..., ˆpm} the       Propositions
+set of predicted propositions. We use sim(pi, ˆpj)
+                                We collected propositions generated from 50 ran-
+to represent the similarity between two proposi-
+                                         domly selected passages. There are 408 and 445
+tions. Theoretically, any text similarity metric can
+                                                    propositions generated by GPT-4 and Proposition-
+be used. We chose BertScore (Zhang et al., 2020)
+                                                              izer, respectively. The propositions and passages
+with roberta-large (Liu et al., 2020) configuration
+                                             were provided to an expert without knowing which
+as our sim function since we wanted our metric
+                                           model generated each proposition. The expert an-
+to reflect the semantic difference between proposi-
+                                                    notated three scores from different perspectives for
+tions. We define
+                                              each proposition: (1) whether the proposition is
+                1                                  fully supported by the passage, (2) whether the
+        Recall =  X max sim(pi, ˆpj)                                                    proposition is minimal and cannot be further split                 |P|       ˆpj∈ˆP
+                      pi∈P                           into separate propositions, and (3) whether the
+                1
+     Precision =  X max sim(pi, ˆpj)         proposition is self-contained. The scores range
+                            |ˆP|      pi∈P                  from 1 to 3, where 1 means "no," 2 means "maybe,"                               ˆpj∈ˆP
+                                             and 3 means "yes." We report the number of cases
+                     Precision · Recall
+         F1 = 2 ·                          where the annotation was "no." The detailed in-
+                    Precision + Recall
+                                                        structions are provided in Table 8.
+
+Here is a figurative explanation of the F1 score:                           D  Offline Indexing
+Recall represents the percentage of propositions
+in the labeled set that are similar to those in the  We used the pyserini and faiss packages
+generated set, Precision represents the percentage    to encode retrieval units into embeddings. We
+of propositions in the generated set that are similar    exploited multiple GPUs to encode each text
+to the labeled set, and F1 is the harmonic mean of    unit in groups of 1M units with a batch size
+Recall and Precision. F1 is 1 if the two sets are    of 64.   After preprocessing the embeddings,
+exactly the same, and 0 if any two propositions are   we used an exact search for the inner product
+semantically different.                      (faiss.IndexFlatIP) in all experiments. The
+                                                     plain index of FACTOIDWIKIis approximately  We conducted a comparative analysis of base-
+                                     768GB in size. To reduce memory pressure, thesize and large-size Flan-T5 models, which were
+                                              embeddings are split into 8 shards. An approximatetrained using varying amounts of data (shown in
+                                                     nearest neighbor search is conducted per shard be-Figure 5). Our findings suggest that larger models,
+                                                      fore aggregating all results.coupled with extensive training data, yield better
+                                                 Although the number of propositions is six timesresults. The Propositionizer presented in this paper
+                                                        that of passages, using efficient indexing tech-attained an F1 score of 0.822. Upon manually
+                                                 niques can enable sub-linear search times relativereviewing the generated propositions, we found
+                                                      to the total count of vectors. Moreover, utilizingthem to be satisfactory.
+                                GPU parallelism and distributed indexes signifi-
+                      flan-t5-base          flan-t5-large            cantly decreases the online search time. As a result,
+       81                                        with proper implementation, we can make propo-
+       80                                                sition retrieval a practically viable and efficient
+                                                      option.       79
+   F1 78                         E  Retriever Models and QA Models
+       77
+                                We used transformers and sentence-tra
+       76                              nsformers packages for the model implementa-
+          5000  7500  10000 12500 15000 17500          tion. We used the following checkpoints released
+                 Number of training samples
+                                            on HuggingFace: SimCSE (princeton-nlp/u
+Figure 5: Performance of proposition-level decompo-  nsup-simcse-bert-base-uncased), Con-
+sition by models with different sizes and number of    triever (facebook/contriever), DPR (fac
+training data.                            ebook/dpr-ctx_encoder-multiset-ba
+                                            se, facebook/dpr-question_encoder-
+
+
+                                         14
+
+=== PDF第15页 ===
+multiset-base), GTR (sentence-trans    to identify the part referring to the correct “atomic
+formers/gtr-t5-base).                     number”. Instead, the top-1 retrieved passage men-
+  We  use  T5-large  size  Fusion-in-decoder    tions “atomic number” in a different and irrelevant
+model (nq_reader_large)  released  by    context to the question. Retrieval by sentences can
+the   authors   in  https://github.com/    also have a similar problem as retrieval by passages
+facebookresearch/FiD. We use Hugging-    like Example Q1. Also, retrieval by sentences faces
+Face checkpoint (meta-llama/Llama-2-7b)   another challenge of lacking context. In Example
+for LLaMA-2-7B.                       Q3 (shown in Table 7), sentence-based retrieval
+                                                                fails as the correct sentence in the retrieved passage
+F  Additional Results                          uses “it” to refer to the pericardial sac.
+                                                       Retrieval by propositions tackles the aforemen-
+In Section 5.2, we demonstrated the advantage
+                                                   tioned problems by ensuring each retrieval unit
+of retrieval by proposition over retrieval by sen-
+                                                    contains one piece of fact only and necessary con-
+tence, particularly as the population of the entity
+                                                         text is incorporated in the propositions. However,
+decreases in EQ. We used the occurrence in the
+                                                  proposition-based retrieval faces challenges with
+top-1000 paragraphs retrieved by BM25 as a proxy
+                                                  questions that involve multi-hop reasoning over
+for frequency, rather than counting the number of
+                                                   long-range textual analysis. In Example Q4 (shown
+hyperlinks to the entity used in Sciavolino et al.,
+                                                      in Table 7), the retrieved passage separately de-
+2021. Therefore, the trend in the performance ver-
+                                                       scribes the actor’s name and the character they por-
+sus frequency plot shows some differences (Fig-
+                                                             tray. There is not a single proposition that entails
+ure 6) between our results and those in Sciavolino
+                                                 both the question and the answer.
+et al., 2021. For example, some entities are am-
+biguous (e.g., 1992, a TV series). In such cases,
+the occurrence of the surface form of the entity is
+large. Simultaneously, questions related to ambigu-
+ous entities are challenging to answer, leading to
+lower recall.
+  In Section 6.2, we discussed the recall of an-
+swers in the retrieved text with respect to the con-
+text length. We further illustrate the performance
+trends of six dense retrievers, as detailed in Fig-
+ure 7. The results indicate that the recall rate of
+propositions consistently outperforms that of sen-
+tences and passages. Our findings lead to the con-
+clusion that question-related density is greater in
+proposition units compared to sentences and pas-
+sages.
+
+G  Error Case Study
+
+To understand the source of errors from each type
+of retrieval granularity, we present and discuss four
+typical examples of mistakes in Table 6 and Table 7.
+With each example, we show the question and its
+corresponding top-1 retrieved text unit by the GTR
+retriever across the three granularities.
+  We observe that with passage-level retrieval, the
+ambiguity of an entity or its references presents a
+challenge for dense retrievers, which echoes find-
+ings from (Min et al., 2020). For instance, in exam-
+ple Q1, the question asks for “Super Bowl 50”, but
+the retrieved passage and sentence refers to “Super
+Bowl 5”. In Example Q2, passage retrieval fails
+
+
+                                         15
+
+=== PDF第16页 ===
+            Passage Retrieval                     Sentence Retrieval                     Proposition Retrieval
+
+ Q1: What was the theme of Super Bowl 50?
+  Title: Super Bowl X                ✗    Title: Super Bowl X           ✗    Title: Super Bowl XLV          ✓
+ The overall theme of the Super Bowl enter-  The overall theme of the Super Bowl     ... As this was the 50th Super Bowl game,
+  tainment was to celebrate the United States   entertainment was to celebrate the   the league [Super Bowl 50] emphasized
+  Bicentennial. Each Cowboys and Steelers   United States Bicentennial.             the "golden anniversary" with various gold-
+  player wore a special patch with the Bicen-                                     themed initiatives during the 2015 season, as
+  tennial logo on their jerseys...                                                       well as...
+
+ Q2: The atomic number of indium which belongs to 5th period is?
+  Title: Period 5 element              ✗    Title: Period 5 element       ✓    Title: Period 5 element          ✓
+ The periodic table is laid out in rows to illus-  Indium is a chemical element with the   Indium is a chemical element with the sym-
+  trate recurring (periodic) trends in the chemi-  symbol In and atomic number 49.       bol In and [Indium has a] atomic number 49.
+  cal behaviour of the elements as their atomic                                        This rare, very soft, malleable ...
+ number increases: ...
+
+Table 6: Example cases where top-1 retrieved text unit of each retrieval granularity fails to provide the correct
+answer. The underlined text is the correct answer. The gray text is the context of propositions, but it is for illustration
+purpose only and not provided to the retrievers and downstream QA models.
+
+
+
+            Passage Retrieval                     Sentence Retrieval                     Proposition Retrieval
+
+ Q3: What is the function of the pericardial sac?
+  Title: Pericardium             ✓    Title: Pericardium             ✗    Title: Cardiac muscle           ✓
+ The pericardium, also called pericardial sac  The pericardium, also called pericar-  On the outer aspect of the myocardium is the
+   ... It separates the heart from interference of   dial sac, is a double-walled sac con-   epicardium which forms part of the pericar-
+  other structures, protects it against infection   taining the heart and the roots of the   dial sac that surrounds, protects, and lubri-
+ and blunt trauma, and lubricates the heart’s   great vessels.                            cates the heart.
+ movements.
+
+ Q4: What is the main character’s name in layer cake?
+  Title: Layer Cake (film)          ✓    Title: Angelic Layer           ✗    Title: Plot twist                   ✗
+   ... The film’s plot revolves around a London-  The primary protagonist  is Misaki   Sometimes the audience may discover that
+  based criminal, played by Daniel Craig, ...   Suzuhara.                              the true identity of a character is , in fact,
+  Craig’s character is unnamed in the film and                                  unknown [in Layer Cake] , as in Layer Cake
+  is listed in the credits as "XXXX".                                                     or the eponymous assassins in V for Vendetta
+                                                                           and The Day of the Jackal.
+
+Table 7: Example cases where top-1 retrieved text unit of each retrieval granularity fails to provide the correct
+answer. The underlined text is the correct answer. The gray text is the context of propositions, but it is for illustration
+purpose only and not provided to the retrievers and downstream QA models.
+
+
+                                                Passage        Sentence          Proposition
+                         SimCSE                   Contriever                DPR                   GTR
+                                            60
+                   60                                                 60
+
+                   40                                            40                                                                     40                                           Recall@5                         50                                                 80                                                                                                                 Recall@5                                                                                                                                                                                      Recall@5                                                                                                                                                                                                                                                            Recall@5 70
+                                            30                   20
+                              101    102                  101    102                  101    102                  101    102
+                           Frequency                 Frequency                 Frequency                 Frequency
+                                                       (a) Where was [X] born?
+                                                Passage        Sentence          Proposition
+                         SimCSE                   Contriever                DPR                   GTR
+                   60                                                 80                                                                                               90
+                                            60
+                   40
+                                            40                       60                       80                                           Recall@5 20                                                        Recall@5                                                             Recall@5                                                             Recall@5 70                                            20                       40
+                             101    102                  101    102                  101    102                  101    102
+                           Frequency                 Frequency                 Frequency                 Frequency
+                                                  (b) Who was [X] created by?
+
+Figure 6: Document retrieval recall vs. the frequency of the target entity in each question from the Entity Questions
+dataset. We display the performance of two relations.
+
+
+
+                                         16
+
+=== PDF第17页 ===
+                                             Passage        Sentence          Proposition
+         SimCSE / NQ             SimCSE / TQA            SimCSE / WebQ          SimCSE / SQuAD            SimCSE / EQ
+                                                                                                         50   40                                                      50                       40
+(%)                       (%) 50                     (%)                       (%)                       (%)                                                                                                         40   30                                                 40                                                                               30
+                             40 Recall                                                     Recall                                              Recall                                                                                                                                                              Recall                                              Recall 30                                                      30   20                                                                               20                             30
+      0     200    400         0     200    400         0     200    400         0     200    400         0     200    400
+           #Words                 #Words                 #Words                 #Words                 #Words
+                                             Passage        Sentence          Proposition
+          Contriever / NQ             Contriever / TQA           Contriever / WebQ          Contriever / SQuAD            Contriever / EQ
+                             70                                                                          50
+   50                                                 50                       50
+(%)                       (%) 60                     (%)                       (%)                       (%) 40   40                                                 40                       40
+                             50                                                                                                         Recall 30                                          Recall                                              Recall 30 Recall 30                                          Recall                                                                               30
+                             40   20                                                 20                                                 20
+      0     200    400         0     200    400         0     200    400         0     200    400         0     200    400
+           #Words                 #Words                 #Words                 #Words                 #Words
+                                             Passage        Sentence          Proposition
+          DPR / NQ              DPR / TQA             DPR / WebQ            DPR / SQuAD             DPR / EQ
+   70                                                 70
+                                                                                                         60
+(%) 60                     (%) 70                     (%) 60                     (%) 40                     (%)
+ Recall 50                                          Recall 60                                          Recall 50                                          Recall 30                                          Recall 50
+                                                                                                         40
+      0     200    400         0     200    400         0     200    400         0     200    400         0     200    400
+           #Words                 #Words                 #Words                 #Words                 #Words
+                                             Passage        Sentence          Proposition
+          GTR / NQ               GTR / TQA              GTR / WebQ             GTR / SQuAD              GTR / EQ
+                                                                                                        80   70                                                 70
+(%)                       (%) 70                     (%)                       (%) 60                     (%)
+   60                                                 60                                                 70
+                                                                               50Recall 50                                          Recall 60                                          Recall 50                                          Recall                                              Recall
+                                                                                                        60                                                                               40
+      0     200    400         0     200    400         0     200    400         0     200    400         0     200    400
+           #Words                 #Words                 #Words                 #Words                 #Words
+Figure 7: Recall of the gold answer in the retrieved text limited to first k words. Finer-grained retrieval has a higher
+ recall across all numbers of words.
+
+
+
+      Is the proposition fully supported by the passage? No : The information provided relates to
+     the proposition, but there are some gaps or inconsistencies that prevent full support. Maybe
+        : The information provided supports the proposition adequately, covering most aspects well;
+     however, minor details or implications might not be fully explored or clarified. Yes: The
+     information provided clearly and comprehensively addresses all aspects of the proposition,
+     leaving no relevant details unexplained or ambiguous.
+    Should the given propositions be further split into separate propositions?  No: The
+      proposition has a compound structure that could be separated into distinct propositions. Maybe:
+    The proposition is mostly straightforward with a single main idea and perhaps a minor additional
+      detail.  Splitting might enhance clarity but is not strictly necessary. Yes: The proposition
+       is already concise and does not contain a compound structure.  Splitting it into separate
+     propositions would likely reduce clarity.
+      Is the given proposition self-contained? No: The proposition contains pronouns, terms, or
+      references whose full names or meanings are not in the proposition. Maybe: The proposition is
+     almost entirely self-contained, with only a few minor terms that might be ambiguous without
+      additional context. Yes: The proposition is a self-contained claim without any ambiguities,
+      fully understandable on its own.
+
+
+           Table 8: Instructions for data annotation in analyzing the quality of generated propositions.
+
+
+
+                                         17
+
+=== PDF第18页 ===
+Passage ⇒Propositions
+
+Decompose the "Content" into clear and simple propositions, ensuring they are interpretable out of
+context.
+
+1. Split compound sentence into simple sentences. Maintain the original phrasing from the input
+   whenever possible.
+
+2. For any named entity that is accompanied by additional descriptive information, separate this
+   information into its own distinct proposition.
+
+3. Decontextualize the proposition by adding necessary modifier to nouns or entire sentences
+   and replacing pronouns (e.g., "it", "he", "she", "they", "this", "that") with the full name of the
+    entities they refer to.
+
+4. Present the results as a list of strings, formatted in JSON.
+
+Input: Title: ¯Eostre. Section: Theories and interpretations, Connection to Easter Hares. Content:
+The earliest evidence for the Easter Hare (Osterhase) was recorded in south-west Germany in
+1678 by the professor of medicine Georg Franck von Franckenau, but it remained unknown in
+other parts of Germany until the 18th century. Scholar Richard Sermon writes that "hares were
+frequently seen in gardens in spring, and thus may have served as a convenient explanation for the
+origin of the colored eggs hidden there for children. Alternatively, there is a European tradition
+that hares laid eggs, since a hare’s scratch or form and a lapwing’s nest look very similar, and
+both occur on grassland and are first seen in the spring. In the nineteenth century the influence
+of Easter cards, toys, and books was to make the Easter Hare/Rabbit popular throughout Europe.
+German immigrants then exported the custom to Britain and America where it evolved into the
+Easter Bunny."
+Output: [ "The earliest evidence for the Easter Hare was recorded in south-west Germany in
+1678 by Georg Franck von Franckenau.", "Georg Franck von Franckenau was a professor of
+medicine.", "The evidence for the Easter Hare remained unknown in other parts of Germany until
+the 18th century.", "Richard Sermon was a scholar.", "Richard Sermon writes a hypothesis about
+the possible explanation for the connection between hares and the tradition during Easter", "Hares
+were frequently seen in gardens in spring.", "Hares may have served as a convenient explanation
+for the origin of the colored eggs hidden in gardens for children.", "There is a European tradition
+that hares laid eggs.", "A hare’s scratch or form and a lapwing’s nest look very similar.", "Both
+hares and lapwing’s nests occur on grassland and are first seen in the spring.", "In the nineteenth
+century the influence of Easter cards, toys, and books was to make the Easter Hare/Rabbit popular
+throughout Europe.", "German immigrants exported the custom of the Easter Hare/Rabbit to
+Britain and America.", "The custom of the Easter Hare/Rabbit evolved into the Easter Bunny in
+Britain and America." ]
+
+Input: <a new passage>
+Output:
+
+
+
+               Figure 8: Prompt for generating propositions from a passage using GPT-4.
+
+
+
+
+
+                                      18
+
+=== PDF第19页 ===
+Open-domain QA for LLaMA-2-7B
+
+... [demonstrations] ...
+
+Refer to the passages below and answer the following question with just a few words.
+Title: 1972 in spaceflight. Passage: In 1972, humanity’s last crewed mission to the Moon of the
+20th century was Apollo 17.
+Title: 1970s. Passage: Apollo 17 Astronaut Gene Cernan becomes the last man on the Moon on
+December 13, 1972.
+Title: List of Apollo missions
+Refer to the context above and answer the following question with just a few words.
+Question: when was the last time anyone was on the moon
+The answer is
+
+
+
+  Figure 9: Prompt for retrieval-augmented generation of open-domain QA for the LLaMA-2-7B model.
+
+
+
+
+
+                                      19

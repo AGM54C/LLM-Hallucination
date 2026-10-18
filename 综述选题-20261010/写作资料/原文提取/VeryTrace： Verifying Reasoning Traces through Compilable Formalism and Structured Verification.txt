@@ -1,0 +1,1416 @@
+
+=== PDF第1页 ===
+        VeryTrace: Verifying Reasoning Traces through Compilable Formalism and
+                                 Structured Verification
+
+
+
+                       Ninghan Zhong 1 Ahmet Ege Tanriverdi 2 Kaan Kale 1 Sriram Vishwanath 1
+
+
+                         Abstract                            steps k + 1, k + 2, . . ., producing a coherent-sounding but
+                                                                            incorrect conclusion. This error propagation problem inten-
+               Multi-step  reasoning with Chain-of-Thought
+                                                                                     sifies in domains requiring strict correctness: competition
+             (CoT) prompting remains fragile: logical errors
+                                                                  mathematics demands precise symbolic manipulation, plan-
+               or hallucinations in early steps silently propa-
+                                                                  ning tasks require invariant satisfaction at every step, and
+                 gate, producing confident but incorrect conclu-
+                                                                                relational reasoning depends on consistent inference chains.2026          sions. This paper presents VeryTrace, a zero-
+               shot verification-and-repair framework that for-         Existing mitigation strategies face a fundamental trade-off:
+               malizes natural-language reasoning traces into        End-to-end verification evaluates only final answers, pro-Jun
+              a structured, compilable representation.  Very-        viding no diagnostic granularity when traces fail.  Self-
+23        Trace introduces a Domain-Specific Language         consistency and voting approaches require multiple expen-             (DSL) that: (i) makes step dependencies explicit,         sive samples without diagnosing why individual traces fail.
+                     (ii) mechanizes quantitative content as executable       At the other extreme, formal theorem provers (Lean, Coq,
+                expressions, and (iii) structures semantic infer-         Isabelle) offer rigorous verification but demand domain-
+               ences via deduction schemas. Our hybrid verifier          specific formalization, expert-level syntax, and extensive
+              combines deterministic checks for computational        manual effort, requirements that do not transfer across prob-[cs.AI]          correctness, dependency resolution, & constraint       lem types. What is missing is a framework that provides
+                 satisfaction with targeted LLM audits for non-          step-level verification granularity while maintaining domain-
+              mechanizable semantic judgments, enabling step-         agnostic generalization — one that verifies the process of
+                 level error localization and repair.                        reasoning, not just the outcomes.
+              Across three diverse domains—competition math-     We present VeryTrace, a framework that treats reasoning
+               ematics (AIME 2025), robotics planning (LLM-         traces as compilable programs that can be verified step-by-
+              BabyBench), and kinship reasoning (CLUTRR)—          step. Drawing inspiration from tactic-style theorem proving
+              VeryTrace improves accuracy over zero-shot base-         (Lean, Isabelle), VeryTrace models reasoning as a sequence
+                 lines on state-of-the-art LLMs without requiring         of state transitions: each step declares its dependencies, ap-
+               domain-specific training or in-context examples,          plies a computation or deduction schema, and produces an
+              demonstrating that formalized trace verification        updated reasoning state containing variable bindings and
+               achieves both precision and generalization.               active constraints. This representation enables two critical
+                                                                                capabilities: (i) mechanized verification of the parts of rea-
+                                                                   soning that can be formalized (arithmetic, symbolic evalua-
+          1. Introduction                                                 tion, dependency ordering), and (ii) structured LLM auditsarXiv:2606.24124v1
+                                                                           for the semantic parts that cannot be formalized (natural
+          Chain-of-Thought (CoT) prompting has transformed how
+                                                                  language constraints, commonsense inferences). Crucially,
+         Large Language Models (LLMs) handle complex reason-
+                                                                      formalization logic and verification pipeline apply across
+          ing tasks, enabling multi-step derivations that outperform
+                                                             domains without specialized handlers.
+           single-shot predictions. However, this capability remains
+          fundamentally brittle. A single arithmetic error, unstated
+                                        A compilable DSL for reasoning traces.  VeryTrace’s          assumption, or logical fallacy at step k can cascade through
+                                                                 Domain-Specific Language makes step dependencies ex-
+              1School of Electrical and Computer Engineering, Georgia Insti-     plicit and maximally mechanizes quantitative content.
+             tute of Technology, USA 2Department of Electrical and Computer    Rather than treating “compute x = 2 × 15” as unstruc-
+           Engineering, Bogazici University, Turkey. Correspondence to:                                                                       tured text, the DSL represents it as COMPUTE(x, "2 *          Ninghan Zhong <nzhong34@gatech.edu>.
+                                                  15", deps=[...]), making the computational content
+           Accepted at LM4Plan @ ICML 2026, Seoul, South Korea, July 11,    executable and the dependency structure verifiable. For
+           2026.                                                     semantic inferences that resist mechanization, the DSL con-
+
+
+                                                         1
+
+=== PDF第2页 ===
+                                        VeryTrace: Verifying Reasoning Traces
+
+
+
+
+
+                                                                                          Error Report and Feedback       Verified Answer
+
+
+                                                                                  Conclusion Verification
+                                Chain of Thought
+                                           𝒯୒୐
+                                                                                      Step Verification
+
+                                                                                          Constraint Verification
+
+                                                                                                Structural Verification
+           Context
+                       Formalized Context            Extraction
+                𝓚= {𝑭,𝑨, 𝑪inv,𝑪goal}                                       Hybrid Verification Pipeline
+
+                                                                             𝒯ୈୗ୐
+                                                                Formalized Trace
+
+
+Figure 1. Illustrations of the VeryTrace Framework. The process begins with the user prompt, which is provided into the User LLM
+to produce a Chain of Thought, or natural language reasoning trace TNL. The Context Extraction module queries an LLM to extract
+formalized context K (initial facts F, assumptions A, invariant constraints Cinv and goal constraints Cgoal), without seeing the reasoning
+trace TNL. This separation prevents the model from hallucinating context to justify incorrect steps. The Chain of Thought, formalized
+context, alongside the user prompt are processed by a Translation LLM to produce a compilable DSL trace TDSL. This formalized trace
+enters the Hybrid Verification pipeline, which verifies inference structure, constraint satisfaction, computation and deduction correctness
+in reasoning steps, and final conclusion consistency. If the trace is invalid, the verifier generates an error report and feedback for the
+USER LLM to iteratively repair the reasoning trace.
+
+strains reasoning to a small library of deduction schemas    Zero-shot transfer across domains. We evaluate Very-
+(direct entailment, modus ponens, transitivity, case analysis),    Trace on three domains chosen to stress different reasoning
+ensuring even “soft” steps have explicit form and declared    modes: pure symbolic manipulation (AIME 2025 competi-
+premises.                                                       tion mathematics), hybrid quantitative-semantic reasoning
+                                               (LLM-BabyBench robotics planning), and relational infer-
+                                                      ence over natural language (CLUTRR kinship reasoning).Hybrid verification: mechanical checks plus structured
+                                                       Across state-of-the-art open-sourced LLMs, VeryTrace im-LLM audits.  The verifier separates deterministic checks
+                                                           proves accuracy over strong zero-shot baselines without anyfrom semantic judgments. Deterministic checks validate:
+                                                           domain-specific training or in-context examples, demon-(i) dependency resolution (no forward references), (ii) com-
+                                                                  strating that formalized trace verification can generalizeputational correctness (evaluate the right-hand side, verify
+                                                             across heterogeneous reasoning types.state update), (iii) mechanizable constraint satisfaction, and
+(iv) conclusion consistency with declared goals. For non-
+mechanizable parts such as natural language constraints and    Contributions.  In summary, this paper makes the follow-
+underspecified commonsense, VeryTrace triggers structured    ing contributions:
+LLM audits scoped to a specific step, deduction schema, and
+state snapshots. This division mirrors the principle: “verify       1. A domain-agnostic DSL for reasoning traces. We
+mechanically wherever possible, semantically only where        propose a compilable representation that makes step
+necessary.”                                                  dependencies explicit, mechanizes quantitative con-
+                                                                             tent, and structures semantic inferences via universal
+                                                               deduction schemas.Verification-driven repair.  Step-level verification pro-
+duces actionable diagnostics: not “the answer is wrong,” but                                                                      2. A hybrid state-transition verifier. We develop a step-
+“Step 7 violates constraint c under state s6” or “Step 12’s                                                           wise verification pipeline that combines deterministic
+computation yields 42, but the state declares x = 35.” This                                                           checks with structured LLM audits, propagating the
+enables targeted repair: an LLM can revise the problematic                                                               reasoning state through each step.
+region rather than regenerating the entire trace. VeryTrace
+implements this as an iterative loop: generate CoT →for-      3. A verification-driven repair framework. We show
+malize to DSL →verify →if invalid, return localized errors       how step-level error diagnostics enable targeted cor-
+and request correction →re-verify.                                 rection and iterative improvement of traces without
+
+                                                 2
+
+=== PDF第3页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+     training or domain-specific demonstrations.            Typed Chain-of-Thought (Perrier, 2025), which applies type-
+                                                           theory principles to structure reasoning. Logic.py (Kesseli
+  4. Cross-domain evaluation. We demonstrate consistent     et al., 2025) and LELMA (Mensfelt et al., 2025) bridge nat-
+     gains over zero-shot baselines on AIME 2025, LLM-    ural language reasoning with constraint solvers, while SMT
+    BabyBench, and CLUTRR across multiple state-of-the-    solvers (Berman et al., 2024) rigorously verify constraint-
+      art LLMs.                                        heavy problems. While these approaches achieve remark-
+                                                            able results, they face critical limitations: (i) formalization
+                                                                requires expert knowledge of proof assistant syntax, (ii) the2. Related Work
+                                                                    verification machinery is domain-specific, and (iii) complete
+Chain-of-Thought Reasoning and  Verification Ap-    formalization is often impractical for problems involving
+proaches.  Chain-of-Thought (CoT) prompting (Wei et al.,    natural language constraints. VeryTrace adopts the spirit
+2022; Kojima et al., 2022) has established itself as the    of tactic-based proving—explicit state transitions, declared
+dominant paradigm for complex reasoning in LLMs, with    dependencies, structured inference rules—while remaining
+extensions including Tree-of-Thoughts (Yao et al., 2023),    domain-agnostic through a lightweight DSL and hybrid ver-
+Graph-of-Thoughts (Besta et al., 2024), and least-to-most     ification strategy that mechanizes what it can and audits
+prompting (Zhou et al., 2023b). However, these approaches    what it cannot.
+fundamentally lack error detection mechanisms: a single
+mistake propagates uncorrected through subsequent steps.                                                  Neuro-Symbolic  Methods  and  Learned  Verifiers.
+Self-consistency methods (Wang et al., 2023) address this                                                      Neuro-symbolic systems (Garcez et al., 2019; Mao et al.,
+through majority voting over multiple samples, but require                                                        2019; Yi et al., 2018) combine neural perception with sym-
+expensive generation without diagnosing why individual                                                              bolic reasoning, often for visual question answering, but
+traces fail. Prompt-based verification approaches attempt to                                                  do not address multi-step reasoning verification in lan-
+mitigate this: Self-Refine (Madaan et al., 2023) and Chain-                                                    guage models. Work on program synthesis (Chen et al.,
+of-Verification (Dhuliawala et al., 2024) enable iterative                                                         2021; Nijkamp et al., 2023) and verification (Solar-Lezama,
+refinement through self-generated feedback, while Natural                                                       2008; Polikarpova et al., 2016) provides techniques for
+Program (Ling et al., 2023) structures reasoning as verifi-                                                              validating executable code but assumes well-defined pro-
+able deductive steps. Recent work explores spontaneous                                                gramming language semantics. LLM-P (Liu et al., 2023)
+self-correction (Zhao et al., 2025a) and token-probability-                                                    and similar planning approaches (Valmeekam et al., 2023;
+based verification (Chowdhury & Caragea, 2025). Process                                                Song et al., 2023) integrate LLMs with classical plan-
+reward models (Lightman et al., 2023; Uesato et al., 2022)                                                              ners requiring domain-specific planning languages (PDDL).
+and step-level verifiers (Li et al., 2023; Cobbe et al., 2021)                                                     Learned verification approaches train specialized models
+learn to score reasoning steps but require substantial train-                                                                to assess reasoning quality: Math-Shepherd (Wang et al.,
+ing data and remain domain-specific. VeryTrace differs                                                     2024) and ThinkPRM (Khalifa et al., 2025) advance Pro-
+fundamentally by introducing a domain-agnostic DSL that                                                            cess Reward Models (PRMs) where trained verifiers score
+makes reasoning steps mechanically verifiable wherever pos-                                                              individual steps, DiVeRSe (Li et al., 2023) employs step-
+sible, providing precise error localization without requiring                                                       aware verifiers with voting mechanisms, and S2R (Ma et al.,
+trained verifiers or multiple sampling.                                                     2025) uses reinforcement learning to train critics for self-
+                                                                   verification. Recent work (Zhao et al., 2025b) proposes
+Formal Methods and Solver-Integrated Reasoning.  At     verification via computational graph analysis. Code-based
+the opposite end of the verification spectrum, formal proof     verification methods (Zhou et al., 2023a) demonstrate the
+assistants (Lean (de Moura et al., 2015), Isabelle (Paul-    value of executable representations for mathematical rea-
+son, 1994), Coq (Bertot & Cast´eran, 2013)) offer rigorous    soning but remain specialized to arithmetic domains. In
+correctness guarantees through typed calculi and tactics.    contrast to these methods, which typically require extensive
+Recent work has explored LLM integration with these sys-    training data, domain-specific solvers, or full formalization,
+tems: autoformalization (Wu et al., 2022) translates infor-   VeryTrace generalizes by treating reasoning traces as pro-
+mal mathematics to formal statements, proof artifact co-   grams expressed in a universal DSL, enabling mechanized
+training (Han et al., 2022) leverages intermediate proof     verification of quantitative content while using structured
+states, and retrieval-augmented approaches (Yang et al.,  LLM audits for semantic content that resists formalization.
+2023) enable large-scale theorem proving. Draft-Sketch-    This hybrid approach allows VeryTrace to transfer zero-
+Prove (Jiang et al., 2023) and related hybrid methods (Polu    shot across heterogeneous domains—from pure mathemat-
+& Sutskever, 2020; Trinh et al., 2024) use informal proofs     ics to robotics planning to relational reasoning—without
+to guide formal verification. Domain-specific systems in-    domain-specific compilation, solvers, or training data, fill-
+clude Safe (Liu et al., 2025), which translates mathemati-    ing a critical gap between brittle end-to-end verification and
+cal reasoning into Lean for retrospective verification, and    impractical full formalization.
+
+                                                3
+
+=== PDF第4页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+3. DSL for Reasoning Trace Formalization              • Invariant constraints Cinv must hold at every state
+                                                               along the trace (e.g., “the agent never visits a forbidden
+VeryTrace formalizes free-form reasoning as a sequence                                                                             cell”).
+of state transitions governed by a compilable DSL. Such
+a formalization (a) makes step dependencies explicit, (b)        • Goal constraints Cgoal must hold only at the final
+mechanizes as much content as possible into executable          state (e.g., “the agent reaches the target”, “the final
+expressions, and (c) structures the remaining semantic infer-        numerical answer matches the required format”).
+ences via a small library of universal deduction schemas.
+
+                                                         This separation enables more precise definitions of reason-
+3.1. Reasoning State                                       ing constraints.
+
+We formalize a reasoning trace as state transitions over an
+explicit reasoning state space.                                   3.3. Typed Reasoning Step
+Let S denote a reasoning state space. A reasoning state   We formalize a natural language reasoning trace TNL as a
+s ∈S is a partial binding                        DSL trace TDSL in the form of a sequence of state transi-
+                                                                tions through typed reasoning steps. Each reasoning step
+                    s : V →D,                      consumes a set of premises, advances the reasoning state
+                                                     and produces an intermediate claim.
+mapping variable names V (e.g., money, position) to
+typed values in a domain D (e.g., numbers, strings, tuples,    Let σt be a reasoning step that advances a reasoning state st
+lists). The DSL state is designed to be domain-agnostic.       to st+1 and produces an intermediate claim φt+1. A claim
+                                                   φt+1 is an atomic assertion or proposition derived from the
+3.2. Formalizing Problem Context                          step σt. We further denote the set of premises referenced
+                                                   by σt as Pt. Each premise p ∈Pt is either (i) an initial fact
+We explicitly decouple the problem context from the rea-   f ∈F, (ii) an assumption a ∈A from the context, or (iii) a
+soning trajectory. We formalize the problem context as     prior claim φk, where k < t.
+K = (F, A, Cinv, Cgoal), consisting of initial facts, assump-
+                                              As such, a valid reasoning state transition is defined as:tions, and constraints.
+Initial Facts (F). We define F = {f 1, f 2, . . . , f M} as a              σt(typet, st, Pt) = (st+1, φt+1)          (1)
+set of M indisputable premises derived explicitly from the
+problem statement. Each initial fact f i is a proposition that    where typet indicates the step’s inference type, determin-
+seeds the first reasoning state s1 (e.g., “Betty initially has    ing its verification method. VeryTrace defines three infer-
+$50”, “Robot starts at (3, 4) facing East”). These serve as    ence types for reasoning steps: COMPUTE, ASSUME,
+the roots of the dependency graph, providing ground truth   DEDUCE, and CONCLUDE.
+for anchoring subsequent inferences.
+                                  COMPUTE step. The step must provide one or more
+Assumptions (A). We define A = {a1, a2, . . . , aK} as a    executable assignment expressions to some state variables
+set of K domain knowledge from the context for all rea-     (e.g., x = sin θ + k) alongside an update field defining
+soning steps. Some assumptions may be explicitly stated    the state change. This enables deterministic verification:
+(e.g., ”Assume all divisions in this context to be integer    the verifier checks whether st+1 matches evaluating σt’s
+divisions”), while others are implied (e.g., ”moving North    expression under st, eliminating arithmetic hallucinations.
+increases the y-coordinate in standard coordinate systems”).
+                                    ASSUME step. The step declares a premise from the con-
+By formalizing these as explicit DSL assumptions, we re-                                                                    text K. It links the trace explicitly to the static context.
+duce the LLM’s tendency to hallucinate convenient facts
+when justifying incorrect steps.                  DEDUCE step. The step performs logical inference. To
+                                                                 structure semantic reasoning, we require DEDUCE steps to
+Constraints (C). To enforce safety and reliability, we define
+                                                                  instantiate Deduction Schemas from a fixed library. This
+constraints C = {c1, . . . , cN} as conditions that must hold                                                           enforces a structured representation of natural language
+for valid reasoning. Each constraint ci ∈C is modeled as a                                                             deductions, enabling rigorous audits.
+Boolean predicate over reasoning states:
+                                                 The VeryTrace deduction library includes:
+                    ci : S →{true, false}.
+
+where ci(st) evaluates to true if and only if the reasoning        • Modus Ponens: Given A →B and A = true, infer B.
+state st satisfies the constraint.
+                                                                            • Conjunction: Given A = true and B = true, then
+VeryTrace distinguishes between two constraint scopes:       A ∧B = true.
+
+                                                4
+
+=== PDF第5页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+    • Transitivity: Given x = y and y = z, infer x = z.       Stage 2: trace translation. A translation LLM then re-
+                                                             ceives (Q, K, TNL) and produces the DSL trace TDSL. The
+    • Direct Deduction: To ensure flexibility, this schema is     translation prompt encourages maximal mechanization: con-
+     an unstructured fallback when other structured schemas     straints and computations should use executable expres-
+     are too restrictive.                                      sions (e.g., arithmetic, equality/inequality, membership
+                                                                       tests) whenever possible, enabling deterministic verifica-
+                                                                 tion over LLM audits.
+CONCLUDE step. This step produces the final reasoning
+state and declares the final conclusion, denoted as ω.        Our Ablation study (Sec. 5.4) suggests that this separation
+                                                                  benefits tasks involving longer reasoning chains and mathe-
+Finally, we formally define a DSL trace TDSL as a tra-                                                             matical reasoning where explicitly stated context is needed.
+jectory of reasoning state transitions with a sequence of                                      We further evaluate the quality of the translation and its
+intermediate claims, seeded with the problem context K =                                                        impact to the downstream performance in Appendix C.
+(F, A, Cinv, Cgoal), arriving at a final conclusion ω:
+
+                                                                    4.2. Hybrid verification pipeline
+     TDSL :=  K, {st}Tt=1, {σt}Tt=1−1 , {φt}Tt=2, ω     (2)    Given a compiled TDSL from Eq. 2, the verifier performs
+                                                        a sequence of verifications that combines mechanical val-
+TDSL is compilable because (i) computational expressions    idations with structured LLM audits only where needed.
+and executable constraints can be parsed and evaluated    Mechanical validations provide guarantees and reliability,
+against the evolving state, and (ii) semantic components    while LLM-audits enable greater flexibility. The comple-
+have a standardized structure (premises, claims, schema    mentary nature of mechanical and LLM-based verification
+arguments) enabling structured audits. In the following sec-    are further analyzed and highlighted in Appendix B and D.
+tion, we present the verification pipeline, which determines
+whether a given trace TDSL is valid.                           4.2.1. STRUCTURAL VERIFICATION (Vstr)
+                                                        Before evaluating content, we verify the structural integrity
+4. Structured Verification                              of the DSL trace. This verification first checks that each step
+                                                              contains the required fields for its inference type (e.g., COM-
+We now present a verification pipeline operating on the                                         PUTE steps provide executable expressions; DEDUCE steps
+formalism defined in Sec. 3. As illustrated in Fig. 1, the                                                                     instantiate deduction schemas). Further, we verify that every
+pipeline implements a Generate-Verify-Repair loop: the user                                                         premise p ∈pt referenced in step σt refers to a claim estab-
+LLM generates a reasoning trace, which is compiled into                                                                 lished at a prior step t. This mechanically detects forward &
+the VeryTrace DSL, verified for correctness, and if invalid,                                                     backward references and circular dependencies. We denote
+returned to the model with precise, step-level diagnostics for                                                                      this verification result as Vpre(TDSL) ∈{true, false}.
+repair. This section details two critical components: bias-
+mitigating DSL conversion and hybrid verification logic.                                                             4.2.2. CONSTRAINT VERIFICATION (Vcst)
+
+                                       We verify that the reasoning trajectory respects the problem4.1. Two-stage DSL conversion
+                                                               constraints defined in the context.  Given the reasoning
+The conversion from the prompt Q and the natural language     trace TDSL := (K, {st}Tt=1, {σt}Tt=1−1 , {φt}Tt=2, ω), and
+reasoning trace TNL to a DSL trace TDSL is itself critical:     let Cinv and Cgoal be invariant and goal constraints from
+verification quality depends on correctly extracting prob-    context K. We strictly enforce that all invariant constraints
+lem context and reasoning step structure. If the translation    hold at every state, and that goal constraints hold at the final
+model conditions on the reasoning trace, it may overlook     state. Formally, we define the constraint verification result
+errors to maintain consistency with the provided reasoning    Vcst(TDSL) ∈{true, false} as:
+(Holtzman et al., 2020). For example, if a trace violates a
+                                                                                                   constraint         from                the                  prompt,                          a naive                                       translator                                        might                                              omit                                                 !                                                           T^ ^                                                            ∧that constraint            from                    the               DSL to                        make                                      the trace appear                                                           valid.                                                                                          c(st)                                                                                                    c(sT )                                                            Vcst(TDSL) =                               ^     (3)
+Therefore, we use a 2-stage conversion:                                      t=1 c∈Cinv               c∈Cgoal
+
+
+Stage 1: context extraction. A context-extraction LLM    Not all constraints admit an executable predicate form (e.g.,
+reads only the user prompt Q and produces a formalized    natural-language constraints like “in the game, rule5 takes
+problem context K. Crucially, it does not see the trace TNL,    higher precedence over rule1”). Hence, to evaluate Eq. 3,
+preventing missing or hallucinated context from propagating   we employ a hybrid strategy: If a constraint c is expressed as
+to the DSL representation.                                 a boolean predicate (e.g., position ̸= [2, 3]), it is evaluated
+
+                                                 5
+
+=== PDF第6页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+
+
+
+                                                      2. Constraint Verification                                                   3. Step Verification                                   4. Conclusion
+                                                           (Hybrid)                                                              (Hybrid)                                        Verification
+
+                                                                                                                                                                                                         Verifies conclusion
+                                                                                                                                                     matches the task goal
+                                    Mechanical              LLM Constraint Audit                 Computation              Deduction Verification          and follows from
+                                     Constraint Check                                                             Verification                                                   established claims
+                                Executes mathematical             Batches semantic                  Executes math                     Verifies logical
+                          & logical constraint                 constraints to LLM              expressions and validates               inferences
+                                        predicates                                                            state updates                                    Example:
+                                                                                                                                                                Claim: “Nile’s
+   1. Structural Verification
+                        Example:                    Example:                    Example:                   Example:                   father is Martin”
+                                                                                         {“x”:2,                                                                                                 “y”:4}                                                                                                   State                                                                                                                              3:                                                                                                                                                                       Transitivity                                                                                                            DEDUCE                                                                                                                                                           step                                                                                                                                                 “Nile                                                                                                                                                      is                              State                                           3: {“position”:[3,3]}                                                                                                                                                         Conclude:                                                          Checks                                                                               constraint                                                                         “agent   Checks         DSL             schema                                                                                         “x                                                                                           =                                                                                             x                                                                                               *                                                                                                 y”                                                                                            Step                                                                                                                             3:                                                                                                                    “B                                                                                                                       =                                                                                                                         D                                                                                                                           +                                                                                                                             22”                                                                                                                                     Given:                                                                                                                                        Martin’s                                                                                                                                                  father”                               Constraint:                                     “position                                              not in     can                                                             never                                                                  move                                                                         backward”   compliance,             backward                                                                                         {“x”:8,                                                                                                 “y”:4}                                                                                                   State                                                                                                                              4:                                                                                                                    “B                                                                                                                       =                                                                                                                        40”                                                                                                                                     Given:                          [[4,3],                                  [3,3],                                          [4,4]]”   references           and                   circular                                                                                                                                                                                        Result: FAIL                                                                                                                       “D                                                                                                                          +                                                                                                                            22                                                                                                                               = 40”                                                                                                                           Conclude:                                                                         Result:                                                         PASS                                                                                         “x                                                                                            =                                                                                              x                                                                                                *                                                                                                 y”                                                                                                  Execute        reasonings
+                               Evaluates to False under state 3.                                         Result: 8, same as “x” in state 4     Result: PASS
+                                  Result: FAIL                                                                 Result: PASS
+
+
+
+                                                                                    Verification Result
+                                                                                   Pass/Fail, Errors, Feedback
+
+
+Figure 2. Illustrations of Structured Verification Pipeline. Given a compiled DSL trace TDSL, the verification pipeline applies four stages of
+logical verifications. (1) Structural Verification checks for backward references and circular dependencies. (2) Constraint Verification
+verifies each reasoning state on constraint satisfactions. (3) Step Verification verifies the computation in COMPUTE step, and logical
+deduction validity from DEDUCE and ASSUME steps. Finally, (4) Conclusion Verification verifies whether the final conclusion follows
+logically from the established claims.
+
+deterministically against the state st.  For all remaining    TDSL, defined as:
+constraints c that represent semantic constraints, we batch                                 T −1
+these constraints into a prompt and query an Audit LLM.                    Vstep(TDSL) = ^ Vt,               (4)
+This audit LLM verifies whether the state st satisfies the                                   t=1
+natural language specification of c.
+                                                   where Vt is computed by (Sec. 4.2.3) deterministic execu-
+                                                                 tion and verification for COMPUTE steps, and (Sec. 4.2.4)
+4.2.3. COMPUTATION VERIFICATION
+                                                               structured audits for DEDUCE and ASSUME steps.
+For COMPUTE steps, we perform deterministic verifica-
+tion. The verifier extracts the executable math expressions    4.2.5. CONCLUSION VERIFICATION (Vconc)
+(possibly multiple), evaluates them using the values from                                                         Local step checks do not guarantee that the final conclusion
+the prior state st, and compares the results to the claimed                                         ω follows from established claims. We therefore employ
+update in st+1. Discrepancies trigger verification failures.                                                      an Audit LLM to verify that the final conclusion ω follows
+This verification detects arithmetic hallucinations, ensuring                                                    from established reasoning. The audit prompt includes the
+mathematically sound quantitative updates.
+                                                     problem context K = (F, A, Cinv, Cgoal), and the sequence
+                                                            of established claims {φt}. The LLM assumes all prior
+4.2.4. ASSUMPTION AND DEDUCTION VERIFICATION
+                                                         claims are valid and all constraints are satisfied, then veri-
+For ASSUME and DEDUCE steps, mechanical verification     fies whether the conclusion ω follows. This detects cases
+is insufficient as they often involve natural language entail-   where intermediate reasoning is sound but the final answer
+ment. Instead, we use Structured LLM Audits. For each     is inconsistent.
+deduction step, we construct a verification prompt contain-                                                                  Finally, the validity of a given DSL trace TDSL is the con-
+ing explicit premises pt, the declared deduction schema, and                                                              junction of all verification components:
+the derived claim ϕt+1. The Audit LLM is tasked with a
+single, highly focused judgment: Does the claim logically
+                                                 V (TDSL) = Vstr(TDSL) ∧Vcst(TDSL)follow from the premises using the specified rule?                                                                                                                           (5)
+                                                                        ∧Vstep(TDSL) ∧Vconc(TDSL).
+For ASSUME steps, the verifier audits whether the claimed
+assumption is consistent with problem context K.
+                                                                    4.3. Verification-driven repair
+
+                                           When V (TDSL) = false, the verifier returns structured diag-
+Step-wise validity.  Let Vstep(TDSL) ∈{true, false} de-    nostics containing: step index, error type or violated con-
+note the step-wise validity verification result of the trace     straint, and explanation. Because errors are localized (e.g.,
+
+                                                6
+
+=== PDF第7页 ===
+                                        VeryTrace: Verifying Reasoning Traces
+
+“State 7 violates invariant constraint c” or “Step 12’s com-    Baselines. We compare against two established prompt-
+ putation disagrees with its claimed values”), the user LLM    based verification baselines:  (1) Chain-of-Verification
+ can revise the problematic region instead of regenerating the    (CoVe) (Dhuliawala et al., 2024), a prompt-based method
+ full trace. The verification feedback loop terminates when a    where the model drafts verification questions to self-correct
+ valid trace is produced or a maximum iteration count Rmax     hallucinations; and (2) Natural Program (NP) (Ling et al.,
+ is reached. The overall algorithm is presented in Alg. 1.       2023), which encourages the generation of deductive steps
+                                                                     verified against problem premises. We also include the base
+                                                   model (Vanilla) as a baseline, which generates answers via
+ Algorithm 1 VeryTrace Verification Feedback Loop                                                             standard Chain-of-Thought prompting without verification.
+  1: Input: user prompt Q, max iteration Rmax
+  2: Output: Verified answer ω                         Domains and Metrics. We select three datasets to stress-
+  3: ω, TNL ←LLM(Q)                                               test different reasoning modalities. First, for symbolic and
+  4: for i = 1 to Rmax do                                          quantitative reasoning, we use 30 problems from the AIME
+  5:  K ←ExtractContext(Q)                           2025 competition. This domain tests arithmetic precision
+  6:   TDSL ←TranslateDSL(Q, K, TNL)
+                                                    and symbolic manipulation in reasoning traces. Second,  7:   Vpre(TDSL) ←Structural Verification
+  8:   Vcst(TDSL) ←Constraint Verification                        for the mixed quantitative-semantic reasoning domain, we
+  9:   Vstep(TDSL) ←Step-wise Validity Verification                 utilize planning tasks from LLM-BabyBench (Choukrani
+ 10:   Vconc(TDSL) ←Conclusion Verification                       et al., 2025). Models must plan action sequences that navi-
+     V (TDSL) = Vstr(TDSL) ∧Vcst(TDSL)                      gate a robot through a gridworld from an initial position 11:
+                  ∧Vstep(TDSL) ∧Vconc(TDSL).                  to a goal while avoiding obstacles.  This task tests the
+ 12:     if V (TDSL) == true then                                  pipeline’s ability to maintain state consistency (position,
+ 13:     return ω
+                                                                 direction) and respect constraints over long horizons. We 14:    else
+ 15:      ϵ ←generate logical error feedback                    run LLM-BabyBench under three difficulty levels (small-
+ 16:     ω, TNL ←LLM(Q, ϵ)                               /medium/large) that vary world size and thus plan horizon.
+ 17:   end if                                We evaluate 100 trials per difficulty (300 total). Finally, for
+ 18: end for                                              semantic reasoning, we use the test split (1048 queries) of
+ 19: return ω
+                                                              the CLUTRR benchmark (Sinha et al., 2019) to test the
+                                                          semantic inference of kinship relations from given stories.
+
+ 5. Evaluation                                        For AIME 2025 and CLUTRR, we report accuracy via
+                                                            exact match against ground truth answers.  For LLM-
+ We evaluate VeryTrace to assess whether formalizing nat-                                                 BabyBench Planning, where multiple feasible paths exist,
+ ural language reasoning and applying hybrid verification                                             we report the success rate by executing the predicted action
+ improve the reliability of LLM reasoning. We aim to answer                                                         sequence in a simulated grid world using Gymnasium (Tow-
+ three key questions: (1) Does VeryTrace improve perfor-                                                                  ers et al., 2024) and checking whether it reaches a terminal
+ mance across diverse reasoning domains compared to strong                                                                       state that satisfies the task completion condition (agent ends
+ zero-shot baselines? (2) Does the structured verification                                                              adjacent to the target cell while facing it).
+ framework prevent error propagation in long-horizon rea-
+ soning tasks? (3) Are the deterministic mechanical checks                                                                    5.2. Main Results and Discussion
+ and the two-stage DSL conversion process necessary for
+ accurate verification?                                       Table 1 reports performance across all domains and models.
+                                                 The per-difficulty breakdown for LLM-BabyBench Plan-
+ 5.1. Experimental Setup                                  ning is presented in Fig. 3.
+
+ Models. We employ state-of-the-art open-weights models    VeryTrace generally achieves the highest accuracy, demon-
+ for both the reasoning agents and the underlying compo-    strating that formalizing the reasoning process yields gains
+ nents of the VeryTrace pipeline. For the user LLM, we test    regardless of the underlying model architecture.
+ Llama-3.3-70B-Instruct (L3.3-70b-I), Qwen3-Next-80B-                                   A key finding is the performance impact on reasoning-
+ A3B-Instruct (Q3-80b-I), and the reasoning-specialized                                                              specialized models. VeryTrace significantly improves the
+ Qwen3-Next-80B-A3B-Thinking (Q3-80b-T). For the Very-                                                        performance of Qwen3-Next-80B-A3B-Thinking (Q3-80b-
+ Trace pipeline (Context Extraction, Translation, and Audit),                                                               T). While Q3-80b-T achieves a strong baseline of 83.33%
+ we uniformly utilize Qwen3-Next-80B-Thinking to ensure                                                   on AIME 2025, applying VeryTrace boosts this to 90.00%.
+ high-quality formalization and semantic auditing. For all                                                         This result suggests that even specialized models for com-
+ experiments, we set the maximum repair budget Rmax = 5.    plex reasoning tasks benefit from the externalized, rigid
+ All methods are evaluated in a zero-shot setting without                                                             reasoning state tracking provided by our DSL. The determin-
+ task-specific fine-tuning.
+
+                                                 7
+
+=== PDF第8页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+              Table 1. Performance comparison of our method against baselines across three domains and three models.
+
+               AIME 2025           LLM-BabyBench Planning         CLUTRR
+
+ Method     L3.3-70b-I   Q3-80b-I   Q3-80b-T   L3.3-70b-I   Q3-80b-I   Q3-80b-T   L3.3-70b-I   Q3-80b-I   Q3-80b-T
+
+  Vanilla        3.33      53.33     83.33       8.67      40.00     60.33      36.67      27.00     36.00
+ CoVe          3.33      73.33     86.67      13.67      50.00     70.00      44.00      32.67     70.33
+ NP            6.67      73.33     83.33      11.00      45.00     68.33      40.67      41.00     58.33
+ VeryTrace     26.67      80.00     90.00      36.33      78.00     89.33      61.67      48.67     70.00
+
+
+
+   100         Vanilla
+                CoVe               NP                                              AIME 2025   Planning  CLUTRR
+    80        VeryTrace
+                                                          Two-Stage      90.00       94.67      69.33
+(%)
+    60                                                             Direct         86.67       88.44      70.67
+
+    40                                                                  Table 2. Direct translation vs. Two-Stage translation Accuracy
+
+    20
+
+     0      Small     Medium     Large         Small     Medium     Large
+                                     World Size
+                 Qwen3-80B-Thinking                  Llama-3.3-70B-Instruct            5.4. Ablation Study: Two-stage Translation
+
+Figure 3. LLM-BabyBench Planning Results Across World Sizes    VeryTrace uses a two-stage DSL translation to reduce trans-
+                                                                      lator bias (Sec. 4.1). To test whether this separation matters,
+                                           we compare against a variant with direct translation (Di-
+                                                                        rect), which collapses the two steps into a single call thatistic checks in VeryTrace (Vcst and mechanical COMPUTE
+                                                                  directly maps (Q, TNL) →TDSL, while keeping the rest ofverification) potentially act as a hard runtime monitor that
+                                                               the VeryTrace verification pipeline unchanged. We evaluatepurely neural self-correction cannot replicate.
+                                                     Two-Stage vs. Direct on the AIME 2025 dataset, as well
+Furthermore, these gains largely generalize across domains,    as two 150-instance subsets: LLM-BabyBench Planning
+but the margin over CoVe shrinks on CLUTRR with Q3-    (Small) and CLUTRR. The results are shown in Table 2.
+80B-T. We hypothesize that given the CLUTRR benchmark
+                                                        Table 2 suggests that two-stage translation is beneficial inis purely semantic reasoning, VeryTrace has fewer oppor-
+                                       AIME 2025 and Planning, but underperforms Direct ontunities to exploit mechanical verification. This suggests
+                                          CLUTRR. We hypothesize this difference reflects the factthat VeryTrace overall generalizes across domains, with the
+                                                                  that AIME and Planning are constraint and computation-strongest benefits likely in math and symbolic reasoning.
+                                                           heavy, where isolating K before seeing TNL can better pre-
+                                                            serve a strict problem specification for verification. In con-
+5.3. Reasoning in Varying Planning Horizons
+                                                                            trast, CLUTRR relies more on purely semantic inference
+We further analyze VeryTrace under increasing reasoning    with fewer explicit constraints to extract; in this setting, a
+horizons by evaluating LLM-BabyBench as the world size     separate context pass may instead introduce noise. We leave
+(and hence planning horizon) scales from Small to Large.    a broader ablation across additional semantic datasets and
+Figure 3 reports the corresponding success rates. We present     larger CLUTRR slices to future work.
+results for two models, Qwen3-Next-80B-A3B-Thinking
+and Llama-3.3-70B-Instruct; results for Qwen3-Next-80B-    6. Conclusion
+A3B-Instruct are deferred to Appendix A.
+                                       We presented VERYTRACE, a reasoning formalization and
+As expected, performance for all methods degrades as diffi-
+                                                              structured verification framework that compiles natural-
+culty increases. VeryTrace outperforms all other methods in
+                                                        language reasoning traces into explicit state transitions and
+all sizes, indicating its ability for long-horizon reasoning.
+                                                                    verifiable claims. VeryTrace combines deterministic checks
+For experiments using Qwen3-Next-80B-A3B-Thinking    with LLM audits, producing localized error reports for it-
+(Figure 3 left), we implement Vanilla, CoVe, and Natu-    erative repair. Across AIME 2025, LLM-BabyBench plan-
+ral Program using the same underlying model as VeryTrace,    ning, and CLUTRR benchmarks, VeryTrace improves per-
+since VeryTrace also uses Qwen3-Next-80B-A3B-Thinking    formance over strong prompt-based baselines and yields
+for all components. The resulting gains therefore reflect the    gains for reasoning-specialized models, suggesting that for-
+DSL formalization and structured verification, rather than    malizing reasoning traces and structured verifications pro-
+benefits from selecting different audit LLMs.                 vide a robust framework for validating logical reasoning.
+
+                                                8
+
+=== PDF第9页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+Impact Statement                                       reduces hallucination in large language models. In Find-
+                                                                ings of the association for computational linguistics: ACL
+This work aims to improve the reliability and verifiability of                                                          2024, pp. 3563–3578, 2024.
+Large Language Model reasoning, reducing hallucinations
+and error propagation in multi-step reasoning tasks. By    Garcez, A. d., Gori, M., Lamb, L. C., Serafini, L., Spranger,
+enabling more transparent and auditable reasoning traces,      M., and Tran, S. N. Neural-symbolic computing: An
+VeryTrace aims to enhance trust and safety in LLM deploy-       effective methodology for principled integration of ma-
+ment for potentially high-stakes applications.                   chine learning and reasoning. Journal of Applied Logics,
+                                                            6(4):611–632, 2019.The computational overhead of our verification pipeline
+may limit accessibility, potentially concentrating benefits                                                      Han, J. M., Rute, J., Wu, Y., Ayers, E. W., and Polu, S. Proof
+among well-resourced actors. Future work should address                                                                         artifact co-training for theorem proving with language
+efficiency to democratize access to verified reasoning.                                                           models. arXiv preprint arXiv:2102.06203, 2022.
+
+References                                         Holtzman, A., Buys,  J., Du, L., Forbes, M., and Choi,
+                                                             Y.  The curious case of neural text degeneration.  In
+Berman, S., McKeown, K., and Ray, B. Solving zebra puz-      International Conference on Learning Representations,
+   zles using constraint-guided multi-agent systems. arXiv      2020. URL https://openreview.net/forum?
+   preprint arXiv:2407.03956, 2024.                    id=rygGQyrFvH.
+
+Bertot, Y. and Cast´eran, P. Interactive theorem proving and                                                                  Jiang, A. Q., Welleck, S., Zhou, J. P., Li, W., Liu, J., Jamnik,
+  program development: Coq’art: the calculus of inductive                                                        M., Lacroix, T., Wu, Y., and Lample, G. Draft, sketch,
+   constructions. In Springer Science & Business Media,                                                        and prove: Guiding formal theorem provers with informal
+  2013.                                                                  proofs. arXiv preprint arXiv:2210.12283, 2023.
+
+Besta, M., Blach, N., Kubicek, A., Gerstenberger, R., Gi-                                                                 Kesseli, P., O’Hearn, P., and Cabral, R. S. Logic. py: Bridg-
+   aninazzi, L., Gajda, J., Lehmann, T., Podstawski, M.,                                                             ing the gap between llms and constraint solvers. arXiv
+  Niewiadomski, H., Nyczyk, P., et al. Graph of thoughts:                                                                 preprint arXiv:2502.15776, 2025.
+  Solving elaborate problems with large language models.
+  Proceedings of the AAAI Conference on Artificial Intelli-    Khalifa, M., Agarwal, R., Logeswaran, L., Kim, J., Peng, H.,
+  gence, 38(16):17682–17690, 2024.                         Lee, M., Lee, H., and Wang, L. Process reward models
+                                                                      that think. arXiv preprint arXiv:2504.16828, 2025.
+Chen, M., Tworek, J., Jun, H., Yuan, Q., Pinto, H. P. d. O.,
+  Kaplan, J., Edwards, H., Burda, Y., Joseph, N., Brockman,    Kojima, T., Gu, S. S., Reid, M., Matsuo, Y., and Iwasawa, Y.
+  G., et al. Evaluating large language models trained on      Large language models are zero-shot reasoners. Advances
+  code. arXiv preprint arXiv:2107.03374, 2021.                 in Neural Information Processing Systems, 35:22199–
+                                                         22213, 2022.
+Choukrani, O., Malek, I., Orel, D., Xie, Z., Iklassov, Z.,
+   Tak´aˇc, M., and Lahlou, S. Llm-babybench: Understand-    Li, Y., Lin, Z., Zhang, S., Fu, Q., Chen, B., Lou, J.-G., and
+  ing and evaluating grounded planning and reasoning in      Chen, W. Making language models better reasoners with
+   llms. arXiv preprint arXiv:2505.12135, 2025.                step-aware verifier. In Rogers, A., Boyd-Graber, J., and
+                                                            Okazaki, N. (eds.), Proceedings of the 61st Annual Meet-
+Chowdhury,   J.  R.  and  Caragea,  C.     Zero-shot
+                                                               ing of the Association for Computational Linguistics (Vol-
+  verification-guided chain of thoughts.  arXiv preprint
+                                               ume 1: Long Papers), pp. 5315–5333, Toronto, Canada,
+  arXiv:2501.13122, 2025.
+                                                              July 2023. Association for Computational Linguistics.
+Cobbe, K., Kosaraju, V., Bavarian, M., Chen, M., Jun, H.,       doi:  10.18653/v1/2023.acl-long.291.  URL https:
+   Kaiser, L., Plappert, M., Tworek, J., Hilton, J., Nakano,    //aclanthology.org/2023.acl-long.291/.
+   R., et al. Training verifiers to solve math word problems.
+                                                       Lightman, H., Kosaraju, V., Burda, Y., Edwards, H., Baker,  arXiv preprint arXiv:2110.14168, 2021.
+                                                                  B., Lee, T., Leike, J., Schulman, J., Sutskever, I., and
+de Moura, L., Kong, S., Avigad, J., Van Doorn, F., and von      Cobbe, K.  Let’s verify step by step.  arXiv preprint
+  Raumer, J. The lean theorem prover (system description).      arXiv:2305.20050, 2023.
+   In International Conference on Automated Deduction, pp.
+                                                          Ling, Z., Fang, Y., Li, X., Huang, Z., Lee, M., Memisevic,  378–388. Springer, 2015.
+                                                                     R., and Su, H. Deductive verification of chain-of-thought
+Dhuliawala, S., Komeili, M., Xu, J., Raileanu, R., Li, X.,      reasoning. Advances in Neural Information Processing
+  Celikyilmaz, A., and Weston, J.  Chain-of-verification       Systems, 36:36407–36433, 2023.
+
+                                                9
+
+=== PDF第10页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+Liu, B., Jiang, Y., Zhang, X., Liu, Q., Zhang, S., Biswas,    Sinha, K., Sodhani, S., Dong, J., Pineau, J., and Hamilton,
+   J., and Stone, P. Llm+ p: Empowering large language     W. L. CLUTRR: A diagnostic benchmark for inductive
+  models with optimal planning proficiency. arXiv preprint      reasoning from text. arXiv preprint arXiv:1908.06177,
+  arXiv:2304.11477, 2023.                                  2019.
+
+Liu, C., Yuan, Y., Yin, Y., Xu, Y., Xu, X., Chen, Z., Wang,    Solar-Lezama, A. Program synthesis by sketching. PhD
+   Y., Shang, L., Liu, Q., and Zhang, M. Safe: Enhancing        thesis, 2008.
+  mathematical reasoning in large language models via ret-
+                                                      Song, C. H., Wu, J., Washington, C., Sadler, B. M., Chao,  rospective step-aware formal verification. arXiv preprint
+  arXiv:2506.04592, 2025.                                    W.-L., and Su, Y. Llm-planner: Few-shot grounded plan-
+                                                          ning for embodied agents with large language models.
+Ma, R., Wang, P., Liu, C., Liu, X., Chen, J., Zhang, B.,      Proceedings of the IEEE/CVF International Conference
+  Zhou, X., Du, N., and Li, J. S2R: Teaching LLMs to      on Computer Vision, pp. 2998–3009, 2023.
+   self-verify and self-correct via reinforcement learning. In
+  Che, W., Nabende, J., Shutova, E., and Pilehvar, M. T.    Towers, M., Kwiatkowski, A., Terry, J., Balis, J. U., De Cola,
+   (eds.), Proceedings of the 63rd Annual Meeting of the       G., Deleu, T., Goul˜ao, M., Kallinteris, A., Krimmel, M.,
+  Association for Computational Linguistics (Volume 1:     KG, A., et al. Gymnasium: A standard interface for
+  Long Papers), pp. 22632–22654, Vienna, Austria, July      reinforcement learning environments.  arXiv preprint
+                                                           arXiv:2407.17032, 2024.  2025. Association for Computational Linguistics.
+
+                                                               Trinh, T. H., Wu, Y., Le, Q. V., He, H., and Luong, T. Solv-Madaan, A., Tandon, N., Gupta, P., Hallinan, S., Gao,
+                                                             ing olympiad geometry without human demonstrations.   L., Wiegreffe, S., Alon, U., Dziri, N., Prabhumoye, S.,
+                                                             Nature, 625(7995):476–482, 2024.  Yang, Y., et al. Self-refine: Iterative refinement with self-
+  feedback. Advances in Neural Information Processing
+                                                         Uesato, J., Kushman, N., Kumar, R., Song, F., Siegel, N.,
+  Systems, 36:46534–46594, 2023.
+                                                   Wang, L., Creswell, A., Irving, G., and Higgins, I. Solv-
+Mao, J., Gan, C., Kohli, P., Tenenbaum, J. B., and Wu, J.      ing math word problems with process-and outcome-based
+                                                             feedback. arXiv preprint arXiv:2211.14275, 2022.  The neuro-symbolic concept learner: Interpreting scenes,
+  words, and sentences from natural supervision. arXiv
+                                                  Valmeekam, K., Marquez, M., Olmo, A., Sreedharan, S.,
+  preprint arXiv:1904.12584, 2019.
+                                                      and Kambhampati, S. Planbench: An extensible bench-
+                                                  mark for evaluating large language models on planningMensfelt, A., Stathis, K., and Trencsenyi, V.  Towards
+                                                      and reasoning about change. Advances in Neural Infor-   logically sound natural language reasoning with logic-
+                                                         mation Processing Systems, 36:38975–38987, 2023.  enhanced language model agents. In 2025 IEEE 37th
+  International Conference on Tools with Artificial Intelli-
+                                                  Wang, P., Li, L., Shao, Z., Xu, R., Dai, D., Li, Y., Chen, D.,
+  gence (ICTAI), pp. 838–842. IEEE, 2025.
+                                                Wu, Y., and Sui, Z. Math-shepherd: Verify and reinforce
+                                                              llms step-by-step without human annotations. In Proceed-Nijkamp, E., Pang, B., Hayashi, H., Tu, L., Wang, H., Zhou,
+                                                              ings of the 62nd Annual Meeting of the Association for   Y., Savarese, S., and Xiong, C. Codegen: An open large
+                                                         Computational Linguistics (Volume 1: Long Papers), pp.  language model for code with multi-turn program synthe-
+   sis. arXiv preprint arXiv:2203.13474, 2023.                9426–9439, 2024.
+
+Paulson, L. C. Isabelle: A generic theorem prover. In Lec-   Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang,
+  ture Notes in Computer Science, volume 828. Springer,       S., Chowdhery, A., and Zhou, D. Self-consistency im-
+                                                           proves chain of thought reasoning in language models.  1994.
+                                                           arXiv preprint arXiv:2203.11171, 2023.
+Perrier, E.  Typed chain-of-thought: A curry-howard
+  framework for verifying llm reasoning. arXiv preprint    Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., Chi,
+  arXiv:2510.01069, 2025.                                         E., Le, Q. V., and Zhou, D. Chain-of-thought prompting
+                                                                            elicits reasoning in large language models. Advances
+Polikarpova, N., Kuraj, I., and Solar-Lezama, A. Program       in Neural Information Processing Systems, 35:24824–
+  synthesis from polymorphic refinement types. ACM SIG-      24837, 2022.
+  PLAN Notices, 51(6):522–538, 2016.
+                                             Wu, Y., Jiang, A. Q., Li, W., Rabe, M. N., Staats, C., Jam-
+Polu, S. and Sutskever,  I.  Generative language model-       nik, M., and Szegedy, C. Autoformalization with large
+  ing for automated theorem proving.  arXiv preprint      language models. Advances in Neural Information Pro-
+  arXiv:2009.03393, 2020.                                    cessing Systems, 35:32353–32368, 2022.
+
+                                                10
+
+=== PDF第11页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+Yang, K., Swope, A. M., Gu, A., Chalamala, R., Song,
+   P., Yu, S., Godil, S., Prenger, R., and Anandkumar, A.
+  Leandojo: Theorem proving with retrieval-augmented
+  language models. Advances in Neural Information Pro-
+  cessing Systems, 36, 2023.
+
+Yao, S., Yu, D., Zhao, J., Shafran, I., Griffiths, T., Cao, Y.,
+  and Narasimhan, K. Tree of thoughts: Deliberate problem
+  solving with large language models. Advances in Neural
+  Information Processing Systems, 36, 2023.
+
+Yi, K., Wu, J., Gan, C., Torralba, A., Kohli, P., and Tenen-
+  baum, J. Neural-symbolic vqa: Disentangling reasoning
+  from vision and language understanding. Advances in
+  Neural Information Processing Systems, 31, 2018.
+
+Zhao, X., Xu, T., Wang, X., Chen, Z., Jin, D., Tan, L.,
+  Yu, Z., Zhao, Z., He, Y., Wang, S., et al. Boosting llm
+  reasoning via spontaneous self-correction. arXiv preprint
+  arXiv:2506.06923, 2025a.
+
+Zhao, Z., Koishekenov, Y., Yang, X., Murray, N., and Can-
+  cedda, N. Verifying chain-of-thought reasoning via its
+  computational graph. arXiv preprint arXiv:2510.09312,
+  2025b.
+
+Zheng, C., Zhang, Z., Zhang, B., Lin, R., Lu, K., Yu, B.,
+  Liu, D., Zhou, J., and Lin, J. Processbench: Identifying
+  process errors in mathematical reasoning. In Proceed-
+  ings of the 63rd Annual Meeting of the Association for
+  Computational Linguistics (Volume 1: Long Papers), pp.
+  1009–1024, 2025.
+
+Zhou, A., Wang, K., Lu, Z., Shi, W., Luo, S., Qin, Z.,
+  Lu, S., Jia, A., Song, L., Zhan, M., et al.  Solving
+  challenging math word problems using gpt-4 code in-
+   terpreter with code-based self-verification. arXiv preprint
+  arXiv:2308.07921, 2023a.
+
+Zhou, D., Sch¨arli, N., Hou, L., Wei, J., Scales, N., Wang,
+  X., Schuurmans, D., Cui, C., Bousquet, O., Le, Q., et al.
+  Least-to-most prompting enables complex reasoning in
+   large language models. arXiv preprint arXiv:2205.10625,
+  2023b.
+
+
+
+
+
+                                                11
+
+=== PDF第12页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+   100
+                     Vanilla
+                CoVe
+               NP
+    80        VeryTrace
+
+(%)    60
+
+    40Accuracy
+
+    20
+
+     0
+           Small   Medium   Large       Small   Medium   Large       Small   Medium   Large
+                                              World Size
+              Qwen3-80B-Thinking            Qwen3-80B-Instruct            Llama-3.3-70B-Instruct
+
+                                Figure 4. LLM-BabyBench Planning Results Across World Sizes
+
+                       AIME 2025   Planning-S   Planning-M   Planning-L  CLUTRR
+
+               VeryTrace           90.00        98.00        91.00        82.00        69.4
+              VeryTrace-LLM      83.3         99.00        84.00        77.00        67.9
+
+                    Table 3. Ablation study between VeryTrace and purely LLM-audit variant VeryTrace-LLM
+
+
+
+A. Reasoning in Varying Planning Horizons with Qwen3-Next-80B-A3B-Instruct
+
+Here we present the evaluation results under LLM-BabyBench Planning in varying planning horizons with all three tested
+LLM models: Qwen3-Next-80B-A3B-Thinking, Qwen3-Next-80B-A3B-Instruct, and Llama-3.3-70B-Instruct. The results
+are presented in Fig. 4, which is consistent with the analysis from Sec. 5.3.
+
+In particular, Fig. 4 shows that while all methods degrade as the planning horizon grows, VeryTrace remains the strongest
+method across all world sizes. The advantage is especially clear for weaker planning backbones (Qwen3-Next-80B-A3B-
+Instruct and Llama-3.3-70B-Instruct), where VeryTrace retains substantially higher success rates under Medium and Large
+worlds.
+
+B. Ablation Study on Mechanical Verifications
+
+To further analyze the effectiveness of the hybrid verification pipeline, namely the inclusion of mechanical verifications in
+comparison with purely an LLM-as-a-judge pipeline, we developed a variant of VeryTrace, termed VeryTrace-LLM, where
+all the mechanical verifications are replaced by LLM-audits. Specifically, this involves replacing constraint verification
+(Sec. 4.2.2) and COMPUTE step verification (Sec. 4.2.3) with LLM audits. We ran a ablation study between VeryTrace and
+VeryTrace-LLM using the Qwen3-Next-80B-A3B-Thinking model. We ran the ablation study on AIME 2025, BabyBench
+Planning (100 trials each for small, medium, and large), and CLUTRR. The results are presented in Table 3.
+
+As shown, VeryTrace generally outperforms the VeryTrace-LLM variant, especially under the AIME and BabyBench
+Planning benchmarks and with increased reasoning horizons. This suggests that the mechanical verifications provide reliable
+audits overall, and particularly for planning and math related tasks.
+
+C. Assessment on Translation Quality Impact
+
+To directly probe translation quality and its impact on downstream verification performance, we added a faithfulness analysis.
+Given a natural-language CoT and its translated DSL trace, we ask an audit LLM to rate translation faithfulness on a
+1–10 scale using an explicit rubric (see App. G.2). We then compare faithfulness for cases where verification is correct
+vs. incorrect. The correctness of verification is obtained by comparing the verification output against the ground truth
+correctness of the reasoning. For this analysis, we ran VeryTrace on 400 trials from BabyBench Planning (Large). The
+
+                                                12
+
+=== PDF第13页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+
+                              Verification Outcome  Mean Faithfulness  STD Faithfulness
+
+                           Correct Verification           7.72             0.5712
+                             Incorrect verification          7.55              0.809
+
+                                           Table 4. Translation faithfulness analysis
+
+
+
+
+           Benchmarks   Mechanical Constraint Verification %   Mechanical COMPUTE Verification %
+
+        AIME 2025                  10.8                                  80.7
+            Planning-S                   43.3                                  62.3
+           Planning-M                  40.8                                  66.0
+            Planning-L                   35.6                                  71.2
+        CLUTRR                      0.8                                     2.8
+
+                      Table 5. Split between mechanical and LLM-based verifications across all benchmarks.
+
+
+
+
+results are in Table 4.
+
+We note that the gap is modest but directionally consistent. Better translation quality (higher mean faithfulness with lower
+standard deviation) is associated with more reliable verification. This observation suggests that the translation quality is
+directly associated with verification performance.
+
+D. Split between mechanical verifications and LLM-audits
+
+VeryTrace uses hybrid verification approaches for both the constraint verification (Sec. 4.2.2) and COMPUTE step verification
+(Sec. 4.2.3). Namely, both mechanical and LLM-based verifications are used for these components. To directly assess how
+much the mechanical verification contribute in practice, here we complement the main evaluation results from Sec. 5 by
+reporting the split between mechanical and LLM-based verifications we observed. In Table 5, we report the split under the
+evaluation trials with Qwen3-Next-80B-A3B-Thinking model across all benchmarks.
+
+We note that mechanical verification is used heavily where executable structure exists (especially AIME and BabyBench),
+while CLUTRR is largely semantic and therefore relies more on LLM audits. This matches the observation outlined in our
+manuscript where the largest gains are observed in math and planning, with a smaller margin on CLUTRR. Further, notice
+that given the low mechanical verification percentage in CLUTRR, VeryTrace still performed competitively against other
+baselines. This suggests despite heavily relying on LLM-audits on domains like CLUTRR, VeryTrace still benefits from the
+structure introduced by the DSL.
+
+E. Evaluation of VeryTrace’s standalone verification capability on ProcessBench
+
+The verifier quality of VeryTrace directly impact the downstream performance. We further provide a standalone verifier
+evaluation using the ProcessBench (Zheng et al., 2025) under the GSM8K split. This small-scale verification is to show how
+well the verifier performs on a benchmark outside ones from the main evaluation as a standalone component. We report the
+results in Table 6.
+
+We note that VeryTrace’s verifier achieves a competitive false accept rate (9.7%) and false reject rate (11.4%), presenting
+itself as a strong verification mechanism.
+
+F. Limitations and Future Work
+
+Verification cost and scalability. A primary limitation of our step-level hybrid verification is runtime and resource usage.
+Since structural and constraint checks are performed per step, the total number of verification calls scales linearly with the
+number of steps in the trace (see Sec. 4.2.3 and Sec. 4.2.4). This scaling is acceptable for moderately sized traces, but can
+become costly for extremely long traces or iterative feedback loops that require multiple conversion–verification rounds.
+
+                                                13
+
+=== PDF第14页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+
+                                       Metrics                  Values %
+
+                                    Acceptance precision       0.895
+                                    Acceptance recall           0.886
+                                    Acceptance F1             0.891
+                                          Error-detection precision    0.895
+                                          Error-detection recall        0.903
+                                          Error-detection F1          0.899
+                                        False accept rate            0.097
+                                        False reject rate             0.114
+                                        Overall accuracy            0.895
+
+                         Table 6. VeryTrace’s verifier performance on ProcessBench (Zheng et al., 2025).
+
+
+
+Dependence on semantic auditing for deductive steps.  While most compute steps can be verified efficiently by
+deterministically executing (or re-evaluating) the extracted mathematical expressions, deduce steps often involve semantic
+transformations that are difficult to validate purely with symbolic execution. In our current pipeline, such steps may require
+an LLM-based audit or other semantic checker, which increases cost and can introduce stochasticity into verification
+outcomes.
+
+Expressiveness of the inference schema library.  Our current set of structured inference schema is intentionally small to
+keep compilation and verification tractable. As a consequence, certain forms of reasoning may be forced into coarse deduce
+steps (or into underspecified natural-language explanations), reducing the granularity of verifiable structure. Extending the
+schema library to cover richer algebraic transformations, case analysis, induction, and domain-specific semantic operators is
+an important direction for increasing task coverage and reducing reliance on black-box semantic auditing.
+
+Future work.  We plan to (i) improve efficiency via caching, incremental verification, and selective checking policies (e.g.,
+prioritizing steps that affect constraints or goal satisfaction); (ii) integrate stronger formal back-ends such as SMT solvers
+and/or Lean-style provers to formalize and discharge a larger fraction of semantic deductions; and (iii) grow the DSL and
+deduction schema set while maintaining a clean compilation interface, enabling broader task coverage and finer-grained
+error localization.
+
+G. Prompt Templates
+
+For reproducibility, we document the exact prompt templates used in our experiments for the three LLM-facing stages
+of the VeryTrace pipeline: (B.1) the user LLM that produces a structured, step-decomposed reasoning trace; (B.2) the
+context extractor that reads only the original problem statement and outputs a structured context (facts/assumptions/con-
+straints/state/goal); and (B.3) the DSL converter that combines prompt-derived context with the chain-of-thought to emit a
+ReasonLang JSON trace.
+
+All templates below contain placeholders (e.g., {problem}, {prompt text}, {cot text}) that are filled at runtime.
+
+
+G.1. User LLM Prompt
+
+We standardize the user LLM output to facilitate deterministic parsing and downstream conversion. In particular, we enforce
+(i) explicit premises per step, (ii) explicit assumptions used, and (iii) explicit state updates when variables change. We also
+request an atomic decomposition into small steps to improve step-level localization during verification.
+
+ You are a careful reasoner solving complex math competition problems.
+
+ You will be given a problem from the AIME 2025 competition that requires step-by-step reasoning to solve.
+
+ Problem:
+ {problem}
+
+ You MUST format your reasoning according to the following rules and exact format:
+ - First, write down the following in the exact format:
+       PROBLEM STATEMENT: ...
+       GIVEN FACTS AND VARIABLES: ...
+
+
+                                                14
+
+=== PDF第15页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+
+       ALL ASSUMPTIONS: ...
+       CONSTRAINTS (IF ANY): ...
+       UNKNOWNS: ...
+ - Reason step by step. Each step must be explicitly numbered and must list out the following in the exact format:
+       Step <step_number>:
+          PREMISES: fact1, fact2, ..., factn
+          CALCULATION/REASONING: ...
+          ASSUMPTIONS USED (IF ANY): ...
+          UPDATE IN REASONING VARIABLES (IF ANY): ...
+ - **BE ATOMIC**: break down reasoning into smallest atomic steps, the more granular decomposition the better.
+
+ At the end, output the final answer on its own line in the exact format:
+
+ FINAL_ANSWER: <integer>
+
+ Note: The answer must be an integer (no decimals, no fractions).
+ The FINAL_ANSWER line must be the last line of your answer.
+
+
+G.2. Context Extraction Prompt
+
+To reduce confirmation bias in the conversion stage, we first extract context from the problem statement without giving the
+model access to the chain-of-thought. The extractor is instructed to not solve the problem, but instead produce a complete
+context bundle: initial facts, persistent assumptions, verifiable constraints (with mathematical expressions whenever possible),
+an initial state for tracked variables, and a precise goal.
+
+ You are a reasoning context analyzer. Your job is to extract ALL relevant context from a problem statement that
+      would be needed for reasoning.
+
+ **CRITICAL**: You are given ONLY the problem statement. DO NOT try to solve the problem. Your goal is to extract
+      context that would be needed for ANY reasoning approach.
+
+ **Problem Statement:**
+ {prompt_text}
+
+ **Your Task:**
+ Extract all relevant context from the problem statement above into a structured JSON format:
+
+ ‘‘‘json
+ {{
+   "initial_facts": [
+    {{"id": "fact_1", "content": "...", "entities": [...]}}
+   ],
+   "assumptions": [
+    {{"id": "a_1", "content": "..."}}
+   ],
+   "constraints": [
+    {{
+      "id": "c1",
+      "description": "Natural language description",
+      "constraint_expr": "Mathematical expression (if applicable)",
+      "scope": "invariant|goal"
+    }}
+   ],
+   "initial_state": {{
+    "variable_name": value
+   }},
+   "goal": "..."
+ }}
+ ‘‘‘
+
+ **CRITICAL DEFINITIONS - Read these carefully:**
+
+ 1. **initial_facts**: Given facts that describe the INITIAL or STARTING conditions.
+   - These are facts that may only hold at the beginning and can change during reasoning.
+   - Examples: "Betty starts with $50", "Robot is at position (0, 0)", "John has 5 apples initially"
+   - If a variable is associated or defined with a fact statement, it should also be included in the context.
+        Example: "a: 5 is an odd number", the entire definition and statement should be included.
+   - Format: {{"id": "fact_1", "content": "...", "entities": [...]}}
+
+ 2. **assumptions**: Facts assumed to be true THROUGHOUT ALL reasoning steps.
+   - These are persistent truths that don’t change, unlike initial_facts.
+   - These are facts taken as given, NOT conditions to verify (those are constraints).
+   - Look for both EXPLICIT assumptions (stated in the problem) and IMPLICIT assumptions (implied by the problem
+        context).
+   - Examples:
+     * "All apples are whole apples (no fractions)" - assumption about the nature of objects
+     * "The robot can only move one step at a time" - assumption about capabilities
+
+
+                                                15
+
+=== PDF第16页 ===
+                                      VeryTrace: Verifying Reasoning Traces
+
+
+    * "Time progresses linearly" - assumption about the environment
+    * "The coordinate system has y-axis pointing north" - assumption about the reference frame
+    * "Operations are performed left-to-right" - assumption about execution order
+  - Format: {{"id": "a_1", "content": "..."}}
+  - **BE THOROUGH**: Extract ALL assumptions, both explicit and implicit, that underpin any reasoning approach.
+
+3. **constraints**: Conditions that must be VERIFIED or SATISFIED during reasoning.
+  - These are NOT assumptions (facts taken as given), but conditions to CHECK.
+  - Each constraint has:
+    * "description": Natural language explanation
+    * "constraint_expr": Mathematical expression MUST uses variables from initial_state (e.g., "x < 10", "position
+         [0] != 2")
+     - Leave empty if cannot be expressed mathematically
+    * "scope": "invariant" (must hold at ALL steps) or "goal" (must hold only at FINAL step)
+  - Examples: "The agent cannot go to position (2, 3)", "Total must not exceed 100"
+  - Format: {{"id": "c1", "description": "...", "constraint_expr": "...", "scope": "invariant|goal"}}
+
+4. **initial_state**: Initial values of variables mentioned in the problem.
+  - Extract starting values for quantitative reasoning.
+  - Examples: {{"position": [0, 0], "money": 50, "direction": 0}}
+
+5. **goal**: The question or goal to be answered.
+
+**CRITICAL INSTRUCTIONS:**
+- **Extract EVERYTHING**: Be thorough - extract all facts, assumptions, and constraints that might be relevant.
+- **Do NOT solve**: You are NOT solving the problem, just extracting context.
+- **Look for implicit assumptions**: Don’t just extract what’s explicitly stated - also identify implicit
+     assumptions the problem makes.
+- **Differentiate carefully**:
+ * initial_facts = starting conditions that may change
+ * assumptions = persistent truths throughout reasoning
+ * constraints = conditions to verify/satisfy
+- **Use mathematical expressions**: For constraints, maximize use of mathematical expressions in constraint_expr
+     field using variables from initial_state.
+- **Constraint_expr variables MUST befrom initial_state**: All constraint_expr must use variables from
+     initial_state.
+- Constraint_expr must be a boolean expression that is true if satisfied.
+**Extract goal precisely**: Capture exactly what the problem is asking for.
+
+Output ONLY the JSON structure, no other text.
+**IMPORTANT**: Your final output MUST start with ‘‘‘json and end with ‘‘‘.
+
+
+
+
+
+                                               16
+
+=== PDF第17页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+G.3. DSL Conversion Prompt
+
+Given the pre-extracted context and the original chain-of-thought, the converter (i) takes the union of prompt-derived context
+and any additional assumptions/constraints introduced in the trace, (ii) decomposes the trace into atomic DSL steps with
+explicit premises, and (iii) emits a structured JSON trace suitable for subsequent structural and constraint verification.
+
+ You are a reasoning trace analyzer. Your job is to convert a natural language chain-of-thought (COT) reasoning
+      trace into a structured JSON format.
+
+ **Original Problem/Prompt:**
+ {prompt_text}
+
+ **Pre-Extracted Context from Prompt:**
+ The following context has been extracted from the problem statement by analyzing it independently (without looking
+       at the COT):
+ {extracted_context}
+
+ **Chain-of-Thought Reasoning:**
+ {cot_text}
+
+ **Your Task:**
+ Convert the reasoning trace into a structured JSON format with the following structure:
+
+ ‘‘‘json
+ {{
+   "context": {{
+    "initial_facts": [
+      {{"id": "fact_1", "content": "...", "entities": [...]}}
+    ],
+    "goal": "...",
+    "constraints": [
+      {{
+       "id": "c1",
+       "description": "Natural language description",
+       "constraint_expr": "Mathematical expression like ’x < 10’ or ’position[0] != 2’",
+       "scope": "invariant|goal"
+      }}
+    ],
+    "assumptions": [
+      {{"id": "a_1", "content": "..."}}
+    ],
+    "initial_state": {{
+      "variable_name": value,
+      "another_variable": [x, y]
+    }}
+   }},
+   "steps": [
+    {{
+      "step_number": 1,
+      "inference_type": "assume|deduce|compute|conclude",
+      "claim": "...",
+      "premises": ["fact_1", "step_2"],
+      "reasoning": "...",
+      "assumptions": ["...", ...],
+      "updates": {{"variable_name": new_value, ...}},
+      "compute_expr": "expression for compute steps",
+      "deduction_rule": "modus_ponens|direct|transitivity|...",
+      "deduction_args": {{"arg1": "...", "arg2": "..."}} for deduce steps,
+      "is_final": false
+    }}
+   ],
+   "conclusion": {{
+    "content": "..."
+   }}
+ }}
+ ‘‘‘
+
+ **CRITICAL INSTRUCTIONS FOR COMBINING CONTEXT:**
+
+ The pre-extracted context above was created by analyzing the prompt ONLY (without seeing the COT). The COT may
+      also mention or use some facts, assumptions, or constraints.
+
+ Your job is to **take the UNION** of:
+ 1. Context extracted from the prompt (provided above)
+ 2. Any additional context mentioned or used in the COT
+
+ **How to combine:**
+ - **initial_facts**: Use the ones from pre-extracted context. The COT typically doesn’t add new initial facts.
+ - **assumptions**: COMBINE (union) assumptions from pre-extracted context AND any additional assumptions mentioned
+
+
+                                                17
+
+=== PDF第18页 ===
+                                      VeryTrace: Verifying Reasoning Traces
+
+
+      in the COT.
+ - If the COT explicitly states an assumption not in the pre-extracted context, ADD it.
+ - If an assumption appears in both, keep it once (no duplicates).
+ - Preserve IDs from pre-extracted context; assign new IDs (a_N+1, a_N+2, ...) for new assumptions from COT.
+- **constraints**: COMBINE (union) constraints from pre-extracted context AND any constraints mentioned in the COT.
+
+ - Same rules as assumptions: add new ones, avoid duplicates.
+ - Preserve IDs from pre-extracted context; assign new IDs for new constraints.
+- **initial_state**: Use from pre-extracted context, or enhance if COT provides additional variable values.
+- **goal**: Use from pre-extracted context.
+
+**Instructions:**
+1. Use initial_facts from pre-extracted context with IDs like "fact_1", "fact_2", etc.
+
+2. **Use initial_state from pre-extracted context**: The initial state variables have been extracted from the
+     problem statement.
+
+3. Use goal from pre-extracted context.
+
+4. **Decompose COT into atomic steps**:
+  - Each step should be a single inference, calculation, or deduction.
+  - If the original COT combines multiple reasoning operations in one step, SPLIT them into separate steps.
+  - Examples of what to split:
+    * "Calculate X and then use it to determine Y" --> Split into: Step 1 (calculate X), Step 2 (determine Y using
+         X)
+    * "From A and B, we conclude C and D" --> Split into: Step 1 (from A and B conclude C), Step 2 (from C conclude
+          D)
+    * Multiple calculations in sequence --> Each calculation is a separate step
+
+5. **COMBINE constraints** from pre-extracted context and COT:
+  - The pre-extracted context already has constraints with mathematical expressions where possible
+  - If the COT mentions additional constraints not in pre-extracted context, ADD them
+  - For new constraints:
+    * **MAXIMALLY USE MATHEMATICAL EXPRESSIONS**: This is the MOST IMPORTANT requirement
+    * For EACH constraint, try to express it as a mathematical expression using:
+     - Comparison operators: <, >, ==, !=, <=, >=
+     - Logical operators: and, or, not
+     - Arithmetic: +, -, *, /
+     - Array/tuple indexing: position[0], position[1]
+     - Variable names that will be tracked in reasoning state
+    * **constraint_expr field**: mathematical expression MUST uses variables from initial_state
+    * **description field**: Natural language explanation of the constraint
+    * ONLY use natural language (leave constraint_expr empty) if the constraint CANNOT be expressed mathematically
+  - **Constraint structure**:
+    * Give each constraint a unique ID: use IDs from pre-extracted context, assign new IDs like "c_N+1" for
+         additions
+    * Give each constraint a scope: "invariant" or "goal"
+     - "invariant": Must be satisfied at ALL reasoning steps
+     - "goal": Must be satisfied only at the FINAL reasoning step (success criteria)
+    * **BE SPECIFIC**: Use actual values, not placeholders (e.g., "position[0] != 2" not "position[0] != x")
+    * **BE ATOMIC**: Each constraint must be a single condition
+    * **USE VARIABLES FROM THE REASONING STATE**: variables in constraint_expr MUST be from the initial_state
+
+6. **COMBINE assumptions** from pre-extracted context and COT:
+  - The pre-extracted context already has assumptions
+  - If the COT explicitly mentions or relies on additional assumptions not in pre-extracted context, ADD them
+  - Format: {{"id": "a_N+1", "content": "..."}}
+  - Preserve IDs from pre-extracted context; assign new sequential IDs for additions
+
+7. For each reasoning step:
+  - **inference_type**: Classify the step as one of:
+    * "assume" - Establishing a fact from context/premises
+    * "deduce" - Logical deduction or inference (MUST provide deduction_rule and deduction_args) from premises
+    * "compute" - Performing calculations (MUST provide compute_expr and updates)
+    * "conclude" - Final conclusion
+
+  - **claim**: The main assertion being made in this step
+
+  - **premises**: CRITICAL - List the IDs of facts/steps this depends on using ONLY these formats:
+    * "fact_1", "fact_2", etc. for initial facts from context
+    * "step_1", "step_2", etc. for previous reasoning steps
+    * Example: ["fact_1", "step_2"] means this step uses fact_1 and the result from step_2
+    * DO NOT write natural language descriptions - ONLY use "fact_#" or "step_#" format
+
+  - **reasoning**: Natural language explanation of why this step follows
+
+  - **assumptions**: Any assumptions made (can reference assumption IDs from context)
+
+  - **FOR COMPUTE STEPS ONLY - BOTH REQUIRED**:
+    * **compute_expr**: An ASSIGNMENT expression in the form "variable = expression"
+     - MUST contain an equals sign (assignment operator)
+
+
+                                               18
+
+=== PDF第19页 ===
+                                      VeryTrace: Verifying Reasoning Traces
+
+
+     - The RHS expression must use ONLY variables from the current reasoning state
+     - Examples:
+       * "position = [position[0] + 1, position[1]]" (updates entire variable)
+       * "x = x + 1" (updates existing variable)
+       * "new_x = position[0] + 1" (creates new variable)
+     - INVALID: "position[0] + 1" (missing assignment)
+     - INVALID: "x + 1" (missing assignment)
+    * **updates**: The resulting variable changes after the assignment
+     - Examples: {{"position": [4, 3]}}, {{"x": 2}}, {{"new_x": 4}}
+     - Must introduce new variables OR update existing ones
+     - The updates must reflect the state changes from the assignment
+
+  - **FOR DEDUCE STEPS ONLY**:
+    * MUST provide at least one premise.
+    * **deduction_rule**: The logical rule being applied, one of:
+     - "modus_ponens" - A -> B, A => B
+     - "conjunction" - A, B => A and B
+     - "direct" - Conclusion follows directly from premises
+     - "transitivity" - A = B, B = C => A = C
+    * **deduction_args**: Structured arguments for the deduction rule
+     - For "modus_ponens": {{"conditional": "if A then B", "antecedent": "A", "consequent": "B"}}
+     - For "direct": {{"premise_content": "...", "conclusion": "..."}}
+     - For "transitivity": {{"first_equality": "A = B", "second_equality": "B = C", "conclusion": "A = C"}}
+     - Adapt format based on the deduction rule
+    * **updates**: MUST provide updates that introduce new variables or modify existing ones
+
+
+  - **is_final**: true only for the last step
+
+8. Extract the final conclusion
+  - **content**: The content must have enough information to fully answer the original problem.
+  - **BE THOROUGH**: The content must be thorough and complete. Avoid a single-word answer.
+
+**CRITICAL RULES FOR PREMISES:**
+- ALWAYS use "step_#" to reference previous steps (e.g., "step_1", "step_2")
+- ALWAYS use "fact_#" to reference initial facts (e.g., "fact_1", "fact_2")
+- NEVER write natural language in premises like "Initial state is X" or "Betty has $50"
+- Each premise MUST be exactly "step_#" or "fact_#"
+- Deduce steps must have at least one premise.
+
+**CRITICAL RULES FOR INFERENCE_TYPE:**
+- Use "compute" ONLY when the step directly evaluates a mathematical expression:
+ * A "compute" step MUST provide BOTH "compute_expr" (executable expression) AND "updates" (results)
+ * The compute_expr must use ONLY variables from the reasoning state
+ * The updates must introduce new variables OR modify existing ones
+ * Examples: "position[0] + 1", "total - 15", "[x, y + 1]"
+
+- Use "deduce" for logical reasoning, including reasoning about transformations:
+ * A "deduce" step MUST provide BOTH "deduction_rule" AND "deduction_args"
+ * A "deduce" step SHOULD provide "updates" when it modifies reasoning state
+ * Updates are optional for intermediate logical conclusions
+ * Use "deduce" when the step involves understanding semantics or rules
+
+- Use "assume" for establishing facts from the problem statement
+- Use "conclude" for the final answer
+
+**KEY DISTINCTION:**
+- "compute": Direct calculation with existing values --> "position[0] + 1"
+- "deduce": Reasoning about what transformation applies --> "turning left from east means facing north, so new
+     direction is 3"
+- MAXIMALLY use "compute" steps when math is involved.
+
+**CRITICAL RULES FOR COMPUTE STEPS:**
+- MUST include "compute_expr": an ASSIGNMENT expression with format "variable = expression"
+- MUST include "updates": the resulting variable changes
+- The compute_expr MUST contain an equals sign (=) for assignment
+- The RHS of the assignment must reference ONLY existing state variables
+- Examples of VALID expressions:
+ * "x = x + 1" (if x exists in state)
+ * "position = [position[0] + 1, position[1]]" (if position exists)
+ * "new_total = old_total + amount" (if old_total and amount exist)
+- Examples of INVALID expressions:
+ * "position[0] + 1" (missing assignment - which variable does this update?)
+ * "y = z + 1" (if z doesn’t exist in state)
+
+**CRITICAL RULES FOR DEDUCE STEPS:**
+- MUST include "deduction_rule": one of the defined logical rules
+- MUST include "deduction_args": structured arguments for that rule
+- SHOULD include "updates": state changes from the deduction (optional for intermediate steps)
+- The deduction_args must clearly specify the logical structure
+- Use "direct" rule for straightforward logical conclusions
+
+
+                                               19
+
+=== PDF第20页 ===
+                                       VeryTrace: Verifying Reasoning Traces
+
+
+ - Examples:
+   * For orientation changes: {{"deduction_rule": "direct", "deduction_args": {{"premise_content": "agent faces east
+        (direction=0), turning left rotates counter-clockwise", "conclusion": "agent now faces north (direction=3)
+       "}}, "updates": {{"direction": 3}}}}
+   * For movement: {{"deduction_rule": "direct", "deduction_args": {{"premise_content": "agent at (3,4) facing west,
+        moving forward goes west", "conclusion": "agent moves to (2,4)"}}, "updates": {{"position": [2,4]}}}}
+   * For intermediate logic: {{"deduction_rule": "direct", "deduction_args": {{"premise_content": "target is east of
+        agent", "conclusion": "agent needs to turn to face east"}}, "updates": {{}}}}
+   * For modus_ponens: {{"deduction_rule": "modus_ponens", "deduction_args": {{"conditional": "if agent faces east
+       and turns left then agent faces north", "antecedent": "agent faces east and turns left", "consequent": "
+       agent faces north"}}, "updates": {{"direction": 3}}}}
+
+ **IMPORTANT:**
+ - **COMBINE context**: Take union of pre-extracted context and any additional context from COT
+ - **Avoid duplicates**: If the same assumption/constraint appears in both, keep it once
+ - **Preserve IDs**: Keep IDs from pre-extracted context; assign new sequential IDs for additions
+ - **Extract constraints with ACTUAL values**: Use specific values from the problem
+ - **No Magic Constraint Variables**: Do not use variables that are not in the initial_state in the constraint_expr
+ - **Track state through updates**: Every variable introduction/change should be in "updates"
+ - **Pay special attention** to constraints in the original prompt that the COT might have ignored
+ - Classify constraint scope correctly (invariant vs goal)
+ - In the "updates" field, use JSON arrays [x, y] not tuples (x, y)
+ - For nested structures, use arrays: [[1, 2], 3] not ((1, 2), 3)
+
+ Final Note: Output ONLY the JSON structure, no other text.
+
+
+G.4. Translation faithfulness evaluation prompt template
+
+Given the natural language CoT and the translated formal DSL, we use the following prompt template to query the LLM to
+evaluate the faithfulness of the translation based on a score from 1 to 10.
+
+ You are an expert evaluator assessing the faithfulness of a formal DSL (Domain-Specific Language) translation of a
+       natural-language chain-of-thought (COT) reasoning trace.
+
+ Important: The DSL has already passed syntax validation. it is structurally well-formed. Your task is NOT to check
+       for syntax errors. Instead, you must evaluate whether the DSL is a **faithful semantic translation** of the
+      original NL COT, regardless of whether the original NL COT itself is logically correct.
+
+ **Brief DSL schema overview (for reference only):**
+ The DSL is a JSON object with these key sections:
+ - **"initial_facts"**: A list of facts extracted from the problem statement / NL COT preamble. Each has an "id"
+      and "content".
+ - **"assumptions"**: A list of assumptions the reasoner stated or relied on. Each has an "id" and "content".
+ - **"constraints"**: A list of constraints that the reasoning should respect. Each has a "description" and
+      optional "constraint_expr".
+ - **"initial_state"**: The starting state of the reasoning (e.g., position, direction).
+ - **"goal"**: The goal the reasoner is trying to achieve.
+ - **"steps"**: A list of reasoning steps. Each step has:
+    - "step_number": ordinal index
+    - "inference_type": one of "compute", "deduction", "observation", etc.
+    - "claim": what the step asserts
+    - "premises": references to prior steps or facts used
+    - "reasoning": the reasoning or calculation performed
+    - "assumptions": assumptions referenced
+    - "compute_expr" (if applicable): a formalized expression of the computation
+    - "updates": state changes produced by this step
+ - **"conclusion"**: The final conclusion of the reasoning.
+
+ **Original Problem / Prompt:**
+ {prompt_text}
+
+ **Original Natural-Language COT:**
+ {nl_cot}
+
+ **Translated DSL:**
+ {dsl_json_str}
+
+ **Your Evaluation Task:**
+ Assess whether the DSL is a faithful translation of the original NL COT. "Faithful" means the DSL accurately
+      captures what the NL COT says - not whether the NL COT is correct. Specifically:
+
+ **Faithfulness Score (1-10):** How well does the DSL capture the content and reasoning of the original NL COT?
+ 1-2: The DSL bears little resemblance to the NL COT.
+ 3-4: Major portions of the NL COT are missing, distorted, or fabricated in the DSL.
+ 5-6: The DSL captures the general approach but has notable omissions or additions.
+ 7-8: The DSL is mostly faithful with minor omissions, additions, or rephrasings.
+ 9-10: The DSL is a near-perfect or perfect translation of the NL COT.
+
+
+
+                                                20
+
+=== PDF第21页 ===
+                                      VeryTrace: Verifying Reasoning Traces
+
+
+Respond in EXACTLY this format (no other text):
+FAITHFULNESS_SCORE: <integer 1-10>
+
+
+
+
+
+                                               21

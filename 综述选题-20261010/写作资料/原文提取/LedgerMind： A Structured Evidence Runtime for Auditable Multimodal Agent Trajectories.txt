@@ -1,0 +1,1841 @@
+
+=== PDF第1页 ===
+         LEDGERMIND: A STRUCTURED EVIDENCE RUNTIME
+          FOR AUDITABLE MULTIMODAL AGENT TRAJECTORIES
+
+
+                   Enjun Du1,2,∗  Hange Zhou1,∗  Chenxu Du1   Siyi Liu1
+                    Zirong Chen1,3   Ziyu Zheng4   Yongqi Zhang1,†
+                    1The Hong Kong University of Science and Technology (Guangzhou)
+                    2The University of Hong Kong   3Tsinghua University   4University of Sussex
+                     ∗Equal contribution.   †Corresponding author.
+                 enjundu.cs@gmail.com
+
+
+
+                                      ABSTRACT
+
+                            Multimodal agents for visual question answering increasingly operate as multi-step
+                                   trajectories that interleave perception, retrieval, and reasoning, yet evaluation still
+                                 largely reduces to final-answer accuracy. This aggregate signal cannot tell whether
+                             a correct answer was reached through grounded evidence, language priors, or
+                                accidental error cancellation. We propose to treat a multimodal agent trajectory as
+                             a provenance-constrained state machine: tool outputs are normalized into a Struc-2026                        tured Evidence Ledger that serves as the trajectory state, downstream reasoning
+                          and decision claims may cite only active ledger entries, grounding is checked at
+                               the entity and numeric level, and repair is realized as typed state transitions thatJul
+                             cannot introduce content without tool-produced provenance. We instantiate this
+                              design as LedgerMind (Provenance-Constrained Multimodal Agentic Reasoning30                             with a Structured Evidence Ledger), augmented by a Three-Layer Grounding Pro-
+                                   tocol, an Adaptive Dual-Path Dispatcher that matches reasoning depth to question
+                               complexity, and an Event-Triggered Verification-and-Repair engine with a formal
+                            provenance non-amplification guarantee. We use LedgerMind to target four re-
+                               curring failure patterns that final-answer accuracy tends to obscure: unsupported
+                               intermediate reasoning, citation-backed entity hallucination (Phantom Grounding),[cs.LG]                        over-reasoning on simple queries, and repair-time amplification. Experiments
+                              across multiple multimodal reasoning benchmarks and backbone MLLMs show
+                                   that LedgerMind improves both answer accuracy and trajectory-level faithfulness.
+
+
+                1  INTRODUCTION
+
+                     Recent multimodal large language models (MLLMs) have enabled visual question answering systems
+                        that interleave perception, retrieval, and language-based reasoning OpenAI (2023); Gemini Team
+                         et al. (2023); Liu et al. (2023a); Bai et al. (2023); Chen et al. (2023). As these systems become
+                      agentic Yao et al. (2023b); Schick et al. (2023); Lu et al. (2024), their outputs are no longer single
+                       predictions but multi-step trajectories containing observations, intermediate claims, tool calls, and
+                           final decisions. Yet final-answer accuracy remains the primary aggregate signal for such systems, and
+                                  it cannot tell whether a correct answer was obtained through grounded evidence, language priors, or
+                       accidental error cancellation.arXiv:2607.28374v1           From accuracy to trajectory faithfulness.  Multimodal agentic reasoning requires trajectory-level
+                        faithfulness: intermediate reasoning claims should be auditable against the evidence that supports
+                    them.  This is difficult because most agent frameworks store the trajectory as a free-form text
+                        buffer Yao et al. (2023b); Shinn et al. (2023) in which tool outputs, model paraphrases, inferred facts,
+                   and repaired claims are mixed together, so a claim can appear plausible, or even cite an evidence
+                          identifier, while introducing entities or numerical values absent from the cited evidence. Natural-
+                     language rationales frequently fail to reflect the process that actually produced the answer Turpin et al.
+                      (2023); Lanham et al. (2023); Lyu et al. (2023); Paul et al. (2024), and analogous citation-content
+                    mismatches are documented in retrieval-augmented generation Liu et al. (2023b); Gao et al. (2023);
+                     Müller et al. (2024).
+
+
+                                                          1
+
+=== PDF第2页 ===
+Existing remedies only partially address this issue. Requiring models to cite evidence does not suffice,
+because citation structure can mask conclusion-level hallucination; we call this failure Phantom
+Grounding, a form of spurious grounding in which a claim cites valid evidence IDs yet introduces
+entities or numerical values absent from the cited source. Free-form self-refinement Madaan et al.
+(2023); Shinn et al. (2023); Wang et al. (2023); Dhuliawala et al. (2024); Yin et al. (2024); Huang et al.
+(2024b) is also insufficient, since LLMs largely cannot self-correct without external feedback Huang
+et al. (2024a); Stechly et al. (2025); Xu et al. (2024) and repair itself can introduce new unsupported
+claims while fixing old ones (repair-time amplification). Finally, deeper reasoning is not uniformly
+beneficial Sui et al. (2025); Chen et al. (2025); Hassid et al. (2025); Han et al. (2025): unnecessary
+multi-step pipelines can overwrite simple visual or factual answers with noisy intermediate inferences.
+
+We propose LedgerMind (Provenance-Constrained Multimodal Agentic Reasoning with a Structured
+Evidence Ledger), a provenance-constrained framework for faithful multimodal agentic reasoning.
+Rather than storing the trajectory as an unstructured text buffer, LedgerMind normalizes each tool
+output into an entry of a Structured Evidence Ledger carrying source, type, confidence, lifecycle
+status, and dependencies; downstream reasoning and decision claims may cite only active ledger
+entries, making provenance a structural constraint rather than a prompting preference. A Three-
+Layer Grounding Protocol then verifies, beyond structural coverage, whether cited evidence actually
+contains the entities and numerical values used in the claim. An Adaptive Dual-Path Dispatcher
+avoids unnecessary deep reasoning on simple or knowledge-oriented queries, and an Event-Triggered
+Verification-and-Repair engine modifies the ledger or actions only through predefined typed op-
+erators, yielding a provenance-level guarantee that repair cannot introduce ledger entries without
+tool-produced provenance.
+
+                         Stage I: Failures in the Original Trajectory                             Stage II: Failure Introduced by Repair
+
+     F1. Unsupported Claim         F2. Citation Mismatch      F3. Unnecessary Depth                F4. Unsafe Repair
+                                                       Claim: Apollo 13 Plaque • 1969          Apollo 11 Plaque year?                 Grounded claim (before repair)
+                                                                                                     E1  E2  Apollo 11 Plaque • Year: 1969
+                                                       Cites [Doc1]   ≠
+
+                                                          Citation                                                                        Free-form Repair
+                                                                              Direct Path      Full Pipeline
+                                     [Doc1]                                                            Retrieve
+                                                                                                                                                                                          (after repair)                                                                                                                         Revised                                                                                                                                claim                                                                                                           Reason
+                                                                                                                                    Apollo                                                                                                                                   11 Plaque     Evidence:  Apollo 11 Plaque • 1969                          Apollo 11 Plaque                                                      1969                                                                                                                           Revise             E1  E2                                                                                                                                      1969      ×                                              • 1969                                                                    Landing: Atlantic Ocean• Year:NEW    Claim: Apollo 13 Plaque •  1971                       ✓          1969
+                                                ✓        ×
+     No supporting evidence               Citation ≠ Content        Same answer, higher cost          New content, no provenance
+
+
+Figure 1: Representative failure patterns in multimodal agentic reasoning that final-answer accuracy
+tends to obscure.
+
+
+This design targets four recurring failure patterns that aggregate accuracy tends to obscure (Figure 1):
+(F1) the Trajectory Faithfulness Gap, where correct answers coexist with unsupported intermediate
+claims; (F2) Phantom Grounding, where citation structure passes but conclusion-level entities are
+fabricated; (F3) the Over-Reasoning Paradox, where additional reasoning steps overwrite an initially
+correct answer on knowledge-intensive queries; and (F4) Repair-Time Amplification, where free-
+form reflection injects new unsupported claims while fixing old ones. We treat F1–F4 as recurring
+and actionable patterns rather than an exhaustive taxonomy; they serve as a diagnostic lens in our
+trajectory-level evaluation.
+
+Our contributions are as follows:
+
+1. We introduce the Structured Evidence Ledger as the central state abstraction for multimodal
+   agentic reasoning. Instead of treating trajectories as free-form text histories, the ledger stores
+   tool-produced evidence with source, type, confidence, lifecycle status, and dependencies, so that
+   downstream claims can be checked against active provenance rather than against prompt-level
+   citation instructions alone.
+
+2. We formulate trajectory-level faithfulness as a provenance-constrained reasoning problem and
+   identify four recurring failure patterns that final-answer accuracy obscures, including Phantom
+   Grounding, which we formalize at the level of multimodal agent trajectories.
+
+
+                                       2
+
+=== PDF第3页 ===
+3. We instantiate these ideas in LedgerMind, a ledger-centered framework that binds claims to
+   tool-produced evidence, verifies conclusion-level entity and numeric consistency, adapts reasoning
+   depth to question complexity, and performs event-triggered typed repair with a provenance
+   non-amplification guarantee (Proposition 1).
+
+4. We evaluate LedgerMind with trajectory-level faithfulness diagnostics on five answer-level
+   multimodal benchmarks, one chain-level multimodal search benchmark, and Hard-200, a stress-
+    test set of 200 complex image-grounded queries (Appendix H), showing consistent gains in both
+   answer accuracy and grounded reasoning behavior across multiple backbone MLLMs.
+
+
+2  RELATED WORKS
+
+
+2.1  MULTIMODAL AGENTIC REASONING AND ADAPTIVE INFERENCE
+
+Multimodal agents and tool-augmented reasoning.  Recent MLLMs OpenAI (2023); Gemini
+Team et al. (2023); Bai et al. (2023); Liu et al. (2023a); Chen et al. (2023) have extended text-only
+LLMs to jointly reason over images and language. To tackle tasks beyond single-pass perception, a
+line of work casts MLLMs as agents that interleave reasoning with external tools: ReAct Yao et al.
+(2023b) alternates thought and action traces; Toolformer Schick et al. (2023) teaches models to invoke
+APIs in a self-supervised manner; ViperGPT Surís et al. (2023) and Chameleon Lu et al. (2024)
+compose vision-and-language modules via program synthesis; and retrieval augmentation Lewis
+et al. (2020) further grounds generation in external knowledge. Recent systems broaden this design
+space through history-aware routing over large tool ecosystems (ToolACE-MCP) Yao et al. (2026),
+capability-level multimodal orchestration (Octopus) Guo et al. (2025b), and specialized multi-agent
+synthesis (GraphMaster) Du et al. (2025). Long-horizon agents further require persistent state across
+evolving interactions, as studied by the RealMem benchmark Bian et al. (2026). These frameworks
+commonly treat the reasoning trace as an unstructured text buffer, concatenating intermediate claims,
+tool outputs, and inferred facts without explicit provenance, confidence, or lifecycle metadata. Our
+framework departs from this practice by turning the trajectory into a provenance-constrained ledger.
+
+Structured execution records and provenance tracking have a long systems tradition. Database
+and workflow provenance capture the origin and causal history of derived data Buneman et al.
+(2001); Moreau et al. (2011), while distributed tracing records cross-component execution for
+diagnosis Sigelman et al. (2010). We therefore do not claim that structured tracing or dependency
+metadata is new in isolation; our focus is their operational use in a shared evidence state for multimodal
+agent grounding, adaptive execution, and constrained repair.
+
+Chain-of-thought (CoT) prompting Wei et al. (2022) and extensions such as Self-Consistency Wang
+et al. (2023) and Tree-of-Thoughts Yao et al. (2023a) are standard techniques for eliciting multi-
+step reasoning. Yet deeper reasoning is not always better: recent analyses reveal an overthinking
+phenomenon where unnecessarily long chains waste computation and may even degrade accuracy Sui
+et al. (2025); Chen et al. (2025); Hassid et al. (2025); Han et al. (2025). Most adaptive inference
+methods focus on compressing or truncating reasoning length within a single mode and do not
+distinguish question types benefiting from deep multi-step reasoning from those better served by
+shallow retrieval-augmented answering, especially in multimodal settings. This motivates a dispatcher-
+based control policy instead of a uniform pipeline.
+
+
+2.2  HALLUCINATION MITIGATION AND TRAJECTORY-LEVEL FAITHFULNESS
+
+Self-correction and verification.  Prior work improves reasoning reliability through post-hoc
+verification or repair: Self-Refine Madaan et al. (2023) iteratively critiques and rewrites outputs,
+Reflexion Shinn et al. (2023) learns from verbal feedback across trials, and Chain-of-Verification Dhu-
+liawala et al. (2024) plans and answers fact-check questions. SE-Agent instead optimizes multi-step
+agent trajectories through revision, recombination, and refinement Lin et al. (2025). However,
+Huang et al. Huang et al. (2024a) and subsequent analyses Stechly et al. (2025); Xu et al. (2024)
+show that LLMs cannot reliably self-correct without external feedback: free-form reflection is uncon-
+strained and may itself introduce new unsupported claims, so repair based purely on natural-language
+self-reflection carries an inherent risk of error amplification. Our framework avoids this by restricting
+repair to a finite set of typed state-transition operators.
+
+
+                                       3
+
+=== PDF第4页 ===
+Hallucination mitigation and trajectory-level evaluation.  Hallucinations are a pervasive fail-
+ure mode of MLLMs Rawte et al. (2023); Bai et al. (2024), addressed by training-time methods
+that alter data or objectives and by inference-time methods that correct errors without retraining:
+Woodpecker Yin et al. (2024) extracts concepts and verifies them with external detectors, and
+OPERA Huang et al. (2024b) introduces an over-trust penalty during decoding. Most target caption-
+level object hallucination on static MLLM outputs and are evaluated by final-answer accuracy alone.
+A related line on retrieval-augmented generation distinguishes citation correctness from citation
+faithfulness Liu et al. (2023b); Gao et al. (2023); Müller et al. (2024); our Phantom Grounding
+notion instantiates this distinction at the level of multimodal agent trajectories. Recent benchmarks
+for multimodal chain-of-thought quality Jiang et al. (2025) begin to assess reasoning robustness
+beyond accuracy, yet the faithfulness of intermediate reasoning steps in tool-using agentic pipelines
+remains comparatively underexplored. Claim-level decomposition has also been used as a training
+signal: CuRe constructs category-aware atomic claims for dense video-caption rewards Gao et al.
+(2026). Adjacent video settings combine explicit reasoning with segmentation Xu et al. (2025),
+while continual segmentation separates class recognition from mask generation to retain earlier
+knowledge Guo et al. (2025a).
+
+                 Stage I: Evidence Acquisition & Ledger State                      Stage II: Grounding-Governed Intervention
+
+                                                       Structured Evidence Ledger                       Grounding Verifier
+       Multimodal Query                                                                                                        Grounded Final
+                                                                                                                     Support   ECC  NCC
+                                                                                           11                                       E1                      Apollo                                                                                                                                          Artifact /                                                                                       Plaque
+                                       OCR                                                         Entity        ✓    ✓   —
+                                                                                                   Active                   “Apollo 11”           supported
+                                                                                                                                                Pass
+                                                Adaptive
+                                               Dispatcher
+                                        E2                      engravedyear 1969                    “1969”Year               supported✓   —   ✓                                                    Crop
+                                                                                                   Active
+                                        FullPipe
+                                                                                                                              Overall                                                                            ✓   ✓   ✓                                                                                                               Claim
+                                                                                                                                                                   supported                                        E3                        ApolloMoon landing,11
+                                                                                                                                                 Apollo                                                                                                                                             11                                         Direct Path        Search                     1969
+                                                                                                     Active                                             Fail                 Moon                                                                                                                                                                landing,                                                                                                                                                 1969
+        Identify                the                      artifact                      and
+      event,           then                   verify                       the                            year.                                                                                         Typed Repair
+                                                                                                                                           Evidence: Drop / Refresh        …             GROUNDED
+                                                       Claim: Apollo 11 Moon landing, 1969     Update
+                                                                        Cites { E1, E2, E3 }                                  Action: Retry/Switch/Acquire       …
+                                                                                                                                                        Trajectory:                                                                                                                                                          Stop & Answer /       …                                                                                                                                                  Abstain
+                                                                                              New evidence must come from tools.
+
+Figure 2: The LedgerMind framework. The Structured Evidence Ledger is the central trajectory
+state: tool outputs are normalized into ledger entries, reasoning and decision claims cite active entries,
+grounding checks claim–evidence consistency, the dispatcher controls evidence-acquisition depth,
+and typed repair modifies only ledger state or tool actions.
+
+3  METHOD
+
+Figure 2 summarizes the two-stage LedgerMind runtime. Stage I routes the multimodal query
+through the adaptive dispatcher and records tool-produced perception and retrieval evidence as active
+ledger entries. Stage II checks the resulting claim through support coverage, ECC, and NCC. A
+passing claim yields the grounded final answer; a failing claim can invoke only typed evidence-,
+action-, or trajectory-level repair before the ledger is updated.
+
+LedgerMind treats multimodal agentic reasoning as a provenance-constrained state machine. Its
+central state is a Structured Evidence Ledger: every tool return is normalized into ledger evidence,
+every downstream reasoning or decision claim is checked against active ledger entries, and every
+repair is a typed transition on the same state. Thus the grounding protocol, the dispatcher, and the
+repair engine are not separate patches for separate failures; they are ledger-facing operations that
+enforce the same provenance contract at different points of the trajectory. Complete schemas, trigger
+rules, classifier details, threshold choices, prompts, and full pseudocode are given in Appendices A–G.
+
+
+3.1  STRUCTURED EVIDENCE LEDGER AS TRAJECTORY STATE
+
+Given a question q and multimodal context I = {I1, . . . , IK}, an agent produces a trajectory
+τ = (s1, . . . , sT ). Each step st = (at, ot, Ct) contains an action at, a tool observation ot, and a set
+of claims Ct. Claims are typed as Observation Claims (OC), which directly record tool outputs; State
+
+
+                                       4
+
+=== PDF第5页 ===
+Claims (SC), which aggregate or infer over evidence; and Decision Claims (DC), which determine
+the final answer ˆy. We write Cτ = S t Ct with subsets COCτ   , CSCτ   , and CDCτ   .
+Prior agent frameworks (Yao et al., 2023b; Shinn et al., 2023) typically store trajectories as
+free-form transcripts, where tool observations, model paraphrases, inferred facts, and later re-
+visions are concatenated in one text buffer.  The ledger Lt replaces this transcript with the
+canonical runtime state.  Each entry e ∈Lt minimally stores its source tool, epistemic type
+κ(e) ∈{PERCEPTION, RETRIEVAL, DERIVATION}, rule-normalized fact fe, confidence σe ∈[0, 1],
+lifecycle status ωe ∈{ACTIVE, STALE, CONFLICTED, DROPPED}, and dependency links to the
+claims that cite it. The fact fe is obtained by a deterministic tool-specific mapping M : O →Σ∗,
+such as OCR text, a search snippet, or crop metadata, rather than by LLM paraphrasing. The full
+11-field schema, time-to-live policy, lifecycle operations, and dependency graph are specified in
+Appendix B.
+
+The ledger enforces four invariants. (I1) Evidence origination: every evidence entry is either a direct
+tool return or the image of a tool return under M. (I2) Citation validity: every SC or DC must
+cite active ledger entries before it can influence later reasoning. (I3) Claim–evidence containment:
+citation is necessary but not sufficient; conclusion-level entities and numerical values must also be
+licensed by the cited evidence pool. (I4) Repair locality: repair may change entry status or invoke
+tools, but cannot append unsupported free-form content to the ledger.
+Let LACTIVEt   = {e ∈Lt : ωe = ACTIVE}. For a claim c, its support set is resolved as
+                          S(c) = {e ∈LACTIVEt        : e is cited by c}.                            (1)
+
+A non-judgment claim with S(c) = ∅is dropped, while a judgment claim with S(c) = ∅is demoted
+below the verification threshold before it can affect the decision. In this sense, provenance is a
+structural precondition for reasoning rather than a prompt-level preference.
+
+These invariants instantiate the runtime objective
+
+                  "                    #
+         max Eτ∼pπ S(τ) − X λtype(r) cost(r)     s.t.  UCRreason(τ) ≤ϵ.           (2)
+             π
+                             r∈Rτ
+
+Here, S(τ) ∈{0, 1} is final-answer success, Rτ is the set of repair operations, and λk ≥0 is the
+cost weight for repair type k ∈{EVIDENCE, ACTION, TRAJECTORY}. Eq. 2 formalizes the runtime
+trade-off controlled by evidence acquisition and repair; LedgerMind is otherwise training-free and
+uses frozen backbone MLLMs.
+
+3.2  LEDGER-GOVERNED REASONING AND CONTROL
+
+At runtime, LedgerMind executes a ledger-governed control loop: acquire evidence, validate claims
+against the active ledger, select the necessary depth of evidence acquisition, and repair only when a
+ledger-level violation is detected. We describe these operations at the interface level here and defer
+implementation rules to the appendices.
+
+Grounding as claim–evidence containment.  For containment checks, DERIVATION entries are
+transparent rather than self-supporting: when a claim cites a DERIVATION entry, we recursively
+resolve that entry to its PERCEPTION and RETRIEVAL leaf dependencies. The cited pool is
+therefore built only from leaf evidence,
+
+             Pc = {fe : e ∈Sleaf(c), κ(e) ∈{PERCEPTION, RETRIEVAL}}.
+
+First, Support Coverage requires lexical overlap with active evidence,
+
+                                   |Tok(c) ∩S e∈S(c) Tok(fe)|
+                             ρ(c) =                                           ,                             (3)
+                                              |Tok(c)|
+
+where Tok(·) removes stopwords and extracts content tokens. Second, Entity Consistency Check
+(ECC) requires all conclusion-level non-numeric entities to appear in the cited pool up to aliases:
+
+                   ECC(c) = 1[Ent(c) ⊆Ent(Pc) ∪Alias(Pc)] .                        (4)
+
+
+                                       5
+
+=== PDF第6页 ===
+Third, Numeric Coherence Check (NCC) requires each numerical value in c to match a cited value
+under a type-aware tolerance ∆u:
+
+        NCC(c) = 1 ∀vc ∈Num(c), ∃ve ∈Num(Pc) : |vc −ve| ≤∆u(vc)(ve)  .         (5)
+
+For years, counts, dates, option labels, and identifiers, ∆u is exact; for continuous visual readings it
+allows a small relative tolerance. Failure of ECC or NCC marks a conclusion–evidence mismatch
+and lowers claim confidence below the verification threshold, triggering hypothesis verification when
+budget permits. Extraction rules, alias handling, confidence demotion values, and threshold sensitivity
+are given in Appendices C and A.
+
+Adaptive evidence-depth control. A ledger constraint does not imply that every query should
+use the deepest pipeline. Unnecessary tool calls may add irrelevant evidence and give the model
+more opportunities to overwrite a simple answer. LedgerMind therefore chooses between two
+ledger-compatible paths before expensive evidence acquisition:
+
+                ( DIRECT(q, I)    ϕ(q) = simple,
+                                      ˆy =                                                                   (6)
+                            FULLPIPE(q, I)  ϕ(q) = complex,
+
+where ϕ(q) is a deterministic complexity classifier. The DIRECT path uses a small evidence budget
+for single-step visual or shallow factual queries; the FULLPIPE path performs task planning, OC
+extraction, optional crop-zoom and Dual-Read Verification, retrieval, grounded [E] →[I] →[J]
+reasoning, and final decision checks. Both paths write through the same ledger interface, so their
+outputs remain comparable under the same audit. The classifier rules, call budgets, and prompts are
+given in Appendix D.
+
+Event-triggered typed repair.   Verification is implemented as an event handler over ledger state
+rather than as always-on free-form self-critique. The verifier fires on high-risk events such as tool
+anomaly, stale reference, evidence conflict, confidence drop, unsupported decision, or conclusion–
+evidence mismatch. Once triggered, repair is restricted to seven typed operators in three layers: evi-
+dence (DROP, REFRESH), action (RETRY, SWITCH, ACQUIRE), and trajectory (STOPANDANSWER,
+ABSTAIN). The policy follows locality-first escalation with a fixed per-trigger budget, so repair
+modifies the ledger state or invokes tools instead of rewriting the trajectory in unconstrained natural
+language. Formal trigger conditions, operator semantics, and cost bounds are given in Appendix E.1
+and Appendix E.2.
+
+
+3.3  PROVENANCE NON-AMPLIFICATION
+
+The typed repair interface yields a provenance-level guarantee.
+Proposition 1 (Provenance Non-Amplification). For any repair operator r ∈R and any ledger L,
+let L′ = r(L). Every new entry in L′ \ L has tool-produced provenance; that is, it is either a direct
+tool output or the image of a tool output under the deterministic template mapping M.
+
+
+Proof. DROP creates no new entry. REFRESH, RETRY, and ACQUIRE add entries only by invoking
+a tool and applying M to the resulting observation. SWITCH changes the action choice but adds
+no ledger entry by itself. STOPANDANSWER and ABSTAIN terminate without changing the ledger.
+Hence any new entry must have tool-produced provenance.
+
+
+Proposition 1 does not assert that tool outputs are always factually correct. Rather, it guarantees that
+repair cannot fabricate new provenance-less content; any remaining error is tied to an explicit source
+and therefore remains auditable.
+
+
+3.4  TRAJECTORY FAITHFULNESS METRICS
+
+Final-answer accuracy measures task success but not whether the trajectory was supported by evidence.
+We therefore audit trajectories with four metrics. A claim is grounded only if it cites active ledger
+entries and passes the claim–evidence containment checks of §3.2. To prevent perception-heavy
+
+
+                                       6
+
+=== PDF第7页 ===
+pipelines from diluting the denominator with tool-faithful OCs, the main unsupported-claim rate is
+computed over SC and DC only. Let CRτ = CSCτ ∪CDCτ   , and let g(c) indicate that claim c is grounded:
+                                            |{c ∈CRτ  : g(c) = 0}|
+                      UCRreason(τ) =                           (↓),                        (7)
+                                            |CRτ |
+                                            |{c ∈CDCτ    : g(c) = 1}|                     GDR(τ) =                          (↑).                         (8)
+                                             |CDCτ   |
+
+For corpus-level diagnosis, with decision-grounding threshold γ,
+
+                                   |{τ : S(τ) = 1 ∧GDR(τ) > γ}|
+                R4R =                                    (↑),                       (9)
+                                           |{τ : S(τ) = 1}|
+                                   |{τ : S(τ) = 0 ∧GDR(τ) > γ}|
+            WDG =                                    (↓).                     (10)
+                                           |{τ : S(τ) = 0}|
+
+UCRreason and GDR measure unsupported reasoning and grounded decisions. R4R separates
+evidence-backed success from lucky correct answers, while WDG captures wrong answers that
+nevertheless look grounded at the decision level. We report OC error rate separately to isolate
+perception noise, together with EUR, RR, RC, and SE in Appendix F.
+
+4  EXPERIMENTS
+
+4.1  EXPERIMENTAL SETUP
+
+We evaluate LedgerMind on six public benchmarks— VTC-Bench (Zhu et al., 2026), MMStar (Chen
+et al., 2024), MMMU (Yue et al., 2024), MMMU-Pro (Yue et al., 2025), EMMA (Hao et al., 2025),
+and MC-Search (Ning et al., 2026)—plus the in-house Hard-200 stress set (Appendix H); trajectory-
+level faithfulness is audited on V*Bench and EMMA-160. LedgerMind is instantiated on six frontier
+MLLMs from four vendors (GPT-4o/GPT-5.5, Gemini-3-Flash/3.1-Pro, Claude-Sonnet-4.6/Opus-4.7,
+Kimi-K2.6) and compared against each backbone’s native CoT or thinking-mode output under an
+identical tool budget, so any gap reflects framework design rather than extra compute. Besides task
+accuracy, we report the trajectory-level metrics of §3.4 (UCRreason, GDR, R4R, WDG) and, for
+MC-Search, the chain-alignment metrics HPS and RD; claim-level auditing uses a fixed external
+judge (Gemini-3.1-Pro) under an identical protocol on both sides.
+
+4.2  MAIN RESULTS
+
+We report absolute scores together with the gap to each native backbone; per-category and per-
+backbone tables are deferred to Appendix I.
+
+
+VTC-Bench and general VLM benchmarks.  On VTC-Bench (Figure 3(a)), LedgerMind with
+Gemini-3-Flash reaches 58.9%, a new state of the art over every proprietary tool-use and general-
+purpose baseline; the same framework lifts Gemini-3.1-Pro by +11.8, Gemini-3-Flash by +12.4, and
+GPT-4o by +23.3 points, with the largest gain on the weakest backbone, indicating backbone-agnostic
+improvement. LedgerMind also ranks first on MMStar, MMMU, and MMMU-Pro against eleven
+baselines (Figure 3(b)); the MMMU-Pro gain is particularly telling because multi-step agents tend to
+overthink (Sui et al., 2025; Chen et al., 2025) on this setting, yet the Adaptive Dual-Path Dispatcher
+(§3.2) routes knowledge-heavy queries to the direct path, addressing F3 by control policy rather than
+longer chains of thought.
+
+
+EMMA and Hard-200.  On EMMA (Table 1), LedgerMind attains 58.29% overall (+9.58 over
+the strongest thinking-mode baseline), with gains concentrated on Math (+16.15 pp) and Physics
+(+16.02 pp)—disciplines that stress diagram reading and multi-step symbolic derivation, and are
+therefore most susceptible to F2 and F4. The −0.18 change on Coding reflects that subset’s multiple-
+choice code–visualization alignment nature, which de-emphasizes image-centric reasoning. On
+Hard-200 (Figure 4), LedgerMind improves every backbone by +11.2 to +19.7 points overall, gains
+hold on all three sub-sources, and the heatmap contains no negative cell; the weakest backbone
+Kimi-K2.6 jumps from 19.5% to 46.0% (+26.5) on BrowseComp-VL, the behavior expected from
+entity-level grounding against citation-backed spurious grounding (F2).
+
+
+                                       7
+
+=== PDF第8页 ===
+   LedgerMind (Gemini-3.1-Pro) ▸ Proposed                                           ▲ 11.8             90        MMStar   BenchmarkMMMU       MMMU-Pro                 Proposed
+
+   LedgerMind (Gemini-3-Flash)              ★ SOTA                          ▲ 12.4
+
+         LedgerMind (GPT-4o)                                                   ▲ 23.3             75
+
+                                       ▸ Baselines
+                    Gemini-3.0-Pro                                                                                                      (%) 60
+
+                  Gemini-3.0-Flash
+                          GPT-5.2                                                                            45                                                                                                                                                                                                                                                                                                                                                                                                Accuracy
+                    Gemini-2.5-Pro
+                                                                                                         30
+                         GPT-4o                                                       Baseline Setting
+                      GPT-o4-mini                                                                 Base
+                                                                                              Code               15
+                         GPT-o3                                                                                            Inter.
+
+
+                              0       10      20                                                      30                                                              40                                                                      50
+                                            Overall                                               Score on                                                    VTC-Bench                                                                 (%)                                                                                                                                           GPT-4oInternVL2-76BminiQwen2-VL-72BLLaVA-OV-72B                                                                                                                                              MAmmoTH-VL(Gemini-3-Flash)(GPT-4o)                                                                              60      70                      Gemini-1.5-Pro0GPT-4oClaude-3.5-SonnetGemini-3.0-FlashInternVL2-Llama3-76BGPT-4.1                                                                                                                                                  LedgerMind
+                                                                                                                                                 LedgerMind
+                                        (a) Overall Performance on VTC-Bench                            (b) Generalization to General VLM Benchmarks
+
+
+Figure 3: (a) Overall accuracy on VTC-Bench (Zhu et al., 2026): LedgerMind with Gemini-3-Flash
+reaches 58.9%, a new state of the art. (b) Generalisation to three general VLM benchmarks (MM-
+Star (Chen et al., 2024), MMMU (Yue et al., 2024), MMMU-Pro (Yue et al., 2025)): LedgerMind
+with GPT-4o and Gemini-3-Flash backbones outperforms 11 baselines.
+
+
+
+             RealCAR (n=25)                         TIR-Bench (n=75)                 Δ = LedgerMind − Baseline (sorted by Overall Δ)
+
+     80                                       Baseline           80
+     70                                    LedgerMind         70                                                 GPT-5.5
+                                                     60
+   (%) 60
+     50                                                     50                                                                                                    45
+
+     40                                              40
+                                                                                                                                                          40       Accuracy 30                                              30                                                 Kimi-K2.6
+     20                                              20                                                                                                    35
+
+     10                                              10
+      0                                               0                                                                                                    30
+                                                                                                                                                                                                                                                                                                                    (pp)
+                                                                                                                                                          25        GPT-5.5Gemini-3.1-ProGemini-3-FlashSonnet-4.6Opus-4.7Kimi-K2.6                    GPT-5.5Gemini-3.1-ProGemini-3-FlashSonnet-4.6Opus-4.7Kimi-K2.6     Gemini-3-Flash
+
+                                                                                                                                                          20                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        Accuracy
+         BrowseComp-VL (n=100)                        Overall (n=200)                Opus-4.7                          Δ
+     80                                              80                                                                                                    15
+
+     70                                              70
+                                                                                                                                                          10
+   (%) 60                                              60                                              Sonnet-4.6
+     50                                              50                                                                                                    5
+
+     40                                              40
+                                                                                                                                                          0       Accuracy 30                                              30
+     20                                              20                                            Gemini-3.1-Pro
+
+     10                                              10
+
+      0                                               0
+        GPT-5.5Gemini-3.1-ProGemini-3-FlashSonnet-4.6Opus-4.7Kimi-K2.6                    GPT-5.5Gemini-3.1-ProGemini-3-FlashSonnet-4.6Opus-4.7Kimi-K2.6                  RealCAR       TIR      Browse      Overall
+
+Figure 4: Results on Hard-200 (Appendix H) across six frontier backbones. LedgerMind improves
+every backbone on the overall score and on each of the three sub-sources (RealCAR, TIR-Bench,
+BrowseComp-VL); the right heatmap (∆= LedgerMind−baseline) contains no negative cell.
+
+
+
+Chain-aligned reasoning on MC-Search.  To test whether gains come from genuinely grounded
+reasoning rather than final-answer shortcuts, we evaluate on MC-Search (Ning et al., 2026), which
+scores both the final answer (F1, LJ) and the intermediate retrieval chain via HPS (fraction of
+golden steps recovered) and RD (absolute deviation in step count), with a Golden F1 upper bound
+when reference chains and retrieved content are both provided.  Table 2 reports the weighted-
+average comparison across the official topology distribution (topology-wise results in Appendix I).
+LedgerMind with Claude-Opus-4.7 and GPT-5.5 lifts F1 from the best official baseline’s 41.78% to
+61.28%/60.08%, raises HPS from 31.35% to 57.82%/55.88%, and nearly halves RD from 0.89 to
+0.54/0.57. Chain-alignment gains exceed answer-F1 gains, and RD decreases while HPS increases,
+which is the behavioral signature of grounded trajectories rather than post-hoc final-answer correction,
+consistent with the citation-only constraint of §3.1 and the typed repair of §3.2. Even under the
+weakest Gemini-3-Flash backbone the chain metrics remain at or above the best official baseline,
+indicating that the framework, not the backbone, is the primary driver of trajectory-level faithfulness.
+
+
+                                       8
+
+=== PDF第9页 ===
+Table 1: Main results on EMMA (Hao et al., 2025). Table 2: Weighted-average comparison on MC-
+                                               Search (Ning et al., 2026). G-F1: Golden F1.
+
+
+  Model              Math   Phys.  Chem. Coding Overall                             Answer Acc. Chain Align.
+                                                                  Type       Model                               G-F1↑
+  Random choice           14.01   25.64   16.50   25.71    18.08                               F1↑  LJ↑ HPS↑RD↓
+
+  Claude 3.5 Sonnet        25.34   33.97   40.90   38.65    35.08      Baseline     Best Official       41.78  2.99  31.35  0.89  67.52
+  GPT-4o                  27.24   38.46   31.89   40.07    32.42
+  Gemini 2.0 Flash         23.88   38.46   36.31   42.02    33.61                  Claude-Opus-4.7  61.28  4.08  57.82  0.54  76.58
+  Qwen2-VL-72B-Instruct  33.07   42.31   32.06   34.57    33.46                 GPT-5.5          60.08  4.11  55.88  0.57  75.96
+  InternVL2.5-78B         31.39   38.46   35.20   31.91    33.50                   Claude-Sonnet-4.6 57.65  3.91  55.07  0.58  73.65
+  Gemini 3.0 Flash         42.42   52.56   46.68   68.44    50.07                   Gemini-2.5-Pro    54.48  3.54  46.22  0.71  76.14
+                                                                LedgerMind
+  Claude Opus 4.7          45.85   64.10   43.88   54.96    47.88                   Gemini-3.1-Pro    52.01  3.52  48.46  0.69  70.87
+  Gemini 3.1 Pro           40.02   47.44   42.26   76.24    48.71                 GPT-4o-Mini      48.69  3.25  44.26  0.72  70.93
+  LedgerMind (Ours)      56.17   63.46   50.68   76.06    58.29                   Gemini-2.5-Flash  44.14  3.10  41.77  0.78  68.38
+  ∆(vs. Gemini 3.1 Pro)  ↑16.15 ↑16.02 ↑8.42  ↓0.18  ↑9.58                  Gemini-3-Flash    42.75  3.03  38.26  0.82  67.83
+
+
+
+
+
+                 Gemini-3-Flash                                                                                                            Claude-Opus-4.7
+                      Acc                            Acc                            Acc                            Acc                            Acc
+
+  V*Bench    1−WDG               GDR 1−WDG               GDR 1−WDG               GDR 1−WDG               GDR 1−WDG               GDR
+
+
+            1−UCR   Acc    R4R          1−UCR   Acc    R4R          1−UCR   Acc    R4R          1−UCR   Acc    R4R          1−UCR   Acc    R4R
+
+   EMMA-160    1−WDG               GDR 1−WDG               GDR 1−WDG               GDR 1−WDG               GDR 1−WDG               GDR
+
+
+            1−UCR         R4R          1−UCR         R4R          1−UCR         R4R          1−UCR         R4R          1−UCR         R4R
+
+Figure 5: Symmetric Reasoning Faithfulness Audit on V*Bench and EMMA-160 across five frontier
+MLLMs. Blue polygons denote baseline models, while pink polygons denote LedgerMind. All axes
+are oriented such that larger is better: Acc, GDR, R4R, 1 −UCR, and 1 −WDG. The LedgerMind
+polygon consistently encloses the baseline polygon across benchmarks, backbones, and metrics.
+
+
+
+
+
+4.3  TRAJECTORY-LEVEL FAITHFULNESS DIAGNOSTICS
+
+
+
+To check whether the gains of LedgerMind come from grounded reasoning rather than from
+coincidentally correct answers, we run a Symmetric Reasoning Faithfulness Audit (S-RFA) that
+instantiates the trajectory-level metrics of §3.4. For every sample we collect both a baseline chain-
+of-thought trace and a LedgerMind trace and hand them to a fixed auditor (Gemini-3.1-Pro) that
+decomposes each trace into at most ten atomic claims and labels each claim’s grounding against
+the image, yielding UCRreason, GDR, R4R, and WDG under an identical protocol on both sides. As
+shown in Figure 5, the LedgerMind polygon encloses the baseline on every backbone and every
+axis across both V*Bench and EMMA-160: accuracy rises together with GDR and R4R, while
+UCR and WDG both drop, so the accuracy lift is earned by grounded trajectories rather than by
+post-hoc rewriting. The shrinkage is largest on the 1 −WDG axis (most visible on EMMA-160),
+where baselines often produce wrong answers whose decision claims nevertheless appear grounded,
+precisely the Phantom Grounding pattern (F2, §1) that the entity-level ECC of §3.2 is built to intercept.
+
+
+                                       9
+
+=== PDF第10页 ===
+4.4  ABLATION STUDY
+
+
+Table 3: Ablation on MMMU-Pro with Gemini-3-Flash. All variants share the same tool budget and
+decoding settings. ∆is relative to the full framework on Overall.
+
+
+                  Variant           Easy  Medium  Hard  Overall   ∆
+
+                LedgerMind (full)   77.5     69.0     56.9    68.89        –
+
+                 w/o Ledger          75.7     50.3     30.7    53.50   −15.39
+                 w/o Typed Repair    76.9     60.3     38.9    60.40    −8.49
+                 w/o ECC/NCC       76.1     62.5     49.6    63.70    −5.19
+                 w/o Dual-Read       76.7     67.2     52.4    66.70    −2.19
+                 w/o Dispatcher       72.0     68.5     57.1    67.40    −1.49
+
+
+
+To show that each component of LedgerMind is individually necessary rather than merely reasonable
+in isolation, we ablate five variants on MMMU-Pro with Gemini-3-Flash (Table 3), all sharing
+the same tool budget so that any gap reflects the ablated design choice rather than extra compute.
+Removing the Structured Evidence Ledger is by far the most damaging ablation, confirming that a
+prompt-level citation instruction cannot substitute for a structural provenance constraint. Replacing
+typed repair with free-form self-reflection (Shinn et al., 2023; Madaan et al., 2023) is the second
+most harmful, consistent with repair-time amplification (F4). Disabling entity- and numeric-level
+grounding hurts the Hard split the most, identifying ECC/NCC as the decisive mechanism against
+Phantom Grounding (F2) rather than structural coverage alone, while Dual-Read contributes primarily
+on measurement-heavy cases. Finally, although forcing every query through FULLPIPE changes the
+overall score only marginally, Easy accuracy drops while Hard stays unchanged, the exact signature
+of the Over-Reasoning Paradox (F3) and direct evidence that the dispatcher’s value lies in avoiding
+unnecessary depth on simple queries rather than in adding it on hard ones.
+
+
+5  CONCLUSION
+
+We presented LedgerMind, a training-free, provenance-constrained runtime that uses a Structured
+Evidence Ledger to coordinate claim grounding, adaptive execution, and typed repair under a
+formal provenance non-amplification guarantee. Guided by four recurring failure patterns that
+aggregate accuracy obscures, LedgerMind consistently improves both answer accuracy and trajectory-
+level faithfulness across five answer-level multimodal benchmarks (VTC-Bench, MMStar, MMMU,
+MMMU-Pro, EMMA), one chain-level multimodal search benchmark (MC-Search), and the in-house
+Hard-200 stress set, over multiple backbone MLLMs from four vendors; a symmetric reasoning
+audit further confirms that the gains stem from grounded trajectories rather than post-hoc answer
+rewriting. Future directions include extending the ledger to long-horizon agents with persistent
+memory, generalising the typed-repair machinery to other modalities such as video and embodied
+interaction, and exploring how ledger-level supervision can be turned into a training signal for
+MLLMs.
+
+
+REFERENCES
+
+Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan, Peng Wang, Junyang Lin, Chang Zhou,
+  and Jingren Zhou. Qwen-VL: A versatile vision-language model for understanding, localization,
+   text reading, and beyond. arXiv preprint arXiv:2308.12966, 2023.
+
+Zechen Bai, Pichao Wang, Tianjun Xiao, Tong He, Zongbo Han, Zheng Zhang, and Mike Zheng Shou.
+   Hallucination of multimodal large language models: A survey. arXiv preprint arXiv:2404.18930,
+  2024.
+
+Haonan Bian, Zhiyuan Yao, Sen Hu, Zishan Xu, Shaolei Zhang, Yifu Guo, Ziliang Yang, Xueran Han,
+  Huacan Wang, and Ronghao Chen. RealMem: Benchmarking LLMs in real-world memory-driven
+   interaction, 2026. URL https://arxiv.org/abs/2601.06966.
+
+
+                                       10
+
+=== PDF第11页 ===
+Peter Buneman, Sanjeev Khanna, and Wang-Chiew Tan. Why and where: A characterization of
+  data provenance. In Database Theory—ICDT 2001, volume 1973 of Lecture Notes in Computer
+  Science, pp. 316–330. Springer, 2001. doi: 10.1007/3-540-44503-X_20.
+
+Lin Chen, Jinsong Li, Xiaoyi Dong, Pan Zhang, Yuhang Zang, Zehui Chen, Haodong Duan, Ji-
+  aqi Wang, Yu Qiao, Dahua Lin, and Feng Zhao. Are we on the right way for evaluating large
+  vision-language models?  In Advances in Neural Information Processing Systems, volume 37,
+  2024.  URL https://proceedings.neurips.cc/paper_files/paper/2024/
+  hash/2f8ee6a3d766b426d2618e555b5aeb39-Abstract-Conference.html.
+
+Xingyu Chen, Jiahao Xu, Tian Liang, Zhiwei He, Jianhui Pang, Dian Yu, Linfeng Song, Qiuzhi
+  Liu, Mengfei Zhou, Zhuosheng Zhang, Rui Wang, Zhaopeng Tu, Haitao Mi, and Dong Yu. Do
+  not think that much for 2+3=? on the overthinking of o1-like LLMs. In Proceedings of the 42nd
+  International Conference on Machine Learning (ICML), 2025.
+
+Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen, Sen Xing, Muyan Zhong, Qinglong
+  Zhang, Xizhou Zhu, Lewei Lu, Bin Li, Ping Luo, Tong Lu, Yu Qiao, and Jifeng Dai. InternVL:
+  Scaling up vision foundation models and aligning for generic visual-linguistic tasks. arXiv preprint
+  arXiv:2312.14238, 2023.
+
+Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu, Roberta Raileanu, Xian Li, Asli Celikyilmaz, and
+  Jason Weston. Chain-of-verification reduces hallucination in large language models. In Findings
+   of the Association for Computational Linguistics (ACL), 2024.
+
+Enjun Du, Xunkai Li, Tian Jin, Zhihan Zhang, Rong-Hua Li, and Guoren Wang. GraphMaster:
+  Automated graph synthesis via LLM agents in data-limited environments. In Advances in Neural
+  Information Processing Systems, volume 38, 2025.
+
+Mingqi Gao, Hongyuan Dong, Yifei Chen, Zhisheng Zhong, Zheng Ruan, Wenjin Hou, Yu Chen,
+  Han Hu, and Yansong Tang. Claim-level rubric rewards for video caption reinforcement learning,
+  2026. URL https://arxiv.org/abs/2607.05150.
+
+Tianyu Gao, Howard Yen, Jiatong Yu, and Danqi Chen. Enabling large language models to generate
+   text with citations. In Proceedings of the 2023 Conference on Empirical Methods in Natural
+  Language Processing (EMNLP), 2023.
+
+Gemini Team, Rohan Anil, Sebastian Borgeaud, Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut,
+  Johan Schalkwyk, Andrew M Dai, Anja Hauth, et al.  Gemini: A family of highly capable
+  multimodal models. arXiv preprint arXiv:2312.11805, 2023.
+
+Xinyu Geng, Peng Xia, Zhen Zhang, Xinyu Wang, Qiuchen Wang, Ruixue Ding, Chenxi Wang, Jia-
+  long Wu, Yida Zhao, Kuan Li, Yong Jiang, Pengjun Xie, Fei Huang, and Jingren Zhou. Webwatcher:
+  Breaking new frontiers of vision-language deep research agent. arXiv preprint arXiv:2508.05748,
+  2025.
+
+Yifu Guo, Yuquan Lu, Wentao Zhang, Zishan Xu, Dexia Chen, Siyu Zhang, Yizhe Zhang, and
+  Ruixuan Wang. Decoupling continual semantic segmentation, 2025a. URL https://arxiv.
+  org/abs/2508.05065.
+
+Yifu Guo, Zishan Xu, Zhiyuan Yao, Yuquan Lu, Jiaye Lin, Sen Hu, Zhenheng Tang, Yingchao Li,
+  Huacan Wang, and Ronghao Chen. Octopus: Agentic multimodal reasoning with six-capability
+   orchestration, 2025b. URL https://arxiv.org/abs/2511.15351.
+
+Yuyang Han et al. An empirical study of reasoning length and correctness in LLMs. arXiv preprint
+  arXiv:2505.00127, 2025.
+
+Yunzhuo Hao, Jiawei Gu, Huichen Will Wang, Linjie Li, Zhengyuan Yang, Lijuan Wang, and
+  Yu Cheng. Can MLLMs reason in multimodality? EMMA: An enhanced MultiModal ReAsoning
+  benchmark. In Aarti Singh, Maryam Fazel, Daniel Hsu, Simon Lacoste-Julien, Felix Berkenkamp,
+  Tegan Maharaj, Kiri Wagstaff, and Jerry Zhu (eds.), Proceedings of the 42nd International
+  Conference on Machine Learning, volume 267 of Proceedings of Machine Learning Research, pp.
+  22044–22090. PMLR, 13–19 Jul 2025. URL https://proceedings.mlr.press/v267/
+  hao25a.html.
+
+
+                                       11
+
+=== PDF第12页 ===
+Michael Hassid, Tal Remez, Jonas Gehring, Roy Schwartz, and Yossi Adi. Don’t overthink it:
+   Preferring shorter thinking chains for improved LLM reasoning. arXiv preprint arXiv:2505.17813,
+  2025.
+
+Jie Huang, Xinyun Chen, Swaroop Mishra, Huaixiu Steven Zheng, Adams Wei Yu, Xinying Song,
+  and Denny Zhou. Large language models cannot self-correct reasoning yet. In International
+  Conference on Learning Representations (ICLR), 2024a.
+
+Qidong Huang, Xiaoyi Dong, Pan Zhang, Bin Wang, Conghui He, Jiaqi Wang, Dahua Lin, Weiming
+  Zhang, and Nenghai Yu. OPERA: Alleviating hallucination in multi-modal large language models
+  via over-trust penalty and retrospection-allocation. In Proceedings of the IEEE/CVF Conference
+  on Computer Vision and Pattern Recognition (CVPR), 2024b.
+
+Dongzhi Jiang, Renrui Zhang, Ziyu Guo, Yanmin Li, Yu Qi, Xinyu Chen, Liuhui Wang, Jianhan Jin,
+   Claire Guo, Shen Yan, Bo Zhang, Chaoyou Fu, Peng Zhang, Xiangyu Li, Gao Luo, and Hongsheng
+   Li. MME-CoT: Benchmarking chain-of-thought in large multimodal models for reasoning quality,
+  robustness, and efficiency. arXiv preprint arXiv:2502.09621, 2025.
+
+Tamera Lanham, Anna Chen, Ansh Radhakrishnan, Benoit Steiner, Carson Denison, Danny Hernan-
+  dez, Dustin Li, Esin Durmus, Evan Hubinger, Jackson Kernion, et al. Measuring faithfulness in
+  chain-of-thought reasoning. arXiv preprint arXiv:2307.13702, 2023.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal,
+  Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel, and Douwe
+   Kiela. Retrieval-augmented generation for knowledge-intensive NLP tasks. In Advances in Neural
+  Information Processing Systems (NeurIPS), 2020.
+
+Mingxiang Li, Jiaying Zhong, Shengqiong Zhao, Haoquan Zhang, Shuhuai Lin, Yuxin Lai, and Wenhu
+  Chen. TIR-Bench: A comprehensive benchmark for agentic thinking-with-images reasoning. arXiv
+  preprint arXiv:2511.01833, 2025.
+
+Jiaye Lin, Yifu Guo, Yuzhen Han, Sen Hu, Ziyi Ni, Licheng Wang, Mingguang Chen, Daxin Jiang,
+  Binxing Jiao, Chen Hu, and Huacan Wang. SE-Agent: Self-evolution trajectory optimization in
+   multi-step reasoning with LLM-based agents, 2025. URL https://arxiv.org/abs/2508.
+  02085.
+
+Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. In Advances
+   in Neural Information Processing Systems (NeurIPS), 2023a.
+
+Nelson F. Liu, Tianyi Zhang, and Percy Liang. Evaluating verifiability in generative search engines.
+  In Findings of the Association for Computational Linguistics: EMNLP 2023, 2023b.
+
+Pan Lu, Baolin Peng, Hao Cheng, Michel Galley, Kai-Wei Chang, Ying Nian Wu, Song-Chun Zhu,
+  and Jianfeng Gao. Chameleon: Plug-and-play compositional reasoning with large language models.
+  In Advances in Neural Information Processing Systems (NeurIPS), 2024.
+
+Qing Lyu, Shreya Havaldar, Adam Stein, Li Zhang, Delip Rao, Eric Wong, Marianna Apidianaki, and
+  Chris Callison-Burch. Faithful chain-of-thought reasoning. In Proceedings of the 13th International
+  Joint Conference on Natural Language Processing and the 3rd Conference of the Asia-Pacific
+  Chapter of the Association for Computational Linguistics (IJCNLP-AACL), 2023.
+
+Aman Madaan, Niket Tandon, Prakhar Gupta, Skyler Hallinan, Luyu Gao, Sarah Wiegreffe, Uri Alon,
+  Nouha Dziri, Shrimai Prabhumoye, Yiming Yang, Shashank Gupta, Bodhisattwa Prasad Majumder,
+  Katherine Hermann, Sean Welleck, Amir Yazdanbakhsh, and Peter Clark. Self-refine: Iterative
+  refinement with self-feedback. In Advances in Neural Information Processing Systems (NeurIPS),
+  2023.
+
+Luc Moreau, Ben Clifford, Juliana Freire, Joe Futrelle, Yolanda Gil, Paul Groth, Natalia Kwas-
+  nikowska, Simon Miles, Paolo Missier, Jim Myers, Beth Plale, Yogesh Simmhan, Eric Stephan,
+  and Jan Van den Bussche. The open provenance model core specification (v1.1). Future Generation
+  Computer Systems, 27(6):743–756, 2011. doi: 10.1016/j.future.2010.07.005.
+
+Jonas Wallat Müller, Avishek Anand, and Abhijit Anand. Correctness is not faithfulness in RAG
+   attributions. arXiv preprint arXiv:2412.18004, 2024.
+
+
+                                       12
+
+=== PDF第13页 ===
+Xuying Ning, Dongqi Fu, Tianxin Wei, Mengting Ai, Jiaru Zou, Ting-Wei Li, Hanghang Tong,
+  Yada Zhu, Hendrik Hamann, and Jingrui He. Mc-search: Evaluating and enhancing multimodal
+  agentic search with structured long reasoning chains. In International Conference on Learning
+  Representations (ICLR), 2026.
+
+OpenAI. GPT-4 technical report. arXiv preprint arXiv:2303.08774, 2023.
+
+Debjit Paul, Robert West, Antoine Bosselut, and Boi Faltings. Measuring and improving faithfulness
+  of chain-of-thought reasoning. In Findings of the Association for Computational Linguistics:
+ EMNLP 2024, 2024.
+
+Vipula Rawte, Swagata Chakraborty, Agnibh Pathak, Anubhav Sarkar, S. M. Towhidul Islam Tonmoy,
+  Aman Chadha, Amit P. Sheth, and Amitava Das. The troubling emergence of hallucination in
+  large language models – an extensive definition, quantification, and prescriptive remediations.
+  In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing
+  (EMNLP), 2023.
+
+Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu, Maria Lomeli, Eric Hambro, Luke
+  Zettlemoyer, Nicola Cancedda, and Thomas Scialom. Toolformer: Language models can teach
+  themselves to use tools. In Advances in Neural Information Processing Systems (NeurIPS), 2023.
+
+Noah Shinn, Federico Cassano, Beck Labash, Ashwin Gopinath, Karthik Narasimhan, and Shunyu
+  Yao. Reflexion: Language agents with verbal reinforcement learning. In Advances in Neural
+  Information Processing Systems (NeurIPS), 2023.
+
+Benjamin H. Sigelman, Luiz André Barroso, Mike Burrows, Pat Stephenson, Manoj Plakal, Donald
+  Beaver, Saul Jaspan, and Chandan Shanbhag. Dapper, a large-scale distributed systems tracing
+   infrastructure. Technical report, Google, 2010.
+
+Kaya Stechly, Karthik Valmeekam, and Subbarao Kambhampati. On the self-verification limitations
+  of large language models on reasoning and planning tasks. In International Conference on Learning
+  Representations (ICLR), 2025.
+
+Yang Sui, Yu-Neng Chuang, Guanchu Wang, Jiamu Zhang, Tianyi Zhang, Jiayi Yuan, Hongyi Liu,
+  Andrew Wen, Shaochen Zhong, Hanjie Chen, and Xia Hu. Stop overthinking: A survey on efficient
+  reasoning for large language models. Transactions on Machine Learning Research (TMLR), 2025.
+
+Dídac Surís, Sachit Menon, and Carl Vondrick. ViperGPT: Visual inference via python execution for
+  reasoning. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV),
+  2023.
+
+Miles Turpin, Julian Michael, Ethan Perez, and Samuel R. Bowman. Language models don’t always
+  say what they think: Unfaithful explanations in chain-of-thought prompting. In Advances in Neural
+  Information Processing Systems (NeurIPS), 2023.
+
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed Chi, Sharan Narang, Aakanksha Chowdh-
+   ery, and Denny Zhou. Self-consistency improves chain of thought reasoning in language models.
+  In International Conference on Learning Representations (ICLR), 2023.
+
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed Chi, Quoc V
+  Le, and Denny Zhou. Chain-of-thought prompting elicits reasoning in large language models. In
+  Advances in Neural Information Processing Systems (NeurIPS), 2022.
+
+Wenda Xu, Guanglei Zhu, Xuandong Zhao, Liangming Pan, Lei Li, and William Yang Wang. Pride
+  and prejudice: LLM amplifies self-bias in self-refinement. In Proceedings of the 62nd Annual
+  Meeting of the Association for Computational Linguistics (ACL), 2024.
+
+Zishan Xu, Yifu Guo, Yuquan Lu, Fengyu Yang, and Junxin Li. VideoSeg-R1: Reasoning video
+  object segmentation via reinforcement learning, 2025. URL https://arxiv.org/abs/
+  2511.16077.
+
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Thomas L Griffiths, Yuan Cao, and Karthik
+  Narasimhan.  Tree of thoughts: Deliberate problem solving with large language models.  In
+  Advances in Neural Information Processing Systems (NeurIPS), 2023a.
+
+
+                                       13
+
+=== PDF第14页 ===
+Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan Cao.
+  ReAct: Synergizing reasoning and acting in language models. In International Conference on
+  Learning Representations (ICLR), 2023b.
+
+Zhiyuan Yao, Zishan Xu, Yifu Guo, Zhiguang Han, Cheng Yang, Shuo Zhang, Weinan Zhang,
+  Xingshan Zeng, and Weiwen Liu. ToolACE-MCP: Generalizing history-aware routing from MCP
+   tools to the agent web, 2026. URL https://arxiv.org/abs/2601.08276.
+
+Shukang Yin, Chaoyou Fu, Sirui Zhao, Tong Xu, Hao Wang, Dianbo Sui, Yunhang Shen, Ke Li, Xing
+  Sun, and Enhong Chen. Woodpecker: Hallucination correction for multimodal large language
+  models. Science China Information Sciences, 67(12):220105, 2024.
+
+Xiang Yue, Yuansheng Ni, Kai Zhang, Tianyu Zheng, Ruoqi Liu, Ge Zhang, Samuel Stevens,
+  Dongfu Jiang, Weiming Ren, Yuxuan Sun, Cong Wei, Botao Yu, Ruibin Yuan, Renliang Sun,
+  Ming Yin, Boyuan Zheng, Zhenzhu Yang, Yibo Liu, Wenhao Huang, Huan Sun, Yu Su, and
+  Wenhu Chen. MMMU: A massive multi-discipline multimodal understanding and reasoning
+  benchmark for expert AGI. In Proceedings of the IEEE/CVF Conference on Computer Vision
+  and Pattern Recognition, pp. 9556–9567, 2024. doi: 10.1109/CVPR52733.2024.00913. URL
+  https://openaccess.thecvf.com/content/CVPR2024/html/Yue_MMMU_A_
+  Massive_Multi-discipline_Multimodal_Understanding_and_Reasoning_
+  Benchmark_for_CVPR_2024_paper.html.
+
+Xiang Yue, Tianyu Zheng, Yuansheng Ni, Yubo Wang, Kai Zhang, Shengbang Tong, Yuxuan Sun,
+  Botao Yu, Ge Zhang, Huan Sun, Yu Su, Wenhu Chen, and Graham Neubig. MMMU-pro: A more
+  robust multi-discipline multimodal understanding benchmark. In Wanxiang Che, Joyce Nabende,
+  Ekaterina Shutova, and Mohammad Taher Pilehvar (eds.), Proceedings of the 63rd Annual Meeting
+   of the Association for Computational Linguistics (Volume 1: Long Papers), pp. 15134–15186,
+  Vienna, Austria, July 2025. Association for Computational Linguistics. doi: 10.18653/v1/2025.
+  acl-long.736. URL https://aclanthology.org/2025.acl-long.736/.
+
+Xuanyu Zhu, Yuhao Dong, Rundong Wang, Yang Shi, Zhipeng Wu, Yinlun Peng, YiFan Zhang,
+  Yihang Lou, Yuanxing Zhang, Ziwei Liu, Yan Bai, and Yuan Zhou. VTC-Bench: Evaluating
+  agentic multimodal models via compositional visual tool chaining, 2026. URL https://arxiv.
+  org/abs/2603.15030.
+
+
+
+
+
+                                       14
+
+=== PDF第15页 ===
+A  STRUCTURED REASONING PIPELINE: FULL SPECIFICATION
+
+This appendix gives the full specification of the reasoning procedure run on the FULLPIPE branch
+of the Adaptive Dual-Path Dispatcher (§3.2). The procedure has three stages: evidence gathering,
+grounded reasoning, and decision with defense. Every branch mentioned in the main text (Dual-Read
+Verification, two-round knowledge search, the grounding cascade, hypothesis verification, and the
+three defense lines) is expanded here.
+
+Evidence gathering.  The agent first produces a task plan from the question text alone, recording
+observation targets, a reasoning method, and an answer-granularity constraint (Appendix D.2); the
+plan is registered as a DERIVATION entry with confidence σ = 1.0. The agent then extracts up to
+Nmax Observation Claims from the image, each tagged with a semantic category (Appendix D.3)
+and registered as PERCEPTION evidence with σ = 0.92. The text pool Poc used for ECC and NCC
+is built from the TEXT and NUMBER categories. For reading or localization questions, the agent
+selects the most informative region from a nine-zone grid, applies a 2.5× crop-zoom, and replaces
+the lowest-confidence perception entry via SUPERSEDE. Reading questions additionally trigger
+Dual-Read Verification (Appendix D.5), which raises crop confidence to 0.97 on agreement and
+lowers it to 0.65 on disagreement. For knowledge-oriented questions, a first search round uses
+OC-derived entities; deep-knowledge questions trigger a second round whose query is refined using
+the first-round results. All search results are appended as RETRIEVAL entries with σ = 0.85.
+
+Grounded reasoning.   State Claims are generated in a three-stage [E]→[I]→[J] chain. Every non-
+initial claim must cite ledger entry IDs. Non-judgment claims with an empty citation set are dropped;
+judgment claims with an empty citation set are kept but degraded to σ = 0.55. Each judgment then
+passes through the grounding cascade of §3.2: support coverage (Eq. 3), entity-level ECC (Eq. 4),
+and NCC (Eq. 5), with confidence lowered to 0.50 on ECC failure and to 0.52 on NCC failure, both
+below the verification threshold σverify = 0.6. If all judgments end up weak (σ ≤σverify) and the
+repair budget allows, the strongest judgment is treated as a falsifiable hypothesis: ECC failure triggers
+a re-examination restricted to Poc and preceded by an explicit hallucination warning, while NCC
+failure triggers a second independent reading of the crop with the value closest to Poc adopted.
+
+Decision and defense.  The Decision Claim is synthesised with the images re-transmitted alongside
+the ledger, which lets the agent visually verify the reasoning chain at decision time. Three defense
+lines are then applied to the final answer. Entity recheck forces a re-answer restricted to Poc when
+ECC fails on ˆy. Numeric recheck, active for reading questions, snaps the answer to the value in
+Num(Poc) closest to vˆy. Visual fallback is triggered when ˆy contains one of the uncertainty markers
+in Appendix D.7; in that case the agent is forced to answer directly from the image with a “give a
+concrete answer” instruction. The final output is the pair (ˆy, (L, τ)).
+
+Part 2 of the pipeline performs the final decision and the three defense lines described above. At this
+point the ledger L contains all PERCEPTION, RETRIEVAL, and DERIVATION entries produced by the
+evidence-gathering and grounded-reasoning stages, and the repair budget M is what remains after
+any hypothesis verification.
+
+
+
+
+
+                                       15
+
+=== PDF第16页 ===
+Algorithm 1 LedgerMind: Structured Reasoning Pipeline (full version, Part 1 of 2 — evidence
+gathering and grounded reasoning).
+
+Require: Question q, images I, repair budget M = 2
+Ensure: Final answer ˆy, audit trail (L, τ) (returned in Part 2)
+ 1: L ←∅; Poc ←∅
+                                          Evidence gathering
+ 2: π ←TASKPLAN(q); L.APPEND(π, DERIVATION, 1.0)
+ 3: {ei} ←OBSERVE(q, I, π); append each as PERCEPTION with σ = 0.92
+ 4: Poc ←Sγi∈{T,N} fei
+ 5:  if q ∈Qread ∪Qlocation then
+ 6:   r∗←most informative region (9-zone grid)
+ 7:     ec ←CROPZOOM(I, r∗, z=2.5)
+ 8:    L.SUPERSEDE(arg mine:κ(e)=PERC σe, ec)
+ 9:       if q ∈Qread then
+10:        (v1, v2) ←two independent readings of ec
+11:     ∆v ←|v1 −v2|/ max(v1, v2)
+12:        σ(ec) ←0.97 if ∆v ≤0.15 else 0.65; adopt v2 on disagreement
+13:    end if
+14: end if
+15:  if q ∈Qknowledge then
+16:     E(1)s  ←WEBSEARCH(EXTRACTQUERY(q, Poc))
+17:       if q ∈Qdeep_knowledge then
+18:        E(2)s  ←WEBSEARCH(REFINEQUERY(q, E(1)s  ))
+19:    end if
+20:    append Es as RETRIEVAL with σ = 0.85
+21: end if
+                                      Grounded reasoning
+22: {cj} ←REASON(L, q) via [E]→[I]→[J]
+23: for each SC cj do
+24:    ground(cj) ←resolve citations, require ω = ACTIVE
+25:       if type(cj) ∈{[E], [I]} and ground(cj) = ∅then
+26:       L.DROP(cj)
+27:     else if type(cj) = [J] and ground(cj) = ∅then
+28:        σ(cj) ←0.55
+29:    end if
+30: end for
+31: for each [J]-type claim c do
+32:    compute ρ(c) (Eq. 3), ECC(c) (Eq. 4), NCC(c) (Eq. 5)
+33:       if ECC(c) = 0: σ(c) ←0.50; elif NCC(c) = 0: σ(c) ←0.52
+34: end for
+35:  if ∀c ∈J  : σ(c) ≤σverify = 0.6 and M > 0 then
+36:   c∗←arg maxc∈J σ(c)
+37:       if ECC(c∗) = 0 then
+38:         inject hallucination warning; c′ ←REEXAMINE(I, Poc)
+39:           if c′ ̸= c∗: append c′ as DERIVATION with σ = 0.88
+40:     else if NCC(c∗) = 0 then
+41:         v′ ←second independent reading; adopt value closest to Num(Poc)
+42:    end if
+43:  M ←M −1
+44: end if
+45: continue to Part 2 (Algorithm 2)
+
+
+
+
+
+                                       16
+
+=== PDF第17页 ===
+Algorithm 2 LedgerMind: Structured Reasoning Pipeline (full version, Part 2 of 2 — decision and
+defense).
+
+                                          Decision and defense
+ 1:  ˆy ←DECIDE(I, {ei}OC, {cj}SC, ec, Es)                                      ▷images re-sent
+ 2:  if ECC(ˆy, Poc) = 0 then
+ 3:       ˆy ←REANSWER(q, Poc, “only use visible text”)                                  ▷entity recheck
+ 4: end if
+ 5:  if NCC(ˆy, Poc) = 0 and q ∈Qread then
+ 6:       ˆy ←arg minv∈Num(Poc) |v −vˆy|                                        ▷numeric recheck
+ 7: end if
+ 8:  if ˆy ∈U then
+ 9:       ˆy ←DIRECTVISUAL(q, I,
+        “give a concrete answer”)                                                     ▷visual fallback
+10: end if
+11: return ˆy, audit trail (L, τ)
+
+
+
+
+
+                                       17
+
+=== PDF第18页 ===
+B  EVIDENCE LEDGER: FULL SCHEMA AND OPERATIONS
+
+This appendix expands the 11-field entry schema and the four lifecycle operations introduced in §3.1.
+The dependency graph supports the localized re-checking mentioned in the main text, so that when
+an entry changes status only the affected claims need to be re-evaluated.
+
+B.1  EVIDENCE ENTRY SCHEMA
+
+Each entry e ∈Lt is the following 11-field tuple:
+
+                        e =  id, src, κ, te, fe, σe, ωe, be, ℓe, ξe, De  ,                       (11)
+
+where id is a unique identifier, src the tool, κ the epistemic type, te the creation timestamp, fe the
+rule-normalized fact given by fe = M(ot), σe ∈[0, 1] the confidence, ωe the lifecycle status, be
+an optional spatial bounding box, ℓe the time-to-live parameter specified by the TTL policy, ξe the
+superseding entry ID, and De the reverse dependency set of claims that cite e.
+
+Template mapping examples.  The deterministic mapping M : O →Σ∗is tool-specific:
+
+                        Tool         Fact fe         Metadata
+
+                OCR         recognized_text   be = detection_bbox
+                  Web search   snippet           src = URL
+                      Crop         crop_metadata    be = crop_region
+               VQA        model_answer   κ = DERIVATION
+
+
+B.2  LIFECYCLE OPERATIONS
+
+The    four    operations    form    a     finite     state    machine    over  Ω    =
+{ACTIVE, STALE, CONFLICTED, DROPPED}:
+
+                        APPEND(enew) :
+                        Lt+1 = Lt ∪{enew}, ωenew ←ACTIVE,                         (12)
+                     MARKSTALE(e) :
+                        ωe ←STALE  iff  (tcurr −te) > ℓe,
+                        ∀c ∈De : trigger re-verification of c,                           (13)
+                         SUPERSEDE(eold, enew) :
+                                    ωeold ←STALE,  ξeold ←id(enew),
+                        Lt+1 = Lt ∪{enew},                                           (14)
+                       DROP(e) :
+                        ωe ←DROPPED,
+                        ∀c ∈De : propagate invalidation.                              (15)
+
+B.3  DEPENDENCY GRAPH
+
+The bipartite graph Gt = (VE, VC, Elink) is built as VE = {id(e)  : e ∈Lt}, VC = {id(c)  :
+c ∈S t′ Ct′}, and (ei, cj) ∈Elink ⇐⇒id(ei) ∈ground(cj). The localized impact set satisfies
+|Affected(e)| ≤∆max ≪|Cτ|, where ∆max is the maximum evidence-node degree. When ωe
+changes, only the claims in Affected(e) need to be re-audited.
+
+C  GROUNDING THRESHOLD SENSITIVITY
+
+The confidence degradation values (0.50 for ECC failure, 0.52 for NCC failure, 0.55 for structural
+ungrounding) were chosen by grid search over {0.40, 0.45, 0.50, 0.55, 0.60} on a held-out develop-
+ment set of 50 questions. The key requirement is that all values fall below the verification threshold
+σverify = 0.6 so that hypothesis verification is triggered. Using separate thresholds for ECC and NCC
+gives a useful diagnostic signal: when both fail at the same time, the lower ECC threshold causes
+entity-level repair to take priority over numeric repair.
+
+
+                                       18
+
+=== PDF第19页 ===
+                Table 4: Dynamic granularity constraints F(q) by question type.
+
+
+           Question Type            Constraint
+
+       MCQ                     “Output only one option letter (A/B/C/D/E/F)”
+             Instrument reading (Qread)   “Precise to smallest graduation, preserve all decimals”
+            Location (Qlocation)         “Most specific toponym / building / landmark name”
+             Spot-the-difference (Qdiff)    “List all differences dimension by dimension”
+             Character counting (Qchar)   “Locate each character individually, then count”
+            Other                   “Answer must be as specific as possible”
+
+
+
+
+For NCC, the tolerance is type-aware. Years, dates, counts, option labels, and identifiers use exact
+matching after normalization. The relative tolerance δread = 0.15 is used only for continuous visual
+measurements, such as thermometer or gauge readings, to absorb small perceptual noise (e.g., 36.7
+versus 36.8). Performance is stable for δread ∈[0.10, 0.20] on measurement-style questions and
+degrades outside this range. Thus the numeric check remains exact for symbolic or categorical
+numbers while remaining tolerant to visual-reading noise.
+
+D  DISPATCHER AND PIPELINE DETAILS
+
+D.1  COMPLEXITY CLASSIFICATION
+
+The classifier ϕ(q) in Eq. 6 routes a question to complex if at least one of the following conditions
+holds, and to simple otherwise.
+
+Condition 1:  precise perception.  The question contains keywords indicating precise vi-
+sual reading, counting, measurement, or localization.   English: “how many”, “count”,
+“temperature”, “thermometer”, “reading”, “measurement”, “gauge”, “scale”,
+“meter”, “locate”, “identify the region”.
+
+Condition 2: visual + external knowledge fusion.  The answer requires combining visual evi-
+dence with external facts. English: “this company”, “this game”, “this film”, “this
+person”, “this artist”, “this album”, “this university”, “according
+to”, “what year”, “was the first”, “which country”, “founded”, “how many
+students”. Chinese (pinyin): na bu (which), shenme pinpai (what brand), shi shei
+(who), shenme donghua (what animation), and shenme zhiwu (what plant).
+
+Condition 3:  verification or multi-entity reasoning.  The question asks to verify a histori-
+cal event, identify an artifact, compare multiple entities, resolve conflicting evidence, or find
+differences. Keywords include “verify”, “identify the artifact”, “historical
+event”, “compare”, “spot the difference”, as well as any question containing both a
+visual identification term and an external fact-check term.
+
+Condition  4:  MCQ  with  visual  grounding. A  question   is MCQ   if  the  regex
+/\b([A-F])[.)\s]+\S/ matches at least two distinct option letters.
+
+Condition 5: non-English.  Let α(q) = |{c ∈q : c ∈ASCIIalpha}|/|q|. If α(q) ≤0.5, the question
+ is treated as non-English and routed to complex.
+
+Deep-knowledge sub-keywords (Qdeep_knowledge).  Within Condition 2, the following markers
+additionally trigger a second round of knowledge search: “according to”, “based on”,
+“historically”, “originally”.
+
+
+D.2  ANSWER GRANULARITY CONSTRAINTS
+
+Given in Table 4.
+
+
+                                       19
+
+=== PDF第20页 ===
+                  Table 5: OC category definitions and extraction instructions.
+
+
+        Category    Instruction
+
+       TEXT        Transcribe all visible text character by character
+       NUMBER    Extract all numerical values with units and full decimal precision
+        OBJECT     Describe objects: appearance, color, shape, material, quantity
+        SPATIAL     Describe positional / arrangement relationships between objects
+       COMPARE   For comparison tasks: extract quantifiable attributes per object
+       COUNT     Scan zone by zone; assign a unique ID to each counted target
+        DIFF       Compare two images along 5 dimensions: object presence, color, shape,
+                         position, text
+
+
+           Table 6: Dynamic reasoning method M(q) adopted in grounded reasoning.
+
+
+                Question Type  Method
+
+          MCQ            Per-option analysis with elimination
+                 Counting         Verify each numbered target in OCs; confirm total
+                Comparison      Extract attribute values per object; compare pairwise
+                Reading          Prefer crop evidence; read the precise value
+                 Location          Prefer TEXT-category OCs for identification
+                   Find-difference   Dimension-wise listing from DIFF OCs
+
+
+
+D.3 OC SEMANTIC CATEGORIES
+
+Given in Table 5.
+
+
+D.4  REASONING METHOD ADAPTATION
+
+Given in Table 6.
+
+
+D.5  DUAL-READ VERIFICATION
+
+For reading tasks (Qread), after the 2.5× crop-zoom we issue two independent readings v1, v2 of
+the same crop using two API calls that do not share context. Let ∆v =  max(|v1|,|v2|,ϵ).|v1−v2|   We set
+σ(ec) = 0.97 if ∆v ≤0.15 (two readings agree) and σ(ec) = 0.65 otherwise (disagreement
+triggers hypothesis verification). On disagreement we adopt v2, because in our trajectories an
+independent replication is empirically more reliable than the first reading. Dual-Read Verification
+therefore provides a second, perception-level line of defense against the numeric sub-case of Phantom
+Grounding.
+
+
+D.6  KNOWLEDGE SEARCH STRATEGY
+
+Dual-engine redundancy.  Primary: Serper.dev (Google Search API); fallback: SerpAPI (activated
+on timeout or error from the primary). Both use exponential backoff with jitter (at most 5 retries, 32 s
+cap).
+
+Result structure.  Each search call returns three components: Answer Box (direct factual answer),
+Knowledge Graph (structured entity information), and Organic Results (top-3 snippets with URLs).
+The three parts are concatenated and truncated to 600 characters for the re-answering prompt.
+
+Two-round strategy.  Round 1 builds the query from OC entities and question keywords. Round 2
+is only run for deep-knowledge queries, using Round 1 results to refine the query.
+
+
+D.7  UNCERTAINTY MARKERS
+
+The set U that triggers visual fallback:
+
+
+                                       20
+
+=== PDF第21页 ===
+         Language   Markers
+
+           English      “cannot determine”, “cannot tell”, “unable”, “not sure”, “unclear”
+          System       “api_error”, unknown, need_more
+
+
+E  EVENT TRIGGERS AND TYPED REPAIR
+
+E.1  TRIGGER CONDITIONS
+
+Let st = (at, ot, Ct) be the current step. The verifier fires whenever any of the following holds:
+                   T1: ot = ∅∨“error” ∈ot                                       (16)
+                   T2: ∃id ∈ground(ct) : tcurr −tid > ℓid                             (17)
+                   T3: ∃e, e′ ∈LAt  : IoU(be, be′) > 0.5 ∧fe ̸= fe′                    (18)
+                   T4: σ(et) < σfloor                                                  (19)
+                   T5: type(ct) = DC ∧ρ(ct) < β                                   (20)
+                   T6: ρ(ct) > 0 ∧(ECC(ct) = 0 ∨NCC(ct) = 0)                   (21)
+
+T1–T6 denote Tool Anomaly, Stale Reference, Conflict, Confidence Drop, Unsupported Decision,
+and Phantom Grounding, respectively. with decision coverage threshold β = 0.15, hard confidence
+floor σfloor = 0.3 (used only in T4), and grounding verification threshold σverify = 0.6 (used in
+the main-text cascade of §3.2). These two thresholds are distinct: σfloor marks an outright tool or
+evidence failure, while σverify marks a grounding-level weakness that calls for hypothesis verification.
+
+Once triggered, the verifier runs a four-step protocol: (1) a grounding audit that computes ρ(c) for all
+c ∈Ct; (2) a conflict scan that looks for contradictions in LACTIVEt       ; (3) a staleness scan that checks
+TTL for all cited entries; (4) a repair recommendation that selects an operator using the policy below.
+
+E.2  REPAIR OPERATOR DEFINITIONS
+
+The operator set is R = RE ∪RA ∪RT :
+           RE = {DROP(e), REFRESH(e, θ′)},                                     (22)
+           RA = {RETRY(a, θ′), SWITCH(a→a′), ACQUIRE(qspec)},               (23)
+            RT = {STOPANDANSWER(e∗), ABSTAIN}.                             (24)
+
+These sets act at the evidence, action, and trajectory layers, respectively.
+
+Operator semantics.  DROP(e) sets ωe ←DROPPED, creates no new entries, and propagates
+invalidation to every claim in De. REFRESH(e, θ′) marks e as STALE and issues a new tool call
+with updated parameters θ′ (e.g., a different crop region or a refined search query); the result enters
+via SUPERSEDE(e, enew). RETRY(a, θ′) re-invokes the most recent failed action with modified
+arguments: bbox perturbation ±[15, 40] px for visual tools, query expansion with extra keywords
+for search. SWITCH(a →a′) swaps the tool via a predefined compatibility map Mcompat (OCR →
+{search, VQA}; local crop →{full-image VQA}). ACQUIRE(qspec) proactively gathers a new piece of
+evidence to close a specific grounding gap for a Decision Claim. STOPANDANSWER(e∗) terminates
+execution with ˆy = fe∗and e∗= arg maxe∈LA σe. ABSTAIN outputs ˆy = ⊥when evidence remains
+ insufficient after the repair budget is exhausted.
+
+Repair policy.  The mapping Π : {T1, . . . , T6} →R follows a locality-first escalation:
+                      Π(T1) = RETRY →SWITCH,
+                      Π(T2) = REFRESH (if DC dep.) / DROP,
+
+                      Π(T3) = DROP  arg  min  σe   ,
+                                                         e∈conflict
+                      Π(T4) = RETRY(θ′ = θ + ∆θ),
+                      Π(T5) = ACQUIRE (if M > 0) / ABSTAIN,
+                      Π(T6) = warning injection + ACQUIRE.                          (25)
+
+
+                                       21
+
+=== PDF第22页 ===
+Repair budget and cost bound.  Each trigger allows up to M0 = 2 repairs. The total trajectory
+cost is
+                              T
+                  RC(τ) = X X λtype(r) cost(r) ≤T M0 cmax,                    (26)
+                                t=1 r∈Rt
+where cmax = maxr λr·cost(r).
+
+F  FULL METRIC DEFINITIONS
+
+In addition to UCRreason, GDR, R4R, and WDG defined in Eqs. 7–10, we report the following diagnos-
+tic metrics. Write c ≁otool when a claim disagrees with its tool output, and let GroundedAfter(r)
+indicate that the post-repair claim is grounded.
+Definition 1 (OC Error Rate).
+                                          |{c ∈COCτ    : c ≁otool}|                     OCErr(τ) =                           (↓).                       (27)
+                                            |COCτ   |
+OCErr isolates perception-level errors so that UCRreason can focus on reasoning faithfulness without
+being confounded by tool noise.
+Definition 2 (Evidence Utilization Rate (EUR)).
+                                         |{e ∈Lτ : De ̸= ∅}|
+                     EUR(τ) =                        (↑).                         (28)
+                                               |Lτ|
+A low EUR indicates over-collection of unused evidence.
+Definition 3 (Recovery Rate (RR)).
+                                   |{r ∈Rτ : GroundedAfter(r)}|
+                  RR(τ) =                                     (↑).                    (29)
+                                          |Rτ|
+Definition 4 (Repair Cost (RC)).
+                        RC(τ) = X λtype(r)·cost(r),                            (30)
+                                    r∈Rτ
+bounded by Eq. 26.
+Definition 5 (Step Efficiency (SE)).
+                                        S(τ)
+                               SE(τ) =        (↑).                                  (31)
+                                                       |τ|
+
+Diagnostic rule. A high WDG combined with a low ECC pass rate indicates that Phantom Ground-
+ing is the dominant failure mode. A high WDG combined with a high ECC pass rate instead indicates
+a genuine capability limit rather than hallucination.
+
+G  PROMPT TEMPLATES
+
+We include representative prompt templates for the main stages. The complete templates are available
+in the supplementary code.
+
+G.1  TASK PLANNING
+
+   Task Planning Prompt
+
+   You are a multimodal QA reasoning planner. Given ONLY the question text (no image yet), produce a
+    structured analysis plan:
+    Question: {q}
+    Output the following fields:
+     1. Observation targets: What specific visual elements to look for.
+     2. Reasoning method: How to derive the answer from observations.
+     3. Judgment criteria: What evidence would confirm or refute each candidate.
+     4. Answer form: Expected format (number / name / description / letter).
+     5. Answer granularity: {dynamically inserted from F(q)}.
+
+
+
+                                       22
+
+=== PDF第23页 ===
+G.2  OBSERVATION CLAIM EXTRACTION
+
+
+
+  OC Extraction Prompt (abbreviated)
+
+   Look at the image carefully and extract up to 15 fine-grained observation claims.
+   Each claim must be tagged with exactly one category:
+   [OC-i] CATEGORY | factual description
+    Categories: TEXT (visible text, transcribe exactly), NUMBER (values with units), OBJECT (appearance
+      / color / shape), SPATIAL (position relationships), plus any additional categories injected per task plan.
+
+
+
+
+
+G.3  STATE CLAIM REASONING
+
+
+
+   SC Reasoning Prompt (abbreviated)
+
+    Based on the observations below, reason step by step using the [E]/[I]/[J] structure:
+    [E] Evidence Integration: Synthesize patterns across observations.
+     [I] Inference: Derive logical conclusions from [E].
+    [J] Judgment: Give your definitive answer. You MUST cite specific OC numbers.
+    Format: [SC-j][E/I/J] conclusion | Based on:  [OC-a], [OC-b], ...
+
+
+
+
+
+G.4  HYPOTHESIS VERIFICATION (ECC FAILURE)
+
+
+
+    Hypothesis Verification Prompt (ECC)
+
+    Question: {q}
+   Current hypothesis: {c∗}
+   ▷WARNING: The key entities in your hypothesis do NOT appear in any visible text from the image.
+    This conclusion may be a language model hallucination.
+    Existing observations: {Poc contents}
+    Treat your hypothesis as falsifiable. Re-examine the image and report:
+    1. Supporting evidence: specific visual details that support the hypothesis.
+     2. Contradicting evidence: specific visual details that contradict it (or “None”).
+     3. Conclusion: Confirm {c∗} or revise to {new answer}.
+   You may ONLY use text and numbers actually visible in the image.
+
+
+
+
+
+G.5  ENTITY RECHECK DEFENSE
+
+
+
+    Entity Recheck Prompt
+
+   The following text / numbers were confirmed visible in the image:
+   {Poc formatted list}
+    Question: {q}
+   Answer the question using ONLY the visible text / numbers listed above. Do NOT introduce any entity,
+    name, or number that does not appear in the list above.
+
+
+
+                                       23
+
+=== PDF第24页 ===
+G.6  DIRECT PATH: CONCISE RE-ANSWERING
+
+    Concise Re-answering Prompt
+
+    System: Answer in as few words as possible. No explanations. Just the fact.
+    User: Question: {q}
+    Your initial answer: {ˆy0}
+   Web search results: {truncated to 600 chars}
+    Using the search results to verify or correct your answer, give the FINAL answer in as few words as
+     possible.
+
+
+H  HARD-200 DATASET CONSTRUCTION
+
+We construct Hard-200 using committee-based hardness mining with a heterogeneous panel of
+frontier MLLMs from multiple vendors. Rather than manually selecting difficult examples, we first
+score candidate instances by cross-model failure consistency and then perform diversity-constrained
+final selection.
+
+Candidate pools.  Our candidate pool consists of 399 BrowseComp-VL examples from Web-
+Watcher Geng et al. (2025), 1,215 TIR-Bench examples Li et al. (2025), and 25 self-constructed
+RealCAR examples. RealCAR, short for Real-world Complex Agentic Reasoning, is designed to cover
+high-hardness real-world multimodal reasoning cases that are underrepresented in existing public
+benchmarks. The final Hard-200 set contains 100 examples from BrowseComp-VL, 75 examples
+from TIR-Bench, and 25 examples from RealCAR.
+
+Committee-based hardness scoring.  We evaluate each candidate instance using a committee of
+strong MLLMs from multiple vendors. For each model, we collect its answer under the standard
+multimodal setting and normalize the output before correctness verification. We then aggregate
+results at the vendor level to avoid over-counting multiple models from the same provider. For a
+candidate instance x, we define its vendor-level failure rate as
+                                1
+                      F(x) = X ⊮[vendor v fails on x],
+                                    |V |
+                                    v∈V
+
+where V denotes the set of vendors in the committee. Instances with higher cross-vendor failure rates
+are treated as harder candidates.
+
+BrowseComp-VL selection.  For BrowseComp-VL, we prioritize examples that require image-
+grounded retrieval, multi-hop aggregation, and evidence composition. We allocate 75 of the 100
+BrowseComp-VL slots to Level 2 and the remaining 25 to Level 1, reflecting the substantially greater
+compositional complexity of Level 2. Final selection is performed under domain-level diversity
+constraints to avoid concentration in a small number of topics.
+
+TIR-Bench selection.  For TIR-Bench, we do not sample uniformly across all task families. In-
+stead, we restrict selection to visually demanding tasks that stress fine-grained perception and struc-
+tured reasoning, including spot_difference, maze, jigsaw, math, symbolic, refcoco,
+instrument, and word_search. Within each task family, we prioritize examples with higher
+committee failure rates and apply task-level caps to preserve diversity.
+
+RealCAR construction.  RealCAR is a self-constructed set of real-world multimodal reasoning
+problems. It is not obtained by directly reusing existing benchmark instances. Instead, we construct
+RealCAR to target cases where answering the question requires more than isolated visual recognition
+or surface-level text extraction. Each instance is designed to require multi-step reasoning over visual
+evidence, implicit constraints, and compositional evidence integration.
+
+To build RealCAR, we first collect candidate real-world visual cases and annotate each case with
+a question, a verified answer, and a minimal evidence rationale. We then remove instances that are
+ambiguous, subjective, unverifiable, or answerable through a single local perception shortcut. The
+
+
+                                       24
+
+=== PDF第25页 ===
+Table 7: Performance of LedgerMind with absolute improvements over baseline (pp). Each cell
+shows LedgerMind score (∆over baseline).
+
+  Model          RealCAR  TIR-Bench  BrowseComp-VL   Overall
+
+  gpt-5.5               38.0 ↑14.0    69.33 ↑32.67       62.0 ↑11.5      61.75 ↑19.74
+  gemini-3.1-pro        54.0 ↑22.0    57.33 ↑16.67       45.5 ↑8.0       51.00 ↑12.99
+  gemini-3-flash         54.0 ↑26.0    37.33 ↑15.33       56.5 ↑15.5      49.00 ↑16.75
+  claude-sonnet-4-6     30.0 ↑12.0    30.67 ↑12.00       49.0 ↑10.5      39.75 ↑11.25
+  claude-opus-4-7       32.0 ↑8.0     36.67 ↑16.00       54.0 ↑20.0      44.75 ↑17.00
+  kimi-k2.6             32.0 ↑4.0     24.00 ↑16.00       46.0 ↑26.5      36.00 ↑19.75
+
+
+
+remaining candidates are evaluated by the same committee-based hardness pipeline, and we retain 25
+examples with consistently high cross-vendor failure rates.
+
+Evaluation scoring protocol.  Answers on Hard-200 are graded by a locally deployed LLM-based
+judge against the verified reference answer and its minimal evidence rationale. The judge assigns
+each response a score in {0, 0.5, 1}: 1 for a fully correct answer, 0 for an incorrect answer, and 0.5
+for a partially correct answer to a question that requires two or more answer elements. For example,
+if a question asks for multiple differences between two images and the response correctly identifies
+only a subset of the reference differences, it receives 0.5 rather than being treated as entirely incorrect.
+The reported Hard-200 score is
+
+                              N
+                                  100
+                       ScoreHard-200 =  X si,      si ∈{0, 0.5, 1}.                    (32)
+                     N
+                                           i=1
+Consequently, subset scores can correspond to fractional effective counts; for example, a score of
+38.0% on the 25-instance RealCAR subset represents a total credit of 9.5 rather than an impossible
+fractional number of evaluated instances.
+
+Final selection.  After computing hardness scores, we perform diversity-constrained final selection
+to satisfy the target source composition of 100 BrowseComp-VL, 75 TIR-Bench, and 25 RealCAR
+examples. This process avoids degenerate top-k selection dominated by a narrow set of domains
+or task types. As a result, Hard-200 combines public benchmark difficulty with a compact self-
+constructed real-world challenge component, enabling evaluation of both standardized multimodal
+reasoning ability and robustness to realistic complex reasoning cases.
+
+I  FULL RESULTS
+
+I.1  FULL RESULTS OF HARD-200
+
+Full results of hard-200 is given in Table 7.
+
+I.2  FULL RESULTS OF VLM BENCHMARKS
+
+The full results of three MM benchmarks is given in Table 8.
+
+I.3  FULL RESULTS OF VTC-BENCH
+
+Scoring and aggregation.  Each VTC-Bench example is evaluated once. Multiple-choice answers
+receive binary exact-match credit in {0, 1}. Open-ended answers receive credit in {0, 0.5, 1}, where
+0.5 denotes a partially correct response to a question requiring multiple answer elements. Category
+and overall scores are sample-weighted means of these per-example credits. Fractional effective
+counts are therefore possible; for example, 36.67% on a 45-example category corresponds to total
+credit 16.5/45, not to averaging multiple runs.
+
+The full results of VTC-bench is given in Table 9.
+
+
+                                       25
+
+=== PDF第26页 ===
+             Model                    MMStar  MMMU  MMMU-Pro
+
+             GPT-4o                              64.7       69.1         51.9
+               Gemini-1.5-Pro                      59.1       65.8         46.9
+                Claude-3.5-Sonnet                   62.2       68.3         51.5
+                Gemini-3.0-Flash                    65.3       69.4         29.5
+              GPT-4.1                             58.7       64.6         47.0
+              InternVL2-Llama3-76B               56.0       40.0         58.3
+             GPT-4o mini                         57.8       37.6         59.4
+              InternVL2-76B                      67.1       58.2         38.0
+             Qwen2-VL-72B                      68.6       64.5         37.1
+             LLaVA-OV-72B                      66.1       56.8         24.0
+          MAmmoTH-VL                     63.0       50.8         25.3
+
+             LedgerMind (GPT-4o)               71.5       78.2         62.7
+             LedgerMind (Gemini-3.0-Flash)     75.9       81.7         68.8
+
+Table 8: Performance comparison on MMStar, MMMU, and MMMU-Pro benchmarks. Best results
+are in bold and underlined. Best baseline results are in italic. LedgerMind is our proposed method.
+
+
+
+ Model                        Setting  Overall(680) OCR(50)  Attn.(45)  Rest.(50)  Chart(100)  Meas.(105)  Count.(85)  Math(110)  Spat.(45)  Color(90)
+
+                                                    Category 1: Proprietary Tool-use Models
+
+                              Base      31.91       20.00     26.67     32.00      30.00       38.10       35.29       28.18      35.56      35.56
+ GPT-o3                    Code      36.62       28.00     31.11     34.00      40.00       38.10       34.12       30.91      51.11      42.22
+                                         Inter.      36.76       28.00     24.44     34.00      39.00       35.24       40.00       34.55      44.44      44.44
+                              Base      31.18       18.00     13.33     30.00      29.00       33.33       44.71       30.91      42.22      30.00
+ GPT-o4-mini                Code      33.68       12.00     11.11     30.00      41.00       31.43       35.29       40.00      46.67      37.78
+                                         Inter.      32.50       24.00     13.33     28.00      30.00       33.33       40.00       33.64      46.67      35.50
+
+                                                Category 2: Proprietary General-purpose Models
+
+                              Base      24.26       18.00     15.56     22.00      25.00       25.71       25.88       22.73      26.67      30.00
+ GPT-4o                    Code      31.62       18.00     22.22     24.00      38.00       37.14       40.00       20.91      51.11      30.00
+                                         Inter.      33.82       20.00     22.22     36.00      31.00       41.90       40.00       24.55      48.89      37.78
+                              Base      38.09       48.00     26.67     28.00      44.00       40.95       49.41       30.00      40.00      32.22
+  Gemini-2.5-Pro              Code      36.03       46.00     40.00     34.00      37.00       35.24       37.65       30.00      44.44      31.11
+                                         Inter.      39.85       60.00     44.44     40.00      38.00       44.76       41.18       26.36      35.56      40.00
+                              Base      36.03       24.00     24.44     30.00      43.00       35.24       43.53       33.64      46.67      35.56
+ GPT-5.2                   Code      44.56       36.00     31.11     26.00      56.00       50.48       44.71       45.45      51.11      42.22
+                                         Inter.      40.74       28.00     37.78     34.00      47.00       39.05       37.65       41.82      51.11      44.44
+                              Base      46.47       44.00     51.11     46.00      57.00       50.48       52.94       27.27      60.00      40.00
+  Gemini-3.0-Flash            Code      50.59       70.00     57.78     48.00      59.00       50.48       52.94       35.45      51.11      44.44
+                                         Inter.      50.74       68.00     53.33     50.00      61.00       44.76       58.82       39.09      55.56      40.00
+                              Base      44.41       54.00     51.11     42.00      51.00       45.71       42.35       34.55      53.33      37.78
+  Gemini-3.0-Pro              Code      51.18       74.00     62.22     38.00      60.00       54.29       36.47       41.82      55.56      50.00
+                                         Inter.      51.03       70.00     73.33     38.00      59.00       50.48       35.29       37.27      71.11      50.00
+
+ LedgerMind(GPT-4o)          –        47.57 ↑23.31  34.00 ↑16.0036.67 ↑21.1149.00 ↑27.00 50.00 ↑25.00  53.81 ↑28.10  52.35 ↑26.47  38.18 ↑15.45 61.11 ↑34.44 50.00 ↑20.00
+ LedgerMind(Gemini-3-Flash)    –        58.90 ↑12.43  73.00 ↑29.0065.56 ↑14.4558.00 ↑12.00 67.00 ↑10.00  55.24 ↑4.76   64.71 ↑11.77  47.27 ↑20.00 65.56 ↑5.56 48.89 ↑8.89
+ LedgerMind(Gemini-3.1-Pro)    –        56.18 ↑11.77  77.00 ↑23.0081.11 ↑30.0042.00 →0.00 65.00 ↑14.00  55.71 ↑10.00  38.82 ↓3.53   40.91 ↑6.36  77.78 ↑24.45 55.00 ↑17.22
+
+Table 9: Results on VTC-Bench. Best results are bolded and second-best results are underlined (both
+per column). Colored subscripts report absolute changes (pp) vs. the corresponding native backbone:
+green indicates improvement (↑) and red indicates regression (↓).
+
+
+I.4  FULL RESULTS OF EMMA
+
+The full results of EMMA is given in Table 10.
+
+
+I.5  FULL RESULTS OF MC-SEARCH
+
+The full results of MC-SEARCH is given in Table 11.
+
+
+
+
+
+                                       26
+
+=== PDF第27页 ===
+  Category    Model                    Math (892)  Phys. (156)  Chem. (1176)  Coding (564)∗  Overall (2788)
+
+  –          Random choice                    14.01        25.64         16.50          25.71           18.08
+
+               Claude 3.5 Sonnet                  25.34        33.97         40.90          38.65           35.08
+              Gemini 2.0 Flash                   23.88        38.46         36.31          42.02           33.61
+              GPT-4o                           27.24        38.46         31.89          40.07           32.42
+               Qwen2-VL-72B-Instruct            33.07        42.31         32.06          34.57           33.46
+               LLaVA-Onevision-72B             27.69        35.90         25.26          28.72           27.33
+               InternVL2-Llama3-76B             25.11        22.44         24.06          27.84           25.07
+  w/o CoT
+               InternVL2.5-78B                   31.39        38.46         35.20          31.91           33.50
+              Gemini 3.0 Flash                   42.42        52.56         46.68          68.44           50.07
+                 gemini-3-flash                     42.94        51.28         46.17          67.55           49.75
+                  gpt-5.5                            21.64        41.03         17.77          39.54           24.71
+                 claude-sonnet-4-6                  24.66        34.62         37.41          53.19           36.37
+
+               Claude 3.5 Sonnet                  29.37        41.03         41.07          40.60           37.23
+              Gemini 2.0 Flash                   25.90        38.46         24.66          40.96           29.12
+              GPT-4o                           25.56        43.59         33.67          39.01           32.71
+ CoT          Qwen2-VL-72B-Instruct            27.69        34.62         24.57          29.43           27.12
+               LLaVA-Onevision-72B             22.42        15.38         22.70          30.67           23.82
+               InternVL2-Llama3-76B             22.20        32.05         19.73          30.32           23.35
+               InternVL2.5-78B                   25.56        39.74         27.47          25.18           27.08
+
+              Gemini 2.0 Flash Thinking-1219     31.61        56.41         37.93          43.44           38.06
+              Gemini 2.0 Flash Thinking-0121     37.11        60.26         41.58          48.05           42.50
+  Thinking
+                 gemini-3.1-pro                     40.02        47.44         42.26          76.24           48.71
+                 claude-opus-4-7                    45.85        64.10         43.88          54.96           47.88
+
+                  gpt-5.5                            40.92 ↑19.28   58.33 ↑17.30    44.13 ↑26.36     66.31 ↑26.77      48.39 ↑23.68
+                 claude-opus-4-7                    54.15 ↑8.30    78.21 ↑14.11    57.74 ↑13.86     53.90 ↓1.06      56.96 ↑9.08
+ LedgerMind  gemini-3-flash                     55.27 ↑12.33   62.82 ↑11.54    52.98 ↑6.81      72.70 ↑5.15      58.25 ↑8.50
+                 gemini-3.1-pro                     56.17 ↑16.15   63.46 ↑16.02    50.68 ↑8.42      76.06 ↓0.18      58.29 ↑9.58
+                 claude-sonnet-4-6                  41.59 ↑16.93   55.13 ↑20.51    55.27 ↑17.86     59.93 ↑6.74      51.83 ↑15.46
+
+Table 10: Performance comparison on EMMA. Best results are bolded, second-best results are under-
+lined, and the best baseline results are italicized. LedgerMind improvements over corresponding
+native baselines are shown as colored subscripts: green indicates improvement (↑) and red indicates
+regression (↓).
+∗The Coding subset mainly evaluates code–visualization alignment through multiple-choice questions, such as
+ matching matplotlib/seaborn code with generated plots. This differs from our target setting of thinking over
+    images, where visual grounding, evidence acquisition, and image-centric reasoning are more central.
+
+
+
+
+
+                                       27
+
+=== PDF第28页 ===
+                                                 Answer Accuracy  Chain Alignment
+  Reasoning G            Model                                                        Golden F1 (↑)
+                                                 F1 (↑)  LJ (↑)  HPS (↑) RD (↓)
+
+                             Best Official Baseline              47.61     3.18      33.59      0.70        72.62
+                         LedgerMind (Claude-Opus-4.7)    69.80     4.22      59.40      0.46        82.40
+                         LedgerMind (GPT-5.5)            68.40     4.30      58.10      0.44        81.50
+                         LedgerMind (Claude-Sonnet-4.6)   62.70     4.00      54.60      0.55        78.30
+  Image-Initiated Chain    LedgerMind (Gemini-2.5-Pro)      59.60     3.64      47.80      0.63        82.00
+                         LedgerMind (Gemini-3.1-Pro)      57.80     3.72      50.40      0.61        76.20
+                         LedgerMind (GPT-4o-Mini)        51.60     3.28      42.10      0.67        73.90
+                         LedgerMind (Gemini-2.5-Flash)    50.80     3.25      40.80      0.68        73.60
+                         LedgerMind (Gemini-3-Flash)      48.90     3.20      35.20      0.69        72.90
+
+                             Best Official Baseline             40.37     2.76      39.33      1.16        64.40
+                         LedgerMind (Claude-Opus-4.7)    64.20     4.35      53.70      0.74        77.50
+                         LedgerMind (GPT-5.5)            62.10     4.40      55.00      0.72        75.20
+                         LedgerMind (Claude-Sonnet-4.6)   59.30     4.20      51.90      0.79        73.50
+  Multi-Images Fork       LedgerMind (Gemini-2.5-Pro)      56.80     3.72      46.00      0.86        78.00
+                         LedgerMind (Gemini-3.1-Pro)      54.60     3.88      47.60      0.88        70.40
+                         LedgerMind (GPT-4o-Mini)        45.60     3.10      42.30      1.02        67.20
+                         LedgerMind (Gemini-2.5-Flash)    44.50     3.05      41.50      1.04        66.50
+                         LedgerMind (Gemini-3-Flash)      41.30     2.82      40.10      1.12        64.90
+
+                             Best Official Baseline              45.30     3.62      37.82     0.87        66.27
+                         LedgerMind (GPT-5.5)            59.60     4.12      50.80      0.72        76.30
+                         LedgerMind (Claude-Opus-4.7)    58.40     4.05      52.30      0.70        75.10
+                         LedgerMind (Gemini-2.5-Pro)      57.80     3.90      53.50      0.66        77.20
+  Text-Initiated Chain      LedgerMind (Claude-Sonnet-4.6)   57.20     4.00      49.90      0.73        73.90
+                         LedgerMind (GPT-4o-Mini)        56.40     3.68      39.80      0.85        74.20
+                         LedgerMind (Gemini-3.1-Pro)      56.10     3.88      45.00      0.78        72.10
+                         LedgerMind (Gemini-2.5-Flash)    46.80     3.66      40.20      0.84        67.50
+                         LedgerMind (Gemini-3-Flash)      45.90     3.63      38.40      0.86        66.80
+
+                             Best Official Baseline              34.83     2.99      25.07      1.05        58.82
+                         LedgerMind (GPT-5.5)            52.00     3.82      51.20      0.70        68.50
+                         LedgerMind (Claude-Opus-4.7)    49.20     3.70      48.70      0.75        67.10
+                         LedgerMind (Claude-Sonnet-4.6)   48.80     3.62      50.10      0.72        66.30
+  Parallel Image-Text Fork  LedgerMind (Gemini-2.5-Pro)      45.80     3.30      35.90      0.88        68.90
+                         LedgerMind (Gemini-3.1-Pro)      41.50     3.18      36.80      0.92        62.40
+                         LedgerMind (GPT-4o-Mini)        39.30     3.05      30.80      0.98        64.20
+                         LedgerMind (Gemini-2.5-Flash)    36.20     3.02      28.50      1.00        59.60
+                         LedgerMind (Gemini-3-Flash)      35.60     3.00      26.30      1.03        59.10
+
+                             Best Official Baseline              38.45     2.68      29.64      0.98        67.72
+                         LedgerMind (Claude-Opus-4.7)    58.00     4.10      64.20      0.42        75.40
+                         LedgerMind (Claude-Sonnet-4.6)   56.70     3.90      61.00      0.44        72.50
+                         LedgerMind (GPT-5.5)            54.00     4.00      57.30      0.58        73.80
+  Text-Only Chain         LedgerMind (Gemini-2.5-Pro)      52.50     3.48      50.20      0.66        72.60
+                         LedgerMind (GPT-4o-Mini)        50.80     3.30      58.20      0.50        72.00
+                         LedgerMind (Gemini-3.1-Pro)      50.20     3.35      55.00      0.58        69.50
+                         LedgerMind (Gemini-2.5-Flash)    40.10     2.85      53.00      0.70        68.10
+                         LedgerMind (Gemini-3-Flash)      39.20     2.75      50.60      0.76        68.00
+
+Table 11: Full-benchmark topology-wise comparison on MC-SEARCH. The official baseline row
+in each topology reports the metric-wise best official baseline from the original MC-SEARCH
+evaluation, serving as a strong ceiling reference. All LedgerMind rows are full-benchmark results
+under the proposed framework and are denoted as LedgerMind (base model). Best results
+within each topology are shown in bold, second-best results are underlined, and the best official
+baseline is shown in italic. Higher is better for F1, LJ, HPS, and Golden F1, while lower is better for
+RD.
+
+
+
+
+
+                                       28
+
+=== PDF第29页 ===
+J  BROADER IMPACT AND LIMITATIONS
+
+Broader impact.  LedgerMind is aimed at improving the auditability of multimodal agentic
+reasoning: by turning the trajectory into a provenance-constrained ledger, downstream users can more
+easily inspect which tool output supports which claim, which in turn may help in safety-sensitive
+settings such as educational tutoring, scientific diagram interpretation, and document understanding,
+where opaque reasoning traces are a long-standing concern. We also expect the ledger-centered
+formulation to be useful as a substrate for future training-time supervision, since grounded and
+ungrounded claims can be distinguished at the trajectory level rather than only at the answer level.
+Our framework is training-free and uses frozen backbone MLLMs, so it inherits the capabilities and
+biases of the underlying models; practitioners should therefore continue to apply standard content-
+filtering and human-oversight practices when deploying LedgerMind in user-facing applications,
+and should not interpret the provenance non-amplification guarantee (Proposition 1) as a factual
+correctness guarantee over tool outputs themselves.
+
+Limitations.  Our study focuses on image-and-text visual question answering and leaves several
+directions for future work.  First, LedgerMind is evaluated on static multimodal benchmarks;
+extending the ledger to long-horizon agents with persistent memory, video streams, or embodied
+interaction is an interesting open problem, and the time-to-live policy would likely need to be revisited
+in such settings. Second, the current grounding cascade relies on deterministic entity and numeric
+checks together with a small predefined alias table, which is effective in the benchmarks we study
+but may not cover every form of paraphrase, coreference, or cross-lingual alias; richer entity-linking
+modules could further strengthen the ECC layer. Third, the Adaptive Dual-Path Dispatcher uses a
+rule-based complexity classifier that was designed for the question distributions we evaluate; learned
+dispatcher policies may yield further gains on more heterogeneous task mixtures. Finally, because
+LedgerMind is training-free and instantiated on frozen proprietary and open backbones, the absolute
+numbers will naturally evolve as backbone MLLMs improve, and we leave a dedicated study of how
+ledger-level signals can be turned into a training signal for MLLMs to future work.
+
+
+
+
+
+                                       29

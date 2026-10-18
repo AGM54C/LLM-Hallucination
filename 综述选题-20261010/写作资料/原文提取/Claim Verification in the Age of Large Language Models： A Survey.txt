@@ -1,0 +1,887 @@
+
+=== PDF第1页 ===
+       Claim Verification in the Age of Large Language Models: A Survey
+
+                    Alphaeus Dmonte1, Roland Oruche2, Marcos Zampieri1
+                           Prasad Calyam2, Isabelle Augenstein3
+
+                                1George Mason University, USA
+                                 2University of Missouri-Columbia, USA
+                                  3University of Copenhagen, Denmark
+
+
+                     Abstract                             Claim: “Homer Simpson is a cartoon character on Seinfeld.”
+
+         The large and ever-increasing amount of data                      a) Traditional NLP                          b) LLM-based
+             available on the Internet, coupled with the labo-                     Claim           Database           Claim
+             rious task of manual claim and fact verification,                      Retriever                             Retriever
+           has sparked interest in the development of au-                   Module                          Module
+           tomated claim verification systems.1 Several
+          deep learning and transformer-based models                    Top K Docs                        Top K Docs
+           have been proposed for this task over the years.               …                  …
+          With the introduction of Large Language Mod-
+             els (LLMs) and their superior performance in
+            several NLP tasks, we have seen a surge of                                                                     Doc1: <Text>Prompt…
+         LLM-based approaches to claim verification                      RationaleSelection                                  Statetrue orwhetherfalse.  claim is
+           along with the use of novel methods such as                                                                        C: “Homer Simpson…
+            Retrieval Augmented Generation (RAG). In
+             this survey, we present a comprehensive ac-                  Claim Verdict                     Reason     Fine-TuneLLM         ICL
+           count of recent claim verification frameworks
+            using LLMs. We describe the different compo-
+                                                                                                                                                           “False. Homer Simpson is a
+            nents of the claim verification pipeline used in                       False                          character on The Simpsons.”
+            these frameworks in detail, including common
+           approaches to retrieval, prompting, and fine-                                                 Label       Evidence
+            tuning. Finally, we describe publicly available
+           English datasets for this task.                       Figure 1: Comparison of claim verification systems
+                                                       between NLP-based (traditional) and LLM-based for
+     1  Introduction                                  claim veracity.
+
+       False information is widely present on social me-
+       dia and on the Web, motivating the development   and claims. A claim is an assertion with uncertain
+       of automated fact verification systems (Guo et al.,   veracity that requires external evidence for verifi-
+       2022). The introduction of LLMs has provided    cation, while a fact is an objectively true statement
+       malicious actors with sophisticated ways of creat-    that can be verified through observations or reli-
+       ing and disseminating false information. Recent    able sources. Despite their differences, both are
+       election cycles has seen a large number of claims    informational statements that can be verified.
+       spread across social media and news platforms                                                          Fact-checking potentially false claims is often
+       alike (Dmonte et al., 2024). Similarly, during the                                                            applied to reduce the spread of misinformation. Or-
+     COVID-19 pandemic, many factually inaccurate                                                          ganizations such as FactCheck, PolitiFact, News-
+       claims were spread (Zhou et al., 2023).                                                       Guard, and Full Fact perform manual fact-checking
+       The use of computational models to verify the    to verify claims in different domains. However,
+       veracity of information is often defined as fact ver-    this is a laborious task requiring domain expertise
+        ification or fact checking and claim verification.   (Adair et al., 2017; Hanselowski, 2020; Warren
+      While the two terms are often used interchange-    et al., 2025), which has become increasingly infea-
+        ably, an important distinction exist between facts    sible due to the sheer volume of misinformation
+                                                        generated by humans and AI models. Automated         1We use the terms claim verification and fact verification
+        interchangeably given the overlap between the two concepts.    fact-checking has become an increasingly popular
+                                               15
+Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (Volume 4: Student Research Workshop), pages 15–29
+                                      July 2-7, 2026 ©2026 Association for Computational Linguistics
+
+=== PDF第2页 ===
+approach to verify the veracity of claims in a given   2  Search Criteria
+text.2 There are several steps involved in the fact-
+                                We search popular repositories3 of scientific ar-verification pipelines; the three main components
+                                                            ticles to collect the papers that serve as primaryare claim detection, evidence retrieval, and veracity
+                                                 sources for this survey, using the terms LLMs,prediction. Models used in these steps have fol-
+                                                  claim verification, fact verification, and related key-lowed the general methodological developments of
+                                                words. We focus primarily on the ACL Anthology,the field and we have thus observed an increase in
+                              ACM Digital Library, IEEE Xplore, and proceed-the use of LLMs for claim verification (Zhang and
+                                                     ings of related conferences such as AAAI and IJCAI.Gao, 2023; Wang and Shu, 2023; Quelle and Bovet,
+                                We further search on Scopus, Springer Link, Sci-2024).  Figure 1 compares the architectural dif-
+                                               ence@Direct, and ArXiv.ferences between traditional NLP-based vs LLM-
+based claim verification systems. The latter are less     Based on our search terms, we identify over 100
+prone to error propagation, and provide additional    papers, and filter them as follows:  (i) since the
+justifications when verifying claims.               scope of our review is text-based LLM claim ver-
+                                                          ification systems, we omit papers related to mul-
+                                                 timodal approaches (e.g., text-to-images), and pa-  Despite this, LLMs are pre-trained on very large
+                                                   pers investigating other modalities (e.g., images,text collections and are prone to hallucinations,
+                                                 graph-based systems); (ii) since we focus on LLM-often generating texts containing incorrect informa-
+                                                based systems for claim veracity, we omit papers ontion (Augenstein et al., 2024). Further, such mod-
+                                                 claim identification, claim detection, and/or detect-els can be used to generate misinformation at scale
+                                                   ing LLM-generated content. This results in a total(Chen and Shu, 2023; Zhou et al., 2023; Dmonte
+                                                    of 49 papers related to LLM-based approaches foret al., 2024) and can therefore be exploited by ma-
+                                                      veracity labeling. The papers on topic LLM-basedlicious actors to spread factually incorrect informa-
+                                                      veracity labeling have been published primarily intion at an unprecedented rate (Pan et al., 2023c).
+                                                     the ACL Anthology and ACM Digital Library, butFurthermore, using these pre-trained models for
+                                                      also in other repositories such as the IEEE Xplore.fact-verification may generate incorrect veracity
+labels, as the models may also rely on obsolete in-
+formation. Approaches like RAG (Gao et al., 2023)   3  Claim Verification Pipeline
+are used for the model to retrieve the most recent
+                                                   Figure 2 shows a typical claim verification pipeline
+information during fact verification.
+                                                    consisting of: claim detection, claim matching,
+                                                claim check-worthiness, document/evidence re-
+ A few general automated claim verification sur-                                                              trieval, rationale/sentence selection, veracity label
+veys have been published (Zeng et al., 2021; Bek-                                                        prediction, and explanation/justification generation.
+oulis et al., 2021; Guo et al., 2022) as well as a                                     Many systems only make use of some of these
+couple of surveys on particular aspects of the task,                                               modules.
+such as explainability (Vallayil et al., 2023) and ap-
+plications to specialized domains such as scientific                                          Claim Detection  Input texts may contain one or
+texts (Vladika and Matthes, 2023). However, all                                           more statements, not all of which are claims. Given
+past related surveys lack consideration for LLM-                                                      the input text, a claim detection module is designed
+based approaches or focus on specific sub-tasks of                                                      to identify all the statements containing a claim.
+the pipeline (Panchendrarajan and Zubiaga, 2024).                                               For example, the statement ’I loved the movie Op-
+In this paper, we fill this important gap by sur-                                                   penheimer.’ is an opinion, whereas the statement
+veying LLM-based frameworks proposed in recent                                              ’The COVID-19 pandemic started in Texas.’ con-
+years. To the best of our knowledge, this is the first                                                         tains a claim.
+survey to explore claim verification with LLMs.
+                                        Check-Worthy Claim Identification  Not  all
+                                                          identified claims are check-worthy. Given an input
+                                                     claim, the task is to identify the claims that include
+
+                                                3ACM: portal.acm.org. IEEE Xplore: ieeexplore.ieee.org.
+   2We acknowledge that claim verification models can also    Scopus: scopus.com. ACL: aclanthology.org. Web of Sci-
+be applied to other modalities of data (e.g., images). In this    ence: isiknowledge.com. Springer: link.springer.com. ArXiv:
+survey, we address models applied to text only.                   arxiv.org. CEUR: https://ceur-ws.org/.
+                                         16
+
+=== PDF第3页 ===
+                         External Data/ Resources                                                Veracity Label Prediction  Once a rationale
+                                                                is selected,  it is provided to a classifier along
+                   +                         with the claim and potentially additional fea-
+                                                          tures, to predict a veracity label; often ‘SUP-
+                             Evidence             Explanation        PORTED’, ‘REFUTED’, vs ‘NOT ENOUGH EVI-
+     Claim Detection
+                                  Retrieval             Generation       DENCE’ (Thorne et al., 2018a). For some datasets,
+                                                     the labels can be ‘TRUE’ vs ‘FALSE’.
+      Claim Check-                                   Rationale
+                           Claim Matching
+        worthiness                                      Selection
+                                                 Explanation/Justification Generation  Recent
+                                                           Veracity          works have focused on generating explanations for
+                                                          Prediction           the veracity labels prediction. This specific task is
+        Verified Claims                                   focused on generating natural language justifica-
+                                                         tions or explanations for the prediction, considering
+    Figure 2: A typical claim verification pipeline        the claim and evidence.
+
+                                       4 LLM Approaches
+real-world assertions and that may need to be veri-
+fied (Hassan et al., 2015; Nakov et al., 2021; Wright    Figure 3 shows an example pipeline that encapsu-
+and Augenstein, 2020). Check-worthy claim identi-    lates multiple component modules (i.e., Evidence
+fication is a subjective task, and it relies on factors    Retrieval, Prompt Creation, Transfer Learning, and
+like the popularity of the claim, public interest, to  LLM Generation) for verifying claims. Different
+determine the claim’s veracity etc. For example,   from traditional fact verification pipelines that se-
+the claim ’The President met the State Governor    lect evidence sets for verifying claims, LLM-based
+to discuss the infrastructure deal.’  is less check-   claim verification conditions generated text based
+worthy than the claim ’Drinking salt water cures   on the concatenated input claim and retrieved ev-
+COVID.’                                            idence.  Retrieval-augmented LLMs have been
+                                         shown to perform well on knowledge-intensive
+Claim Matching  The identified check-worthy    tasks such as text generation.
+claims can be matched to previously fact-checked
+claims. Given an input claim and a database of    4.1  Evidence Retrieval Strategies
+previously fact-checked claims, claim matching is                               RAG models, which have been developed to
+used to determine if the input claim is previously                                                 address hallucination in LLMs for knowledge-
+fact-checked and exists in the database (Shaar et al.,                                                     intensive tasks, have shown success for fact ver-
+2020; Nakov et al., 2021). This can help predict                                                          ification (Gao et al., 2023; Guan et al., 2024).
+the veracity label directly without additional steps.                                                  Early work, such as (Lewis et al., 2020), develop a
+                                              framework that retrieves evidence from an external
+Document/Evidence  Retrieval   If  the  input    database such as Wikipedia for conditionally gener-
+claim does not exist in the database of fact-checked    ating veracity labels. Izacard et al., (2023) demon-
+claims, it needs to be verified. In the evidence re-    strate that RAGs perform well on the FEVER
+trieval sub-task, all relevant documents related to    shared task (Thorne et al., 2018b)) in few-shot set-
+the input claim are extracted, either from an exter-    tings, showing 5% improvement over large-scale
+nal database or through an internet search (Chen  LLMs such as Gopher (Rae et al., 2021) with sig-
+et al., 2017; Augenstein et al., 2019a). The thresh-    nificantly fewer parameters (i.e., 11B compared to
+old of the number of documents to be retrieved can   280B). Other works consider the optimization of
+be predetermined.                                      either document ranking (Glass et al., 2022; Chen
+                                                           et al., 2022c) or input claims (i.e., queries) (Hang
+Rationale/Sentence Selection  Not all informa-    et al., 2024) as a crucial step for improving evi-
+tion in the retrieved documents is relevant to the   dence retrieval for veracity labeling. Hofstätter et
+claim.  Hence, for the rationale selection task,     al., (2023) use an autoregressive re-ranker to get the
+only the information or evidence most relevant   most relevant passages from the retriever. These
+to the claim is selected to predict the veracity la-   are then passed to the generation model to generate
+bel (Thorne et al., 2018a).                           the veracity label.
+                                         17
+
+=== PDF第4页 ===
+                                                Input Claim
+                                                                     Label
+                                                                  Generation
+                                                                                         Fine-Tuning
+                                           Evidence              Evidence
+                                                  Retrieval              Generation            In-Context
+                                                                                          Learning
+                                                                    Explanation
+             +                                         Generation
+                                      Prompt Creation                                                                                           Transfer Learning
+                                                 LLM Generation
+             External Data/ Resources
+
+Figure 3: LLM-based claim verification pipeline. This involves creating a prompt from the retrieved evidence and
+the input claim as input to the LLM to generate a label, sentence evidence, and/or explanation of its response.
+
+
+  Despite this, RAG models often fail when en-   a latent variable model that allows the retrieval of
+countering long or complex input claims, result-   the most relevant evidence sentences from a docu-
+ing in incorrectly generated veracity labels or ev-   ment while removing the irrelevant sentences. This
+idence sentences (Hagström et al., 2025, 2026).   approach reduces noisy data during the verification
+Recent works have addressed this by segmenting    process. Stochastic-RAG proposed by Zamani and
+long claims into smaller sub-claims and performing   Bendersky (2024) uses a stochastic sampling with-
+multiple rounds of retrieval. Khattab et al., (2021)    out replacement process for evidence retrieval and
+present a pipeline for multi-hop claim verification    selection. This approach overcomes the ranking
+that uses an iterative retriever and neural meth-   and selection of the evidence hence optimizing the
+ods for effective document retrieval and re-ranking.  RAG model. Zhang et al. (2023) optimize the ev-
+Shao et al. (2023) show that using a re-ranker to    idence retrieval process by using feedback from
+distill knowledge to a retriever helps close the se-   the claim verifier. The divergence between the evi-
+mantic gaps between a query and document pas-   dence from a retrieved evidence set provided to the
+sage when verifying claims using iterative RAGs.    verifier and the gold standard evidence, acts as a
+Other works address the issue of complex claims   feedback signal used to train the retriever. Xu et
+using fine-grained retrieval techniques based on     al. (2024b) propose Search-in-the-Chain, where an
+claim decomposition. Ches et al. (2024) generate  LLM generates a reasoning chain and based on the
+sub-questions based on a claim, which a document   answer to each node in the chain, the retrieval can
+retriever uses to retrieve relevant documents. A   be used to correct an answer or provide additional
+fine-grained retriever retrieves top-k text spans as   knowledge, improving the generation accuracy of
+evidence based on a k-word window and BM25.   an LLM.
+Zhang and Gao (2023) decompose a claim into
+sub-claims and generate questions to verify the    4.2  Prompt Creation Strategies
+sub-claims. External knowledge sources are used   Text prompting has shown to be effective for im-
+to retrieve relevant information to verify the sub-   proving the output of LLMs.  In the context of
+claims and generate a final veracity label. Pan et   claim verification, several works investigate both
+al. (2023b) follow a programming paradigm, where   manual and automated prompting strategies to in-
+the claim is broken down into subtasks and the final    crease robustness. Zhang and Gao (2023) develop
+label is the aggregation of the execution of each    a hierarchical prompting technique to verify multi-
+subtask. The fact-verification subtask uses external    ple sub-claims using a step-by-step approach. Li et
+knowledge to retrieve relevant evidence for a claim.    al. (2024a) demonstrate a self-sufficient claim veri-
+  Hang et al. (2024) retrieve evidence based on    fication through prompting instructions on multiple
+generated knowledge graphs of evidences. They   language models.
+generate a knowledge graph of the user query or     ProToCo (Zeng and Gao, 2023) demonstrates im-
+input claim and compare it to the database of knowl-   proved claim verification performance by leverag-
+edge graphs to retrieve the most relevant informa-   ing a consistency mechanism to construct variants
+tion for claim verification. Hu et al. (2023) propose    of the original claim-evidence pair prompt based on
+                                         18
+
+=== PDF第5页 ===
+three logical relations (i.e., confirmation, negation,   on claim-evidence pairs and a set of questions,
+uncertainty). Chen et al. (2023) develop a unified   whereas another model is fine-tuned to verify the
+retrieval framework that employs discrete, continu-   claim based on the claim-evidence and question-
+ous, and hybrid prompt strategies for adjusting to   answer pairs. Zhu et al. (2023) fine-tune a genera-
+various knowledge-intensive tasks such as claim    tion model to generate counterfactuals for out-of-
+verification. The FactualityPrompts (Lee et al.,   domain classification.
+2022) framework tests the output generations of
+LLMs given an input prompt and uses an external   In-Context Learning.  The recent success of pre-
+                                                     trained LLMs in zero- and few-shot settings isdatabase such as Wikipedia to calculate factuality
+                                                      largely attributed to its in-context learning (ICL)and quality measures compared to the ground truth.
+                                                            abilities (Kojima et al., 2022; Brown et al., 2020).Other works aim to improve an LLM’s reasoning
+                                               For claim verification, popular ICL techniques in-abilities by appending the claims with evidence
+                                                   clude chain-of-thought (CoT) reasoning (Wei et al.,during prompting for claim verification and text
+                                                 2022). Zhao et al. (2024) develop a multi-stagegeneration (Parvez, 2024; Dougrez-Lewis et al.,
+                                                          verification pipeline based on claim decomposition2024).
+                                              and self-reflection. An LLM-based verifier module
+4.3  Transfer Learning Strategies                     is created using instruction prompting to generate
+Fine-Tuning.  Although recent studies show the    a reasoning analysis among all sub-claims created
+                                            by the decomposer module. They suggest that zero-success of pre-trained LLMs on zero- or few-shot
+                                                   shot prompting techniques result in better multi-tasks, they often fail at verifying real-world claims
+                                            hop performance on the HOVER and FEVEROUSgiven their limited internal knowledge. The suc-
+                                                       datasets compared to few-shot prompting and fine-cess of fine-tuning has motivated recent work on
+                                                      tuning. Kanaani (2024) enables LLMs to generateclaim verification. Chen et al. (2022b) fine-tuned
+                                                 reasons over retrieved evidence in claim verifica-an LM on an external corpus for retrieving passage
+                                                      tion using few-shot ICL and the STaR CoT tech-titles and evidence sentences using constrained
+                                                nique inspired by Zelikman et al. (2022). Similarbeam search, finding improved performance on the
+                                         work has leveraged CoT for effectively verifyingFEVER dataset. Other work demonstrates that us-
+                                           complex claims using reasoning steps (Yao et al.,ing GPT models to generate synthetic training data
+                                              2023; Ni et al., 2024). Conversely, HiSS (Zhangimproves the performance of LLMs on fact check-
+                                            and Gao, 2023) demonstrates that prompting foring (Tang et al., 2024) and claim matching (Choi
+                                                 few-shot learning and claim decomposition canand Ferrara, 2024).
+                                                         substantially improve the performance of CoT mod-  Pan et al. (2021) develop a pipeline for creating a
+                                                         els for complex news claim verification.  Li etfact verification dataset and fine-tuning a language
+                                                                 al. (2023b) leverage the ICL capability of LLMsmodel by leveraging passages from Wikipedia to
+                                                      to perform multiple tasks simultaneously. Theirgenerate QA pairs related to claim veracity, show-
+                                                approach outperforms or achieves comparable tasking improved zero-shot performance. Zeng and
+                                               performance in a zero-shot setting on claim verifi-Zubiaga (2024) show that unlabelled pairwise data
+                                                     cation datasets.can increase the alignment between claim-evidence
+pairs, resulting in significant improvement on few-
+                                                    4.4 LLM Generation Strategiesshot claim verification. Other recent works lever-
+age reinforcement learning to fine-tune models for   Label and Evidence Generation.  While the ma-
+improving the veracity of claims and supporting ev-    jority of claim verification systems predict veracity
+idence (Zhang and Gao, 2024; Huang et al., 2024).   based on the concatenation of the input claim and
+A document-level and question-level retrieval pol-   evidence sentences (Pradeep et al., 2021), recent
+icy is proposed by Zhang and Gao (2024), where   work has proposed alternate strategies for deter-
+the top-k and top-1 documents for the document   mining veracity labels and selecting/generating ev-
+and question-level policy respectively, are used as    idence pieces. Cao et al. (2024) develop SERIf,
+input to a scoring function for label prediction dur-   a claim verification pipeline that features an in-
+ing training. This approach outperforms retrieval    ference module to predict the veracity label of
+and prompting approaches. Chiang et al. (2024)    scientific news articles based on a two-step sum-
+fine-tune LLMs for multi-stage fact verification.   marization (i.e., ‘Extractive-Abstractive‘) and evi-
+They fine-tune a model to generate answers based   dence retrieval technique. Each summary-evidence
+                                         19
+
+=== PDF第6页 ===
+pair is fed into the LLM and produces a binary   prompt an LLM in a few-shot setting to gener-
+label, indicating whether the news article is reli-    ate a concise summary of the evidence documents
+able (supported) or unreliable (refuted). Wadden et   and input claim, serving as an explanation for the
+al. (2022b) leverage the Longformer model (Belt-    verified claim. Sun et al. (2026) propose CLUE,
+agy et al., 2020) that uses a shared encoding over   a framework that explains model uncertainty by
+the claim and document abstracts for rationale iden-   grounding it in conflicts and agreements between
+tification and claim label prediction.                claim–evidence spans, offering uncertainty-aware
+  Li et al. (2024b) propose to select the minimal    rationales that better reflect model reasoning. Other
+evidence group within a set of retrieved candi-   works leverage reasoning techniques such as chain-
+date documents.  This aims to minimize redun-   of-thought (CoT) to enable the LLM to be inter-
+dancy while selecting the most relevant evidence    pretable in its decision-making process when ver-
+to prompt the language model. Chen et al. (2022b)    ifying claims (Yao et al., 2023; Pan et al., 2023a;
+use BART to encode all candidate sentences from   Zhao et al., 2024; Kanaani et al., 2024; Ni et al.,
+the most relevant retrieved documents.  In this,   2024; Quelle and Bovet, 2024; Fang et al., 2024).
+BART serves as an evidence decoder to predict   Pan et al. (2023a) and Fang et al. (2024) leverage an
+the g-th evidence sentence via generation condi-  LLM’s reasoning ability to generate explanations
+tioned on the top k retrieved documents and the   by using question-guided reasoning and minimiz-
+input claim. Lee et al. (2022) develop a variant of    ing the inherent model biases.
+nucleus sampling called factual-nucleus sampling,
+                                                    4.5  Agentic Approachesin which the top-p sampling pool is selected as a
+set of sub-words whose cumulative probability ex-   AI agents using LLMs have been explored for sev-
+ceeds p, resulting in improved evidence and label    eral NLP applications, including claim verifica-
+generation without claim verification datasets such    tion. These systems often include multiple agents
+as FEVER. Kao and Yen (2024) propose a multi-   tasked to perform different stages of the verifica-
+stage approach, where the evidence sentences are    tion pipeline (Li et al., 2024d; Rosenbaum et al.,
+retrieved from articles related to a claim, and ar-   2025; Trinh et al., 2025; Ning et al., 2025; Shukla
+guments are generated by aggregating and recon-    et al., 2025; Fenza et al., 2025; Ma et al., 2025;
+structing the evidence. The arguments are refined   Lin et al., 2025; Hong et al., 2025). Trinh et al.
+and passed to an LLM to generate a verification    (2025) proposed a multi-agent system composed of
+label. Other approaches leverage LLMs reason-   four specialized agents, each concerned with differ-
+ing capabilities to generate veracity labels and fac-   ent components of the claim verification pipeline,
+tual evidence (Cheng et al., 2024; Jafari and Allan,    like claim decomposition, evidence, retrieval, and
+2024; Li et al., 2024c; Fang et al., 2024; Pan et al.,   claim verification. Similarly, the authors in (Rosen-
+2023a).                                 baum et al., 2025) introduced a system of three
+                                                    agents based on knowledge graph retrieval and web-
+Explainable Generation.  Recent studies inves-   lookup for fact verification. Shukla et al. (2025)
+tigate explainable approaches to improve LLM-   and Ma et al. (2025) designed systems consisting of
+based claim verification. Wang and Shu (2023)   question-answering agents, while authors in (Fenza
+present the FOLK framework, that leverages the    et al., 2025) used reasoning agents to perform vari-
+explanation capabilities of LLMs when verifying   ous tasks of within the claim verification process.
+claims and justifies the prediction through a sum-     Lin et al. (2025) introduced an approach that
+mary of its decision process. Dammu et al. (2024)    evaluates the fact-checking capabilities of LLMs
+proposes a knowledge graph (KG)-based approach   and identifies their limitations. The system includes
+for text verification and evidence attribution, where    three agents that first generates a dynamic datasets
+the LLM is fine-tuned on evidence attribution based   based on a taxonomy followed by fact-verification
+on the input text and retrieved triplets from the   and justification evaluation, and finally scrutinizing
+KG, inducing explanations for claim predictions.   the capabilities of LLMs based on generated justi-
+While explanation techniques can help humans    fications to improve their verification capabilities.
+verify facts, LLMs can produce incorrect expla-   Apart from these approaches, other multi-agent sys-
+nations due to hallucinations, making them unreli-   tems that mimics human claim verification process
+able in certain claim verification scenarios (Si et al.,   have been proposed by (Li et al., 2024d) and (Hong
+2024; Warren et al., 2025, 2026). Ma et al. (2024)    et al., 2025). While most of these works have de-
+                                         20
+
+=== PDF第7页 ===
+signed systems for claim verification, Ning et al.   deals with English data, we collect information
+(2025) proposed a multi-agent debate framework   about publicly available English datasets used in
+that evaluates the factuality of LLM generations.     the papers discussed in this survey.4.
+                                                General-domain datasets have been created
+5  Evaluation and Benchmarking                                            from online data sources and websites, including
+5.1  Metrics                                   Wikipedia (Thorne et al., 2018a; Jiang et al., 2020;
+The F1 score is the most commonly used metric to   Diggelmann et al., 2020; Eisenschlos et al., 2021;
+measure the performance of automatic claim verifi-   Schuster et al., 2021; Kamoi et al., 2023), due to
+cation systems, and to a lesser degree Precision, Re-   the extensive amount of information available span-
+call, and Accuracy. Katranidis and Barany (2024)   ning various topics and domains, and online fact-
+used the error rate between the human and au-   checking websites like PolitiFact (Wang, 2017; Au-
+tomated fact-verification system to measure ver-   genstein et al., 2019b; Kao and Yen, 2024). Fac-
+ification accuracy. However, these metrics con-    tually incorrect claims are shared through social
+sider a single pipeline component to evaluate the   media channels like X, Reddit, etc. Saakyan et
+system’s overall performance. Hence, Thorne et     al. (2021) introduce the COVID-Fact dataset con-
+al. (2018a) introduce the FEVER score, a metric    sisting of claims extracted from Reddit posts. Sev-
+that incorporates both verification accuracy and    eral datasets for scientific fact verification have
+evidence retrieval accuracy to compute overall sys-   also been introduced (Wadden et al., 2020, 2022a;
+tem performance. While these metrics are valu-  Lu et al., 2023). Most fact-verification datasets
+able for assessing the performance of the classi-    rely on unstructured textual evidence. Hence, a few
+fication tasks, they are inadequate for evaluating    datasets with structured evidence sources have been
+the performance of the non-classification compo-   introduced (Aly et al., 2021; Lu et al., 2023). While
+nents of the pipeline. Hence, metrics like Recall@k   many datasets focus only on veracity labels, some
+are used to measure the performance of the re-   were developed to address explainability too (Chen
+trieval task (Pan et al., 2023b; Pradeep et al., 2021),    et al., 2022d; Yang et al., 2022; Ma et al., 2024;
+while BLEU, METEOR, ROGUE, and BertScore   Rani et al., 2023; Schlichtkrull et al., 2023).
+are used to evaluate the quality of explanations     Most claim-verification datasets include claims
+or generated questions and answers.  Addition-   extracted from  available  information  sources.
+ally, some works have also evaluated the accu-  LLMs are widely used to generate content, even
+racy, faithfulness, and correctness of the gener-   though they can generate factually incorrect infor-
+ated explanations (Feher et al., 2025; Xing et al.,   mation. Efforts to identify such non-factual text
+2025). Schlichtkrull et al. (2023) propose the new   have been undertaken. However, claim-verification
+evaluation metric AVeriTeC score that uses ME-   datasets consisting of human-written claims can
+TEOR and accuracy for question-answer-based ve-   be inadequate for this task due to the linguistic
+racity prediction systems. Other metrics like Mean    discrepancy between human- and LLM-generated
+Absolute Error (MAE), Expected Calibration Er-    text. As such, LLM-generated claim verification
+ror (ECE), Area Under ROC Curve (AUC-ROC),    datasets have been introduced (Li et al., 2024a;
+and Pearson’s Correlation are also used. Most of   Cao et al., 2024). While these are used to evalu-
+these metrics are inadequate for evaluating the fac-    ate automatic claim verification systems, there is
+tual accuracy of LLM-generated text, for which   a need to evaluate the factual accuracy of LLM-
+FactScore (Min et al., 2023), SAFE (Wei et al.,   generated text, leading to the introduction of evalu-
+2024), and VERISCORE (Song et al., 2024) have    ation datasets (Lee et al., 2022; Wang et al., 2024;
+been proposed instead. Other metrics and frame-   Malaviya et al., 2024).
+works evaluate factual errors in generated text (Lee
+et al., 2022; Chern et al., 2023) and their align-   5.3  Shared Tasks
+ment (Zha et al., 2023) and entailment (Lee et al.,                                              Shared tasks are competitions where teams de-
+2022) considering factuality.                                                velop systems for tasks using a common bench-
+5.2  Datasets                              mark dataset. Multiple shared tasks on claim and
+                                                   fact-checking have been organized, including theThe fundamental resource for training and evaluat-
+ing claim verification systems is datasets contain-      4https://github.com/LanguageTechnologyLab/
+ing annotated texts. As most research in this area    Claim-Verification-Papers.git
+                                         21
+
+=== PDF第8页 ===
+Fact Extraction and Verification (FEVER) chal-   Li et al., 2023a; Yu et al., 2023).  For the fact-
+lenge (Thorne et al., 2018b), TabFact (Wang et al.,    verification, recent work has proposed techniques
+2021) , CLEF 2020 CheckThat! (Barrón-Cedeno    to identify the most relevant context for improv-
+et al., 2020), SCIVER (Wadden and Lo, 2021),   ing veracity label prediction, thus improving the
+SEM-TAB-FACT (Wang et al., 2021), FACTIFY-   overall system performance (Wang et al., 2023;
+5WQA (Suresh et al., 2024) , and more recently   Yoran et al., 2024; Xia et al., 2024). Hagström
+AVeriTeC (Schlichtkrull et al., 2024) . While there    et al. (2025) further demonstrate that RAG systems
+have been various techniques like question-answer    frequently fail to exploit useful context and are eas-
+generation as a precursor to label prediction as in    ily misled by irrelevant information, highlighting
+AVeriTeC, all these shared tasks are centered on    persistent challenges in robust context utilisation
+predicting veracity labels. Given an LLM’s ten-   across domains. However, more work is required
+dency to generate plausible yet factually inaccurate    to verify the effectiveness across domains.
+text, there is a need to organize shared tasks to
+                                           Handling Knowledge Conflicts  The reliance ofevaluate the factual accuracy of LLM-generated
+                                                         fact-verification approaches on retrieved evidencecontent.
+                                              can cause knowledge conflicts in LLMs, where
+6  Open Challenges and Opportunities        retrieved external evidence may conflict with the
+                                                       internal parameters of the pre-trained LLM. This
+LLM Biases  Despite their strong reasoning ca-   causes the LLM to ignore the retrieved evidence
+pabilities, LLMs often exhibit implicit and explicit                                              and produces hallucinations (Xu et al., 2024a). Ap-
+biases that can lead to harmful or inaccurate re-                                                proaches for avoiding knowledge conflicts have
+sponses (Li et al., 2023c; Gallegos et al., 2024;                                             been introduced for question answering (Li et al.,
+Singhal et al., 2025). These biases arise at multi-                                               2023a; Neeman et al., 2023; Mallen et al., 2023;
+ple stages of the claim verification cycle, includ-                                            Longpre et al., 2021; Chen et al., 2022a; Mar-
+ing dataset construction, model architecture and                                                           janovi´c et al., 2024). For claim verification, recent
+reward design, and prompting or inference strate-                                         work highlights that LLMs often struggle to rec-
+gies. Prior work demonstrate that bias can prop-                                                    oncile conflicting evidence, leading to unreliable
+agate through LLM-based verification pipelines,                                                    predictions (Warren et al., 2025, 2026), and that
+where biased retrieval or parametric knowledge                                                         explicitly modelling evidence conflicts and agree-
+affects downstream reasoning and final veracity                                             ments can improve robustness and interpretability
+judgments (Iqbal et al., 2024; Gallegos et al., 2024;                                             (Sun et al., 2026). However, current approaches
+Bakke and Heggelund, 2025). Recent studies seek                                                      to addressing knowledge conflicts do not yet pro-
+to address this issue using decomposition-based                                                   vide robust, generalisable solutions for LLM-based
+verification (Zhang and Gao, 2023; Wang and                                                         fact-verification across diverse domains and evi-
+Shu, 2023; Huang et al., 2025), self-verification                                              dence conditions.
+mechanisms (Weng et  al., 2023; Kumar et  al.,
+2025), and external frameworks such as “LLM-   Multilinguality  Most automated claim verifica-
+as-a-Judge” (Seo et al., 2025; Zheng et al., 2023).   tion approaches rely on English datasets.  Fur-
+However, these methods remain limited in system-   thermore,  there  are  limited  multilingual  fact-
+atically identifying and mitigating bias across di-    verification datasets (Gupta and Srikumar, 2021;
+verse claim types, highlighting the need for more   Kazemi et al., 2022; Pikuliak et al., 2023; Singh
+robust claim verification frameworks.                  et al., 2023; Resck et al., 2025).  This hinders
+                                                    the development of approaches for multilingual
+Handling Irrelevant Context  Retrieved  evi-                                                          fact-verification, which achieve the best perfor-
+dence may be irrelevant, which is a challenge for                                         mance when trained on language-specific datasets
+LLMs, as they may not be trained to ignore such ev-                                                 (Panchendrarajan and Zubiaga, 2024).
+idence. The lack of robustness to noise can lead an
+LLM to produce misinformation and incorrect veri-  Community Notes  Recently, platforms such as
+fication. Recent research on open-domain question  X and Facebook have introduced community notes.
+answering shows that external knowledge relevant    In this approach, platform users can add context
+to the task can improve model performance, how-    to a post helping the community infer the ve-
+ever, irrelevant context can also lead to inaccurate    racity of information.  According to platforms,
+predictions (Petroni et al., 2020; Shi et al., 2023;    this is intended to serve as a community-driven
+                                         22
+
+=== PDF第9页 ===
+moderation program as opposed to traditional    social media and may include sensitive information
+moderation approaches that rely on moderators    as well as several societal biases. Such datasets
+aided by computational approaches (X, 2025; Inc.,    that are used to create the automated verification
+2025).  Recent research has examined the epis-   models can embed the biases in the models, and
+temic and practical implications of such systems,    this may affect the model evaluations and inter-
+showing how community-driven moderation re-    pretations. Automated claim verification systems,
+shapes fact-checking workflows and the distri-   especially systems that use LLMs, should there-
+bution of trust online (Augenstein et al., 2025),   fore be used as decision-support tools rather than
+and raising questions about whether community   sources of truth, especially in a highly sensitive
+notes can effectively substitute for professional    setting.
+fact-checkers in practice (Borenstein et al., 2025).
+Future works is needed to better understand how   Acknowledgments
+community-generated signals can be reliably inte-                                                          This research was co-funded by the Euro-
+grated with automated verification systems.                                             pean Union (ERC, ExplainYourself, 101077481),
+                                              and supported by the Pioneer Centre for AI, DNRF7  Conclusion
+                                                      grant number P1. Views and opinions expressed are
+We presented a survey on LLM approaches to claim    those of the authors only and do not necessarily re-
+verification. To the best of our knowledge, this is     flect those of the European Union or the European
+the first claim verification survey to focus exclu-   Research Council. Neither the European Union nor
+sively on LLM approaches, thus filling an impor-   the granting authority can be held responsible for
+tant gap in the literature. We have described the   them.
+traditional claim verification pipeline including its
+component tasks and discussed various LLM-based
+approaches used in this task. Finally, we have also   References
+described publicly available English datasets pro-    Bill Adair, Chengkai Li, Jun Yang, and Cong Yu. 2017.
+viding important information to new and seasoned      Progress toward “the holy grail”: The continued
+researchers on this topic.                                 quest to automate fact-checking. In C+J.
+  Advances in LLM development will likely con-                                           Rami Aly, Zhijiang Guo, Michael Sejr Schlichtkrull,
+tinue to improve the quality of claim verification      James  Thorne,   Andreas  Vlachos,   Christos
+systems. We hope this survey motivates future       Christodoulopoulos, Oana Cocarascu, and Arpit Mit-
+research on this topic taking advantage of recently-        tal. 2021. Feverous: Fact extraction and verification
+                                                        over unstructured and structured information.  Inproposed LLMs, RAG methods, and others. Claim                                                      NeurIPS.
+verification is a vibrant research topic and we en-
+visage multiple open research directions such as    Isabelle  Augenstein,   Michiel  Bakker,  Tanmoy
+handling irrelevant context, knowledge conflicts      Chakraborty, David Corney, Emilio Ferrara, Iryna
+                                                     Gurevych, Scott Hale, Eduard Hovy, Heng Ji, Ireneand multilingualism.                                                           Larraz, Filippo Menczer, Preslav Nakov, Paolo
+                                                                 Papotti, Dhruv Sahnan, Greta Warren, and Giovanni
+Limitations                                           Zagni. 2025. Community Moderation and the New
+                                                     Epistemology of Fact Checking on Social Media.
+We have attempted to write the most comprehen-
+sive survey possible given the constraints of an    Isabelle Augenstein, Timothy Baldwin, Meeyoung Cha,
+8-page paper. We carried out thorough searches     Tanmoy Chakraborty, Giovanni Luca Ciampaglia,
+                                                   David P. A. Corney, Renee DiResta, Emilio Ferrara,through the ACL Anthology and similar reposito-
+                                                           Scott Hale, Alon Y. Halevy, Eduard H. Hovy, Heng
+ries such as the ACM Digital Library. It is likely,                                                                                Ji, Filippo Menczer, Rubén Míguez, Preslav Nakov,
+however, that we may not have covered some rele-      Dietram A. Scheufele, Shivam Sharma, and Giovanni
+vant recent work.                                         Zagni. 2024. Factuality challenges in the era of large
+                                                        language models and opportunities for fact-checking.
+Ethical Considerations                               Nat. Mac. Intell., 6.
+This survey reviews existing systems for automated    Isabelle Augenstein,  Christina Lioma, Dongsheng
+                                               Wang, Lucas Chaves Lima, Casper Hansen, Chris-claim verification and does not introduce any new                                                                   tian Hansen, and Jakob Grue Simonsen. 2019a. Mul-
+models, frameworks, or datasets. Claim verifica-       tiFC: A real-world multi-domain dataset for evidence-
+tion datasets often use data from news sources and      based fact checking of claims. In EMNLP-IJCNLP.
+                                         23
+
+=== PDF第10页 ===
+Isabelle Augenstein,  Christina Lioma, Dongsheng    Jiangui Chen, Ruqing Zhang, Jiafeng Guo, Yiqun Liu,
+  Wang, Lucas Chaves Lima, Casper Hansen, Chris-      Yixing Fan, and Xueqi Cheng. 2022c. Corpusbrain:
+   tian Hansen, and Jakob Grue Simonsen. 2019b. Mul-       Pre-train a generative retrieval model for knowledge-
+   tiFC: A real-world multi-domain dataset for evidence-       intensive language tasks. In CIKM.
+  based fact checking of claims. In EMNLP-IJCNLP.
+                                                              Jifan Chen, Grace Kim, Aniruddh Sriram, Greg Durrett,
+Eivind Morris Bakke and Nora Winger Heggelund.     and Eunsol Choi. 2024. Complex claim verification
+  2025. (fact) check your bias. In FEVER.                with evidence retrieved in the wild. In NAACL.
+
+Alberto Barrón-Cedeno, Tamer Elsayed, Preslav Nakov,    Jifan Chen, Aniruddh Sriram, Eunsol Choi, and Greg
+  Giovanni Da San Martino, Maram Hasanain, Reem       Durrett. 2022d. Generating literal and implied sub-
+  Suwaileh,  Fatima  Haouari,  Nikolay  Babulkov,      questions to fact-check complex claims. In EMNLP.
+  Bayan Hamdan, Alex Nikolov, and 1 others. 2020.
+  Overview of checkthat! 2020: Automatic identifica-   Xiaoxia Cheng, Zeqi Tan, Wei Xue, and Weiming Lu.
+   tion and verification of claims in social media. In      2024. Information re-organization improves reason-
+  CLEF.                                                 ing in large language models. In NeurIPS.
+Giannis Bekoulis, Christina Papagiannopoulou, and     I Chern, Steffi Chern, Shiqi Chen, Weizhe Yuan, Ke-
+  Nikos Deligiannis. 2021. A review on fact extraction      hua Feng, Chunting Zhou, Junxian He, Graham Neu-
+  and verification. ACM Computing Surveys (CSUR).        big, Pengfei Liu, and 1 others. 2023. Factool: Fac-
+                                                                  tuality detection in generative ai–a tool augmented
+Iz Beltagy, Matthew E Peters, and Arman Cohan. 2020.                                                  framework for multi-task and multi-domain scenar-
+  Longformer: The long-document transformer. arXiv.                                                                      ios. arXiv.
+Nadav Borenstein, Greta Warren, Desmond Elliott, and                                               Shang-Hsuan Chiang, Ming-Chih Lo, Lin-Wei Chao,
+   Isabelle Augenstein. 2025. Can Community Notes                                                  and Wen-Chih Peng. 2024. Team trifecta at fact-
+  Replace Professional Fact-Checkers? In ACL.                                                         ify5wqa: Setting the standard in fact verification with
+                                                                fine-tuning. arXiv.Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie
+  Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind                                            Eun Cheol Choi and Emilio Ferrara. 2024. Automated   Neelakantan, Pranav Shyam, Girish Sastry, Amanda                                                         claim matching with large language models: empow-   Askell,  Sandhini Agarwal,  Ariel  Herbert-Voss,                                                           ering fact-checkers in the fight against misinforma-  Gretchen Krueger, Tom Henighan, Rewon Child,                                                                    tion. In WWW.  Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu,
+  Clemens Winter, and 12 others. 2020.  Language                                                 Preetam Prabhu Srikar Dammu, Himanshu Naidu,  models are few-shot learners. In NeurIPS.                                               Mouly Dewan, YoungMin Kim, Tanya Roosta, Aman
+                                                     Chadha, and Chirag Shah. 2024. Claimver: Explain-Yupeng Cao, Aishwarya Muralidharan Nair, Elyon Ey-
+                                                            able claim-level verification and evidence attribution   imife, Nastaran Jamalipour Soofi, KP Subbalakshmi,
+                                                           of text through knowledge graphs. arXiv.  John R Wullert II, Chumki Basu, and David Shall-
+   cross. 2024. Can large language models detect mis-
+                                           Thomas Diggelmann, Jordan Boyd-Graber, Jannis Bu-   information in scientific news reporting? arXiv.
+                                                                       lian, Massimiliano Ciaramita, and Markus Leippold.
+                                                      2020. Climate-fever: A dataset for verification ofCanyu Chen and Kai Shu. 2023. Combating misinfor-
+                                                            real-world climate claims. Tackling Climate Change  mation in the age of llms: Opportunities and chal-
+                                                         with Machine Learning workshop at NeurIPS 2020.   lenges. arXiv.
+Danqi Chen, Adam Fisch, Jason Weston, and Antoine    Alphaeus Dmonte, Marcos Zampieri, Kevin Lybarger,
+  Bordes. 2017. Reading Wikipedia to answer open-     and Massimiliano Albanese. 2024.   Classifying
+  domain questions. In ACL.                           human-generated and ai-generated election claims
+                                                                in social media. In SECRYPT.
+Hung-Ting Chen, Michael Zhang, and Eunsol Choi.
+  2022a.  Rich knowledge sources bring complex    John Dougrez-Lewis, Mahmud Elahi Akhter, Yulan He,
+  knowledge conflicts: Recalibrating models to reflect      and Maria Liakata. 2024. Assessing the reasoning
+   conflicting evidence. In EMNLP.                              abilities of chatgpt in the context of claim verification.
+                                                            arXiv.
+Jiangui Chen, Ruqing Zhang, Jiafeng Guo, Maarten
+  de Rijke, Yiqun Liu, Yixing Fan, and Xueqi Cheng.    Julian Eisenschlos, Bhuwan Dhingra, Jannis Bulian,
+  2023. A unified generative retriever for knowledge-     Benjamin Börschinger, and Jordan Boyd-Graber.
+   intensive language tasks via prompt learning.  In      2021. Fool me twice: Entailment from Wikipedia
+  SIGIR.                                                    gamification. In NAACL.
+
+Jiangui Chen, Ruqing Zhang, Jiafeng Guo, Yixing Fan,   Yi Fang, Moxin Li, Wenjie Wang, Hui Lin, and Fuli
+  and Xueqi Cheng. 2022b. GERE: generative evi-      Feng. 2024.  Counterfactual debating with preset
+  dence retrieval for fact verification. In SIGIR.             stances for hallucination elimination of llms. arXiv.
+                                         24
+
+=== PDF第11页 ===
+Darius Feher, Abdullah Khered, Hao Zhang, Riza    Spencer Hong, Meng Luo, and Xinyi Wan. 2025. EM-
+   Batista-Navarro, and Viktor Schlegel. 2025. Learn-     ULATE: A multi-agent framework for determining
+   ing to generate and evaluate fact-checking explana-      the veracity of atomic claims by emulating human
+   tions with transformers. Engineering Applications of       actions. In FEVER.
+   Artificial Intelligence.
+                                           Xuming Hu, Junzhe Chen, Zhijiang Guo, and Philip S
+Giuseppe Fenza, Domenico Furno, Vincenzo Loia, and      Yu. 2023. Give me more details: Improving fact-
+   Pio Pasquale Trotta. 2025. Multi-llm agents architec-      checking with latent retrieval. arXiv.
+   ture for claim verification. In ITASEC.
+                                             Chengyu Huang, Zeqiu Wu, Yushi Hu, and Wenya
+Isabel O. Gallegos, Ryan A. Rossi,  Joe Barrow,     Wang. 2024. Training language models to generate
+  Md Mehrab Tanjim, Sungchul Kim, Franck Dernon-       text with citations via fine-grained rewards. arXiv.
+   court, Tong Yu, Ruiyi Zhang, and Nesreen K. Ahmed.
+  2024. Bias and fairness in large language models: A    Yani Huang, Richong Zhang, Zhijie Nie, Junfan Chen,
+   survey. ACL.                                     and Xuefeng Zhang. 2025. A graph-based verifica-
+                                                                tion framework for fact-checking. arXiv.
+Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia,
+   Jinliu Pan, Yuxi Bi, Yi Dai, Jiawei Sun, and Haofen   Meta   Platforms   Inc.   2025.      Community
+  Wang. 2023.  Retrieval-augmented generation for       notes:  A new way  to add  context  to  posts.
+   large language models: A survey. arXiv.               https://transparency.meta.com/features/
+                                                   community-notes.
+Michael Glass, Gaetano Rossiello, Md Faisal Mahbub
+  Chowdhury, Ankita Naik, Pengshan Cai, and Alfio                                              Hasan   Iqbal,   Yuxia  Wang,  Minghan  Wang,
+   Gliozzo. 2022. Re2G: Retrieve, rerank, generate. In                                                     Georgi Nenkov  Georgiev,  Jiahui Geng,  Iryna
+  NAACL.                                                    Gurevych,  and  Preslav Nakov. 2024.   Open-
+                                                     FactCheck: A unified framework for factuality
+Jian Guan, Jesse Dodge, David Wadden, Minlie Huang,                                                            evaluation of LLMs. In EMNLP.
+  and Hao Peng. 2024. Language models hallucinate,
+   but may excel at fact verification. In NAACL.                                                      Gautier Izacard, Patrick Lewis, Maria Lomeli, Lucas
+                                                            Hosseini, Fabio Petroni, Timo Schick, Jane Dwivedi-Zhijiang Guo, Michael Schlichtkrull, and Andreas Vla-                                                     Yu, Armand Joulin, Sebastian Riedel, and Edouard   chos. 2022. A survey on automated fact-checking.                                                        Grave. 2023. Atlas: Few-shot learning with retrieval  TACL, 10.                                                  augmented language models. Journal of Machine
+                                                      Learning Research.Ashim Gupta and Vivek Srikumar. 2021. X-fact: A new
+  benchmark dataset for multilingual fact checking. In                                                 Nazanin Jafari and James Allan. 2024. Robust claim  ACL-IJCNLP.                                                                 verification through fact detection. arXiv.
+Lovisa Hagström, Youna Kim, Haeun Yu, Sang-goo Lee,
+                                                 Yichen Jiang, Shikha Bordia, Zheng Zhong, Charles  Richard Johansson, Hyunsoo Cho, and Isabelle Au-
+                                                    Dognin, Maneesh Singh, and Mohit Bansal. 2020.   genstein. 2026. CUB: Benchmarking Context Utili-
+                                                HoVer: A dataset for many-hop fact extraction and   sation Techniques for Language Models. In ACL.
+                                                        claim verification. In EMNLP Findings.
+Lovisa Hagström, Sara Vera Marjanovic, Haeun Yu, Ar-
+                                          Ryo Kamoi, Tanya Goyal, Juan Diego Rodriguez, and  nav Arora, Christina Lioma, Maria Maistro, Pepa
+                                                 Greg Durrett. 2023. WiCE: Real-world entailment  Atanasova, and Isabelle Augenstein. 2025. A Re-
+                                                                for claims in Wikipedia. In EMNLP.   ality Check on Context Utilisation for Retrieval-
+  Augmented Generation. In ACL.
+                                         Mohammadamin Kanaani, Sajjad Dadkhah, and Ali A.
+Ching Nam Hang, Pei-Duo Yu, and Chee Wei Tan. 2024.      Ghorbani. 2024. Triple-R: Automatic reasoning for
+  Trumorgpt: Query optimization and semantic reason-       fact verification using language models. In LREC-
+   ing over networks for automated fact-checking. In     COLING.
+  CISS.
+                                              Wei-Yu Kao and An-Zi Yen. 2024. MAGIC: Multi-
+Andreas Hanselowski. 2020. A machine-learning-based      argument generation with self-refinement for domain
+   pipeline approach to automated fact-checking. Ph.D.       generalization in automatic fact-checking. In LREC-
+   thesis, Technical University of Darmstadt.           COLING 2024.
+
+Naeemul Hassan, Chengkai Li, and Mark Tremayne.    Vasileios Katranidis and Gabor Barany. 2024.  Faaf:
+  2015. Detecting check-worthy factual claims in pres-      Facts as a function for the evaluation of rag systems.
+   idential debates. In CIKM.                               arXiv.
+
+Sebastian Hofstätter, Jiecao Chen, Karthik Raman, and  A Kazemi, Z Li, V Peréz-Rosas, SA Hale, and R Mi-
+  Hamed Zamani. 2023. Fid-light: Efficient and effec-       halcea. 2022. Matching tweets with applicable fact-
+   tive retrieval-augmented text generation. In SIGIR.       checks across languages. In CEUR Workshop.
+                                         25
+
+=== PDF第12页 ===
+Omar Khattab, Christopher Potts, and Matei A. Zaharia.   Xinyuan Lu, Liangming Pan, Qian Liu, Preslav Nakov,
+  2021. Baleen: Robust multi-hop reasoning at scale      and Min-Yen Kan. 2023. SCITAB: A challenging
+   via condensed retrieval. In NeurIPS.                  benchmark for compositional reasoning and claim
+                                                                 verification on scientific tables. In EMNLP.
+Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yu-
+   taka Matsuo, and Yusuke Iwasawa. 2022. Large lan-   Huanhuan Ma, Weizhi Xu, Yifan Wei, Liuji Chen, Liang
+  guage models are zero-shot reasoners. In NeurIPS.      Wang, Qiang Liu, and Shu Wu. 2024. Ex-fever: A
+                                                                dataset for multi-hop explainable fact verification. In
+Adarsh Kumar, Hwiyoon Kim, Jawahar Sai Nathani,                                         ACL Findings.
+  and Neil Roy. 2025.  Improving the reliability of
+   llms: Combining cot, rag, self-consistency, and self-    Jiatong Ma, Linmei Hu, Rang Li, and Wenbo Fu. 2025.
+   verification. arXiv.                                     Local: Logical and causal fact-checking with llm-
+                                                      based multi-agents. In ACM Web Conference.
+Nayeon Lee, Wei Ping, Peng Xu, Mostofa Patwary, Pas-
+   cale Fung, Mohammad Shoeybi, and Bryan Catan-   Chaitanya Malaviya, Subin Lee, Sihao Chen, Elizabeth
+   zaro. 2022. Factuality enhanced language models for       Sieber, Mark Yatskar, and Dan Roth. 2024.  Ex-
+  open-ended text generation. In NeurIPS.                pertQA: Expert-curated questions and attributed an-
+                                                           swers. In NAACL.Patrick S. H. Lewis, Ethan Perez, Aleksandra Pik-
+   tus, Fabio Petroni, Vladimir Karpukhin, Naman   Alex Mallen, Akari Asai, Victor Zhong, Rajarshi Das,
+  Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih,      Daniel Khashabi, and Hannaneh Hajishirzi. 2023.
+  Tim Rocktäschel, Sebastian Riedel, and Douwe     When not to trust language models: Investigating
+   Kiela. 2020.  Retrieval-augmented generation for       effectiveness of parametric and non-parametric mem-
+   knowledge-intensive NLP tasks. In NeurIPS.               ories. In ACL).
+Daliang Li, Ankit Singh Rawat, Manzil Zaheer, Xin                                                    Sara Vera Marjanovi´c, Haeun Yu, Pepa Atanasova,
+  Wang, Michal Lukasik, Andreas Veit, Felix Yu, and                                                     Maria Maistro, Christina Lioma, and Isabelle Augen-
+   Sanjiv Kumar. 2023a. Large language models with                                                                       stein. 2024. Dynamicqa: Tracing internal knowledge
+   controllable working memory. In ACL Findings.                                                                  conflicts in language models. In EMNLP.
+Jiazheng Li, Runcong Zhao, Yongxin Yang, Yulan He,                                            Sewon Min, Kalpesh Krishna, Xinxi Lyu, Mike Lewis,
+  and Lin Gui. 2023b. Overprompt: Enhancing chat-                                                  Wen-tau Yih, Pang Koh, Mohit Iyyer, Luke Zettle-
+  GPT through efficient in-context learning.  In R0-                                                     moyer, and Hannaneh Hajishirzi. 2023. FActScore:
+  FoMo.                                                         Fine-grained atomic evaluation of factual precision
+                                                                in long form text generation. In EMNLP.Miaoran Li, Baolin Peng, Michel Galley, Jianfeng Gao,
+  and Zhu Zhang. 2024a. Self-checker: Plug-and-play                                                       Preslav Nakov, Giovanni Da San Martino, Tamer
+  modules for fact-checking with large language mod-                                                         Elsayed, Alberto Barrón-Cedeño, Rubén Míguez,
+   els. In NAACL Findings.                                                 Shaden Shaar, Firoj Alam, Fatima Haouari, Maram
+                                                       Hasanain, Nikolay Babulkov, and 1 others. 2021.Xiangci Li, Sihao Chen, Rajvi Kapadia, Jessica Ouyang,
+                                               The clef-2021 checkthat!  lab on detecting check-  and Fan Zhang. 2024b.  Minimal evidence group
+                                                    worthy claims, previously fact-checked claims, and   identification for claim verification. arXiv.
+                                                          fake news. In ECIRl.
+Xingxuan Li, Ruochen Zhao, Yew Ken Chia, Bosheng
+  Ding, Shafiq Joty, Soujanya Poria, and Lidong Bing.    Ella Neeman, Roee Aharoni, Or Honovich, Leshem
+  2024c. Chain-of-knowledge: Grounding large lan-      Choshen, Idan Szpektor, and Omri Abend. 2023.
+  guage models via dynamic knowledge adapting over      DisentQA: Disentangling parametric and contextual
+  heterogeneous sources. In ICLR.                     knowledge with counterfactual question answering.
+                                                           In ACL.
+Xinyi Li, Yongfeng Zhang, and Edward C Malthouse.
+  2024d. Large language model agentic approach to    Jingwei Ni, Minjing Shi, Dominik Stammbach, Mrin-
+   fact checking and fake news detection. In ECAI.        maya Sachan, Elliott Ash, and Markus Leippold.
+                                                      2024.  Afacta: Assisting the annotation of factual
+Yingji Li, Mengnan Du, Rui Song, Xin Wang, and Ying      claim detection with reliable llm annotators. arXiv.
+  Wang. 2023c. A survey on fairness in large language
+  models. CoRR.                                 Yucheng Ning, Xixun Lin, Fang Fang, and Yanan Cao.
+                                                        2025. Mad-fact: A multi-agent debate framework for
+Hongzhan Lin, Yang Deng, Yuxuan Gu, Wenxuan      long-form factuality evaluation in llms. arXiv.
+  Zhang, Jing Ma, See Kiong Ng, and Tat-Seng Chua.
+  2025.  Fact-audit: An adaptive multi-agent frame-   Liangming Pan, Wenhu Chen, Wenhan Xiong, Min-Yen
+  work for dynamic fact-checking evaluation of large      Kan, and William Yang Wang. 2021. Zero-shot fact
+  language models. In ACL.                                   verification by claim generation. In ACL-IJCNLP.
+
+Shayne Longpre, Kartik Perisetla, Anthony Chen,   Liangming Pan, Xinyuan Lu, Min-Yen Kan, and Preslav
+   Nikhil Ramesh, Chris DuBois, and Sameer Singh.     Nakov. 2023a.  QACheck: A demonstration sys-
+  2021. Entity-based knowledge conflicts in question      tem for question-guided multi-hop fact-checking. In
+   answering. In EMNLP.                        EMNLP: System Demonstrations.
+                                         26
+
+=== PDF第13页 ===
+Liangming Pan, Xiaobao Wu, Xinyuan Lu, Anh Tuan    Michael Schlichtkrull, Yulong Chen, Chenxi White-
+  Luu, William Yang Wang, Min-Yen Kan, and Preslav       house, Zhenyun Deng, Mubashara Akhtar, Rami Aly,
+  Nakov. 2023b. Fact-checking complex claims with      Zhijiang Guo, Christos Christodoulopoulos, Oana
+  program-guided reasoning. In ACL.                     Cocarascu, Arpit Mittal, and 1 others. 2024. The
+                                                    automated verification of textual claims (averitec)
+Yikang Pan, Liangming Pan, Wenhu Chen, Preslav      shared task. In FEVER.
+  Nakov, Min-Yen Kan, and William Wang. 2023c.
+  On the risk of misinformation pollution with large    Michael Schlichtkrull, Zhijiang Guo, and Andreas Vla-
+  language models. In ACL Findings.                       chos. 2023. Averitec: A dataset for real-world claim
+                                                                  verification with evidence from the web. In NeurIPS.
+Rrubaa Panchendrarajan and Arkaitz Zubiaga. 2024.
+  Claim detection for automated fact-checking: A sur-                                                       Tal Schuster, Adam Fisch, and Regina Barzilay. 2021.
+  vey on monolingual, multilingual and cross-lingual                                                    Get your vitamin C! robust fact verification with con-
+   research. Natural Language Processing Journal.                                                                    trastive evidence. In NAACL.
+Md Rizwan Parvez. 2024.   Evidence to generate                                            Wooseok Seo, Seungju Han, Jaehun Jung, Benjamin   (e2g): A single-agent two-step prompting for context                                            Newman, Seungwon Lim, Seungbeen Lee, Ximing  grounded and retrieval augmented reasoning. arXiv.                                                     Lu, Yejin Choi, and Youngjae Yu. 2025. Verifying
+Fabio Petroni, Patrick Lewis, Aleksandra Piktus, Tim       the verifiers: Unveiling pitfalls and potentials in fact
+   Rocktäschel, Yuxiang Wu, Alexander H. Miller, and        verifiers. arXiv.
+   Sebastian Riedel. 2020. How context affects lan-
+                                                 Shaden Shaar, Nikolay Babulkov, Giovanni Da San Mar-  guage models’ factual predictions. In AKBC.
+                                                                   tino, and Preslav Nakov. 2020. That is a known lie:
+Matúš Pikuliak, Ivan Srba, Robert Moro, Timo Hro-      Detecting previously fact-checked claims. In ACL.
+  madka, Timotej Smoleˇn, Martin Melišek, Ivan
+  Vykopal, Jakub Simko, Juraj Podroužek, and Maria   Zhihong Shao, Yeyun Gong, Yelong Shen, Minlie
+   Bielikova. 2023.   Multilingual previously  fact-      Huang, Nan Duan, and Weizhu Chen. 2023. Enhanc-
+  checked claim retrieval. In EMNLP.                     ing retrieval-augmented large language models with
+                                                                   iterative retrieval-generation synergy.  In EMNLP
+Ronak Pradeep, Xueguang Ma, Rodrigo Nogueira, and       Findings.
+  Jimmy Lin. 2021. Scientific claim verification with
+  VerT5erini.   In 12th International Workshop on    Freda Shi, Xinyun Chen, Kanishka Misra, Nathan
+  Health Text Mining and Information Analysis.             Scales, David Dohan, Ed H. Chi, Nathanael Schärli,
+                                                   and Denny Zhou. 2023. Large language models can
+Dorian Quelle and Alexandre Bovet. 2024. The perils      be easily distracted by irrelevant context. In ICML,
+  and promises of fact-checking with large language      volume 202.
+  models. Frontiers in Artificial Intelligence.
+                                              Satyam Shukla, Himanshu Dutta, and Pushpak Bhat-
+Jack W Rae, Sebastian Borgeaud, Trevor Cai, Katie                                                           tacharyya. 2025. Recon, answer, verify: Agents in
+   Millican, Jordan Hoffmann, Francis Song, John                                                          search of truth. In EMNLP: Industry Track.
+  Aslanides, Sarah Henderson, Roman Ring, Susan-
+  nah Young, and 1 others. 2021. Scaling language                                                     Chenglei Si, Navita Goyal, Tongshuang Wu, Chen Zhao,
+  models: Methods, analysis & insights from training                                                      Shi Feng, Hal Daumé Iii, and Jordan Boyd-Graber.
+   gopher. arXiv.                                                      2024. Large language models help humans verify
+                                                              truthfulness – except when they are convincinglyAnku Rani, S.M Towhidul Islam Tonmoy, Dwip Dalal,
+                                                     wrong. In NAACL.  Shreya Gautam, Megha Chakraborty, Aman Chadha,
+  Amit Sheth, and Amitava Das. 2023. FACTIFY-                                                    Iknoor Singh, Carolina Scarton, Xingyi Song, and  5WQA: 5W aspect-based fact verification through                                                       Kalina Bontcheva. 2023. Finding already debunked   question answering. In ACL.                                                              narratives via multistage retrieval: Enabling cross-
+Lucas Resck, Isabelle Augenstein, and Anna Korhonen.       lingual, cross-dataset and zero-shot learning. arXiv.
+  2025. Explainability and Interpretability of Multilin-
+                                              Aryan Singhal, Veronica Shao, Gary Sun, Ryan Ding,   gual Large Language Models: A Survey. In EMNLP.
+                                                      Jonathan Lu, and Kevin Zhu. 2025. A comparative
+Richard Rosenbaum, Timo Cavelius, Lasse Strothe, An-      study of translation bias and accuracy in multilin-
+   drii Lata, Jana Diesner, and 1 others. 2025.  Hy-      gual large language models for cross-language claim
+   brid fact-checking that integrates knowledge graphs,       verification. In NeurIPS.
+   large language models, and search-based retrieval
+   agents improves interpretable claim verification. In    Yixiao Song, Yekyung Kim, and Mohit Iyyer. 2024.
+   9th Widening NLP Workshop.                            Veriscore:  Evaluating the factuality of verifiable
+                                                         claims in long-form text generation. arXiv.
+Arkadiy Saakyan, Tuhin Chakrabarty, and Smaranda
+  Muresan. 2021. COVID-fact: Fact extraction and    Jingyi Sun, Greta Warren, Irina Shklovski, and Isabelle
+   verification of real-world claims on COVID-19 pan-      Augenstein. 2026.  Explaining Sources of Uncer-
+  demic. In ACL-IJCNLP.                                    tainty in Automated Fact-Checking. In ACL.
+                                         27
+
+=== PDF第14页 ===
+Suryavardan Suresh, Anku Rani, Parth Patwa, Aish-   Yuxia Wang, Revanth Gangi Reddy, Zain Muhammad
+  warya Reganti, Vinija Jain, Aman Chadha, Amitava      Mujahid, Arnav Arora, Aleksandr Rubashevskii, Ji-
+  Das, Amit Sheth, and Asif Ekbal. 2024. Overview of      ahui Geng, Osama Mohammed Afzal, Liangming
+   factify5wqa: Fact verification through 5w question-      Pan, Nadav Borenstein, Aditya Pillai, Isabelle Au-
+   answering. arXiv, abs/2410.04236.                        genstein, Iryna Gurevych, and Preslav Nakov. 2024.
+                                                       Factcheck-bench:  Fine-grained evaluation bench-
+Liyan Tang, Philippe Laban, and Greg Durrett. 2024.     mark for automatic fact-checkers. In EMNLP Find-
+  Minicheck: Efficient fact-checking of llms on ground-       ings.
+   ing documents. arXiv.
+                                                    Zhiruo Wang, Jun Araki, Zhengbao Jiang, Md Rizwan
+James   Thorne,   Andreas   Vlachos,    Christos                                                            Parvez, and Graham Neubig. 2023. Learning to filter
+   Christodoulopoulos,  and  Arpit  Mittal.  2018a.                                                           context for retrieval-augmented generation. arXiv.
+  FEVER: a large-scale dataset for fact extraction and
+  VERification. In NAACL.                            Greta Warren, Irina Shklovski, and Isabelle Augenstein.
+                                                      2025. Show Me the Work: Fact-Checkers’ Require-
+James Thorne, Andreas Vlachos, Oana Cocarascu,                                                    ments for Explainable Automated Fact-Checking. In
+   Christos  Christodoulopoulos,  and  Arpit  Mittal.                                                  CHI.
+  2018b.   The  fact  extraction and VERification
+  (FEVER) shared task. In FEVER.                    Greta Warren, Jingyi Sun, Irina Shklovski, and Isabelle
+                                                       Augenstein. 2026. Show me the evidence: Evalu-
+Tam Trinh, Manh Nguyen, and Truong-Son Hy. 2025.                                                             ating the role of evidence and natural language ex-
+  Towards robust fact-checking: A multi-agent system                                                           planations in ai-supported fact-checking. In ACM
+  with advanced evidence retrieval. arXiv.                                                     FAccT.
+Manju Vallayil, Parma Nand, Wei Qi Yan, and Héc-                                                    Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten   tor Allende-Cid. 2023. Explainability of automated                                                  Bosma, Brian Ichter, Fei Xia, Ed H. Chi, Quoc V. Le,   fact verification systems: A comprehensive review.                                                  and Denny Zhou. 2022. Chain-of-thought prompt-  Applied Sciences.                                                         ing elicits reasoning in large language models. In
+                                                     NeurIPS.Juraj Vladika and Florian Matthes. 2023. Scientific fact-
+   checking: A survey of resources and approaches. In
+                                                          Jerry Wei, Chengrun Yang, Xinying Song, Yifeng Lu,  ACL Findings.
+                                                  Nathan Hu, Jie Huang, Dustin Tran, Daiyi Peng,
+David Wadden, Shanchuan Lin, Kyle Lo, Lucy Lu      Ruibo Liu, Da Huang, Cosmo Du, and Quoc V. Le.
+  Wang, Madeleine van Zuylen, Arman Cohan, and      2024. Long-form factuality in large language models.
+  Hannaneh Hajishirzi. 2020. Fact or fiction: Verifying       In NeurIPS.
+   scientific claims. In EMNLP.
+                                                  Yixuan Weng, Minjun Zhu, Fei Xia, Bin Li, Shizhu He,
+David Wadden and Kyle Lo. 2021. Overview and in-     Shengping Liu, Bin Sun, Kang Liu, and Jun Zhao.
+   sights from the SCIVER shared task on scientific      2023. Large language models are better reasoners
+   claim verification. In Second Workshop on Scholarly      with self-verification. In EMNLP Findings.
+  Document Processing.
+                                                    Dustin Wright and Isabelle Augenstein. 2020. Claim
+David Wadden, Kyle Lo, Bailey Kuehl, Arman Cohan,      check-worthiness detection as positive unlabelled
+   Iz Beltagy, Lucy Lu Wang, and Hannaneh Hajishirzi.       learning. In EMNLP Findings.
+  2022a. SciFact-open: Towards open-domain scien-
+    tific claim verification. In EMNLP Findings.          X. 2025. Community notes: a collaborative way to
+                                                  add helpful context to posts and keep people bet-
+David Wadden, Kyle Lo, Lucy Lu Wang, Arman Co-       ter informed.  https://communitynotes.x.com/
+   han, Iz Beltagy, and Hannaneh Hajishirzi. 2022b.     guide/en/about/introduction.
+  MultiVerS: Improving scientific claim verification
+  with weak supervision and full-document context. In   Yuan Xia, Jingbo Zhou, Zhenhui Shi, Jun Chen, and
+  NAACL Findings.                                   Haifeng Huang. 2024.  Improving retrieval aug-
+                                                  mented language model with self-reasoning. arXiv.
+Haoran Wang and Kai Shu. 2023. Explainable claim
+   verification via knowledge-grounded reasoning with   Rui Xing, Timothy Baldwin, and Jey Han Lau. 2025.
+   large language models. In EMNLP Findings.             Evaluating evidence attribution in generated fact
+                                                       checking explanations. In NAACL.
+Nancy X.  R. Wang,  Diwakar Mahajan,  Marina
+   Danilevsky, and Sara Rosenthal. 2021.  SemEval-   Rongwu Xu, Zehan Qi, Cunxiang Wang, Hongru Wang,
+  2021 task 9: Fact verification and evidence finding     Yue Zhang, and Wei Xu. 2024a. Knowledge conflicts
+   for tabular data in scientific documents (SEM-TAB-       for llms: A survey. arXiv.
+  FACTS). In SemEval.
+                                                   Shicheng Xu, Liang Pang, Huawei Shen, Xueqi Cheng,
+William Yang Wang. 2017. “liar, liar pants on fire”: A      and Tat-Seng Chua. 2024b. Search-in-the-chain: In-
+  new benchmark dataset for fake news detection. In       teractively enhancing large language models with
+  ACL.                                                   search for knowledge-intensive tasks. In WWW.
+                                         28
+
+=== PDF第15页 ===
+Zhiwei Yang, Jing Ma, Hechang Chen, Hongzhan Lin,   Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan
+  Ziyang Luo, and Yi Chang. 2022. A coarse-to-fine      Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin,
+  cascaded evidence-distillation neural network for ex-     Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang,
+   plainable fake news detection. In COLING.             Joseph E. Gonzalez, and Ion Stoica. 2023. Judging
+                                                           llm-as-a-judge with mt-bench and chatbot arena. In
+Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak      NeurIPS.
+   Shafran, Karthik R. Narasimhan, and Yuan Cao. 2023.
+   React: Synergizing reasoning and acting in language    Jiawei Zhou, Yixuan Zhang, Qianni Luo, Andrea G.
+  models. In ICLR.                                          Parker, and Munmun De Choudhury. 2023. Synthetic
+                                                                           lies: Understanding ai-generated misinformation and
+                                                             evaluating algorithmic and human solutions. In CHI.Ori Yoran, Tomer Wolfson, Ori Ram, and Jonathan
+   Berant. 2024. Making retrieval-augmented language                                                       Yingjie Zhu, Jiasheng Si, Yibo Zhao, Haiyang Zhu,  models robust to irrelevant context. In ICLR.                                              Deyu Zhou, and Yulan He. 2023. EXPLAIN, EDIT,
+                                          GENERATE: Rationale-sensitive counterfactual data
+Wenhao Yu, Hongming Zhang, Xiaoman Pan, Kaixin                                                     augmentation for multi-hop fact verification.  In
+  Ma, Hongwei Wang, and Dong Yu. 2023. Chain-of-                                          EMNLP.
+   note: Enhancing robustness in retrieval-augmented
+  language models. arXiv.
+
+Hamed Zamani and Michael Bendersky. 2024. Stochas-
+   tic RAG: end-to-end retrieval-augmented generation
+  through expected utility maximization. In SIGIR.
+
+Eric Zelikman, Yuhuai Wu, Jesse Mu, and Noah D.
+  Goodman. 2022. Star: Bootstrapping reasoning with
+   reasoning. In NeurIPS.
+
+Fengzhu Zeng and Wei Gao. 2023. Prompt to be con-
+   sistent is better than self-consistent? few-shot and
+   zero-shot fact verification with pre-trained language
+  models. In ACL Findings.
+
+Xia Zeng, Amani S Abumansour, and Arkaitz Zubiaga.
+  2021. Automated fact-checking: A survey.  Lan-
+  guage and Linguistics Compass.
+
+Xia Zeng and Arkaitz Zubiaga. 2024. MAPLE: Micro
+   analysis of pairwise language evolution for few-shot
+  claim verification. In EACL Findings.
+
+Yuheng Zha, Yichi Yang, Ruichen Li, and Zhiting Hu.
+  2023. AlignScore: Evaluating factual consistency
+  with a unified alignment function. In ACL.
+
+Hengran Zhang, Ruqing Zhang, Jiafeng Guo, Maarten
+  de Rijke, Yixing Fan, and Xueqi Cheng. 2023. From
+   relevance to utility: Evidence retrieval with feedback
+   for fact verification. In EMNLP Findings.
+
+Xuan Zhang and Wei Gao. 2023. Towards LLM-based
+   fact verification on news claims with a hierarchical
+   step-by-step prompting method. In AACL-IJCNLP.
+
+Xuan Zhang and Wei Gao. 2024.   Reinforcement
+   retrieval leveraging fine-grained feedback for fact
+  checking news claims with black-box LLM.  In
+  LREC-COLING 2024.
+
+Xiaoyan Zhao, Lingzhi Wang, Zhanghao Wang, Hong
+  Cheng, Rui Zhang, and Kam-Fai Wong. 2024.
+  PACAR: Automated fact-checking with planning and
+  customized action reasoning using large language
+  models. In LREC-COLING 2024.
+                                         29

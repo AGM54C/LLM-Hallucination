@@ -1,0 +1,502 @@
+
+=== PDF第1页 ===
+                                Trusting Your Evidence:
+                      Hallucinate Less with Context-aware Decoding
+
+                                                         1 ∗                                1 ∗
+                                 Weijia Shi          Xiaochuang Han
+                                          2                      1                          1               2
+                 Mike Lewis    Yulia Tsvetkov   Luke Zettlemoyer    Scott Yih
+
+
+                                       1                                              2
+                                  University of Washington, Seattle, WA,  Meta AI
+                               {swj0419, xhan77}@cs.washington.edu
+
+
+                          Abstract
+
+                Language models (LMs) often struggle to pay
+                enough attention to the input context, and gen-
+                   erate texts that are unfaithful or contain hallu-
+                    cinations. To mitigate this issue, we present
+                  context-aware decoding (CAD), which follows2023
+                 a contrastive output distribution that amplifies
+                   the difference between the output probabilities
+              when a model is used with and without con-May               text. Our experiments show that CAD, without
+24            additionalfaithfulnesstraining,of differentsignificantlyLM families,improvesincludingthe         Figure 1: An illustration of context-aware decoding.
+               OPT, GPT, LLaMA and FLAN-T5 for summa-
+                    rization tasks (e.g., 14.3% gain for LLaMA in        contradicts with the prior knowledge (Longpre
+                    factuality metrics). Furthermore, CAD is par-                                                                            et al., 2021; Zhou et al., 2023). For instance, when
+                     ticularly effective in overriding a model’s prior
+                                         LLaMA (Touvron et al., 2023) is presented with a
+                knowledge when it contradicts the provided
+                                                                           latest document “Argentina won the FIFA World[cs.CL]             context, leading to substantial improvements in
+                    tasks where resolving the knowledge conflict is      Cups in 1978,1986 and 2022 ...” in its context (Fig-
+                     essential.                                      ure 1), it still predicts “Two” in response to the
+                                                               question “How many World Cups have Argentina
+          1  Introduction
+                                                         won?”, due in part to the outdated training data.
+           Language models (LMs) are remarkably effective      In this work, we present a simple context-aware
+              in generating coherent and fluent continuations of   decoding (CAD) method to encourage the LM to
+            a prompt or document prefix. During generation,   attend to its context during generation. As shown
+             they mostly rely on two sources of knowledge: (1)    in Figure 1, CAD samples from a new output dis-
+             prior knowledge, which is learned during pretrain-    tribution, which amplifies the difference between
+             ing and stored implicitly within the model parame-   output probabilities with and without the context
+                ters; (2) context knowledge, which is passed as in-   document. This provides a new form of contrastive
+             puts in the prefix context (Chan et al., 2022). How-   decoding (Li et al., 2022), which effectively down-arXiv:2305.14739v1        ever, it remains an open question how a pretrained   weights the prior knowledge when more relevant
+          LM, particularly a vanilla LM without task-specific    contextual information is provided. CAD can be
+              finetuning, balances these two knowledge sources   used with off-the-shelf pretrained language models
+             during generation.                                 without any additional training.
+               Previous research shows that LMs can fail to pay                                                              Experimental results from summarization tasks
+           enough attention to new information introduced                                                   show that context-aware decoding significantly
+              in the context knowledge. This can lead to hallu-                                                          enhances the generation faithfulness of various
+             cination in summarization (Maynez et al., 2020;                                                                     vanilla LMs including OPT (Zhang et al., 2022),
+            Pagnoni et al., 2021), where the generated sum-                                                 GPT-Neo (Black et al., 2021), LLaMA (Touvron
+            maries include facts not present in the input doc-                                                                            et al., 2023) and instruction-finetuned LMs such as
+            ument.  Insufficient attention to context is espe-                                          FLAN (Chung et al., 2022). For instance, when ap-
+               cially problematic when the context knowledge                                                                   plied to LLaMA-30B in CNN-DM, CAD leads to
+                  ∗Equal contribution. Order randomly determined.          substantial improvement in both ROUGE-L (21%)
+
+=== PDF第2页 ===
+and summary factuality evaluation metrics (14.3%).   tioned on x, y<t. Formally, we have:
+More notably, CAD is especially beneficial for       yt ∼˜pθ(yt ∣c, x, y<t)
+knowledge conflicting tasks, where the context                               ∣c, x, y<t) αcontains information contradictory to the model’s      ∝pθ(yt ∣c, x, y<t) (pθ(yt          )
+                                                                            pθ(yt ∣x, y<t)
+prior knowledge. CAD brings a 2.9x improve-
+                                             where the output probability is a product-of-experts
+ment to LLaMA-30B on a knowledge conflicts QA
+                                                     of the original output probability and PMI weighted
+dataset (Longpre et al., 2021). Furthermore, we
+                                            by α. Essentially, outputs that become much more
+observe that this gain brought by CAD increases
+                                                        likely when the context is included are preferred
+as the model size grows in knowledge conflicts
+                                                    (Figure 1).
+tasks. These results demonstrate the potential of
+                                                    This expression is not a valid probability distribu-CAD in mitigating hallucinations in text generation
+                                                         tion and needs to be normalized across all possibleand overriding prior knowledge with reliable and
+                                                  values of yt. By rearranging the terms, we obtaintrusted information.
+                                                     the final form:
+                                                           yt ∼softmax[(1 + α) logitθ(yt ∣c, x, y<t)
+2  Method                                  −α logitθ(yt ∣x, y<t)]
+                                                 Larger α means more weight on our adjustment
+2.1  Background                                            (α = 0 reduces to regular decoding).1 We refer
+                                                       to this simple method as context-aware decoding.
+Given a language model θ, an input query x, and
+                                       From the adjusted output distribution ˜p, we can
+a context c that contains some external knowledge
+                                                 apply various sampling strategies, such as nucleus
+unfamiliar or in conflict to the model’s prior knowl-
+                                               sampling (Holtzman et al., 2019).
+edge, we ask our model θ to generate a response
+                                                             Essentially, context-aware decoding is just a con-y given the the query and context. The response
+                                                           trastive ensemble between the logits of pθ(yt  ∣can be directly sampled (autoregressively) from the
+                                                       c, x, y<t) and pθ(yt ∣x, y<t). A similar con-probability distribution conditioned on query x and
+                                                           trastive objective is universal in image genera-context c:
+                                                           tion, where classifier-free diffusion models (Ho           yt ∼pθ(yt ∣c, x, y<t)
+                                            and Salimans, 2022) predict diffusion noise with
+       ∝exp logitθ(yt ∣c, x, y<t)                                          (1+α)ϵθ(x, c)−αϵθ(x), with c being a control to
+  However, in cases where the context c contains    the image. In text generation, Malkin et al. (2021)
+knowledge that is out-of-distribution with respect   propose coherence boosting with the same intu-
+to θ, we hypothesize that the model can struggle     ition, with a focus on contrasting the full input and
+to effectively attend to c and overly rely on the   a short premise-free input, promoting coherence
+prior knowledge encoded in θ. For instance, as     w.r.t. the long context. Instead of using a single
+illustrated in Figure 1, when the context c states   model θ in this work, different models can also
+“Argentina won the FIFA World Cups in 1978, 1986   be used in the distribution adjustments to demote
+and 2022 ...”, it contradicts the LM’s outdated prior   unwanted model behaviors or distill expert model’s
+knowledge that Argentina has won the World Cup    capability (Liu et al., 2021; Li et al., 2022).
+twice. The language model may still incorrectly
+predict “Two” even when presented with the con-
+                                        3  Experimental Setup
+text c and the query x.
+
+                                  We perform evaluation on tasks that require LMs to
+2.2  Context-aware Decoding                     read and reason over contexts and produce outputs
+                                                         that are faithful to the contexts. Following prior
+To mitigate such issues, we factor out the prior                                          work (Zhang et al., 2023; Zhou et al., 2023), we
+knowledge from the model’s original output dis-                                                     evaluate the models using prompting.
+tribution contrastively. Here, we model the prior
+knowledge as pθ(yt ∣x, y<t) and adjust the
+                                                                              1If we identify an external knowledge c conditionally in-model’s original output probability distribution us-
+                                                         dependent to the generation, pθ(yt ∣c, x, y<t) = pθ(yt ∣
+ing the pointwise mutual information (PMI) be-    x, y<t), even a non-zero α would not have an impact to the
+tween the context c and the generation yt, condi-    original output distribution.
+
+=== PDF第3页 ===
+ 3.1  Datasets and Metrics                                XSUM
+ Summarization  We conduct summarization ex-    c    Article: Prison Link Cymru had 1,099 referrals in
+                                                             2015-16 and said some ex-offenders were living
+ periments on two news datasets: CNN-DM (See          rough for up to a year before finding suitable accom-
+ et al., 2017) and XSUM (Narayan et al., 2018). We          modation ...
+ use ROUGE-L (Lin, 2004) to evaluate summariza-   x   Summarize the article in one sentence. Summary:
+ tion quality. To measure the factual consistency                  NQ-SWAP
+ of summaries, we adopt BERT-Precision (Pagnoni     c   Tesla CEO Elon Musk is now in charge of Twitter ,
+ et al., 2021) as well as FactKB (Feng et al., 2023),      CNBC has learned ...
+                                        x  Who is Twitter CEO now?
+ which has been demonstrated to achieve high cor-
+                                                             MemoTrap relations with human judgment on the two summa-
+ rization datasets.                                   c   Write a quote that ends in the word "early":
+                                        x   Better late than
+ Knowledge Conflicts  We evaluate performance
+                                                      Table 1: An illustation of the inputs to CAD applied to on two knowledge conflict datasets: MemoTrap
+                                                    each dataset. CAD upweights the context c (in red) by
+ (Liu and Liu, 2023) and NQ-Swap (Longpre et al.,                                                      sampling each token from softmax[(1 + α) logitθ(yt ∣
+ 2021). MemoTrap is created to investigate whether                                                             c, x, y<t) −α logitθ(yt ∣x, y<t)].
+ language models could fall into memorization traps.
+ It comprises instructions that prompt the language
+ model to complete a well-known proverb with an    CAD introduces a hyperparameter α to control
+ ending word that deviates from the commonly used    the adjustment level. We set α = 0.5 for all mod-
+ ending (e.g., Write a quote that ends in the word    els evaluated on the summarization datasets and
+“early”: Better late than     ). NQ-Swap is based on  α = 1 for all models evaluated on the knowledge
+ a QA dataset, natural questions (NQ) (Kwiatkowski    conflict datasets. We observed that α = 0.5 gen-
+ et al., 2019), where the objective is to answer ques-    erally yielded good results across all settings and
+ tions based on a reliable gold document. To gener-    all datasets, but a slightly higher α is more effec-
+ ate NQ-Swap, Longpre et al. (2021) first identify    tive in the knowledge conflict setting, where the
+ questions in NQ with named entity answers, find    prior knowledge needs to be factored out more. We
+ the supportive document for each question and then    investigate the effect of α in Section 4.2.
+ replace the gold answer entity in the document with     For the baselines, we use regular decoding
+ a random entity. A faithful LM should generate the    following  prior work (Longpre  et  al., 2021;
+ replaced entity as the answer when given the ques-   Kwiatkowski et al., 2019) to use greedy decod-
+ tion and modified document. We also include the    ing for knowledge conflict tasks and top-p sam-
+ original NQ dataset with the question and origi-   pling with p=0.9 for summarization tasks (Holtz-
+ nal document for evaluation. We use Exact Match   man et al., 2019).  For CAD, we use the same
+ (EM) as the evaluation metric for NQ-Swap, NQ   sampling strategies on top of the adjusted output
+ and MemoTrap.                                      probability distribution.
+
+   In Table 1, we show illustrative examples of the
+ contexts we aim to upweight for the model and the   4  Results
+ queries across different datasets. We hope LMs pay
+                                                     4.1  Main Results more attention to the source document in XSUM
+ and NQ-Swap. On the other hand, we hope LMs   Summarization  Table 2 reports the results on
+ focus more on the instruction in MemoTrap.      CNN-DM and XSUM. We observe that CAD
+                                                outperforms the standard decoding algorithm by
+ 3.2  Models and Baselines                                                a large margin in all eight models across both
+ We apply CAD to pretrained language models in-    datasets. Specifically, when applied to LLAMA-
+ cluding OPT (13B and 30B) (Zhang et al., 2022),   30B in CNN-DM, CAD leads to 21% increase in
+ GPT-Neo (2.7B and 20B) (Black et al., 2021),  ROUGE-L, 14.3% increase in factKB and 7.8%
+ LLaMA (13B and 30B) (Touvron et al., 2023)    increase in BERT-P. This result demonstrates that
+ and instruction-finetuned language models such  CAD could effectively improve the quality and fac-
+ as FLAN-T5 (XL 3B and XXL 11B) (Chung et al.,    tuality of the generated summaries from a diverse
+ 2022).                                                   set of language models.
+
+=== PDF第4页 ===
+                                 CNN-DM               XSUM
+
+            Model        Decoding  ROUGE-L   factKB  BERT-P  ROUGE-L   factKB  BERT-P
+
+                               Regular       22.0       77.8      86.5        16.4       47.2      85.2
+                  13B
+                    CAD        27.4       84.1      90.8        18.2       64.9      87.5
+       OPT
+                               Regular       22.2       81.7      87.0        17.4       38.2      86.1
+                  30B
+                    CAD        28.4       87.0      90.2        19.5       45.6      89.3
+
+                               Regular       24.3       80.5      87.5        17.6       54.0      86.6
+                 3B
+                    CAD        27.7       87.5      90.6        18.1       65.1      89.1
+        GPT-Neo
+                               Regular       18.7       68.3      85.2        14.9       42.2      85.7
+                  20B
+                    CAD        24.5       77.5      89.4        19.0       63.3      90.6
+
+                               Regular       27.1       80.2      89.5        19.0       53.5      87.8
+                  13B
+                    CAD        32.6       90.8      93.0        21.1       73.4      91.7
+       LLaMA
+                               Regular       25.8       76.8      88.5        18.7       47.7      87.1
+                  30B
+                    CAD        31.8       87.8      92.2        22.0       66.4      90.3
+
+                               Regular       25.5       90.2      91.6        18.8       31.9      88.2
+                 3B
+                    CAD        26.1       93.9      92.1        19.5       35.9      88.8
+       FLAN
+                               Regular       25.4       90.4      91.4        19.4       29.8      88.3
+                  11B
+                    CAD        27.1       93.1      92.2        20.0       35.0      88.8
+
+Table 2: CAD consistently outperform the regular decoding method in terms of both summary quality metric
+(ROUGE-L) and summary factuality (factKB and BERT-P). The best scores for each setting are boldfaced.
+FLAN 3B and 11B refer to FLAN-T5 XL and FLAN-T5 XXL respectively.
+
+
+    Model     Decoding  Memo.  NQ  NQ-SWAP   tially better performance on the knowledge con-
+                   Reg.       32.5    29.2      18.8        flict datasets, e.g., CAD improve GPT-Neo 20B by
+         13B
+            CAD       44.5    32.2      36.9    54.4% on Memotrap and by 128% on NQ-SWAP.  OPT
+                   Reg.       28.4    29.4      14.7
+         30B                                     This substantial improvement suggests that context-
+            CAD       41.0    35.5      29.0
+                                             aware decoding is particularly beneficial for LMs
+                   Reg.       22.5    31.9      19.1
+         3B                                          to adhere to the given context, in scenarios where            CAD       47.3    39.9      41.2
+  GPT.
+                   Reg.       37.1    22.8      16.1      the model’s prior knowledge contradicts with the         20B
+            CAD       57.3    32.1      36.8      context knowledge.
+                   Reg.       23.8    22.3      11.7
+         13B
+            CAD       57.1    33.6      36.7      4.2  Analysis LLAMA
+                   Reg.       25.8    23.8       9.6
+         30B
+            CAD       50.6    34.0      37.7     Qualitative analyais  We provide qualitative ex-
+                   Reg.       69.2    81.8      71.4     amples for XSUM and Memotrap in Table 4. In         3B
+            CAD       72.2    80.3      73.3
+ FLAN                             XSUM, the regular decoding generates texts that                   Reg.       82.0    85.5      73.0
+         11B            CAD       88.7    82.5      77.1       is not mentioned in the article, whereas CAD pro-
+                                                duces output exclusively based on the information
+Table 3: CAD outperforms the regular decoding method    in the input article. For MemoTrap, the standard
+(Reg.)  in all settings except for FLAN-T5 on NQ.   decoding disregards the instruction and generates
+Note that FLAN-T5 is trained on NQ dataset during                                                    the memorized ending, while CAD adheres to the
+instruction-finetuning.
+                                                       instruction within the given context and produces
+                                                     the desired output.
+Knowledge Conflicts  Our results for the knowl-
+                             CAD brings consistent improvement to LMsedge conflict datasets, NQ-SWAP and MemoTrap,
+                                              with different sizes.  In Tables 2 and 3, we showas well as the original NQ are detailed in Table 3.
+                                                           that CAD could be used to enhance a diverse set ofCAD is significantly better than the regular decod-
+                            LM families, including OPT, GPT-Neo, LLaMA,ing in all settings, with the exception of a minor de-
+                                              and FLAN-T5. Here we further investigate whethercrease observed for FLAN-T5 on the non-conflict
+                               CAD is effective in improving language models ofNQ dataset.2 Despite this, CAD achieves substan-
+                                                          different sizes. Specifically, we focus on OPT mod-
+   2This slight decline can be attributed to the fact that this                                                         els across a range of sizes: 125M, 350M, 1.3B,
+particular NQ dataset is included in the instruction-finetuning
+                                                 2.7B, 6.7B, 13B, 30B. As depicted in Figure 2,sets used by FLAN-T5, and hence, the model has been previ-
+ously trained on it.                          we observe that the performance gain brought by
+
+=== PDF第5页 ===
+Figure 2: OPT models of varying sizes consistently benefit from CAD. The x-axis indicates the size of language
+models and the y-axis is the performance.
+
+
+               XSUM                      with various values of α and present the results in
+  Article   He passed away peacefully in hospital on Tues-   Figure 3. Across all three datasets, we find λ = 0.5
+           day after a short illness. Born in Tourmakeady,   consistently provide robust improvements over reg-
+          County Mayo, he worked as a teacher before se-                                                      ular decoding. Further increasing the value of α            curing a part in the premiere of the Brian Friel
+            play Translations in 1980. Lally became a house-   yields additional improvement in tasks involving
+            hold name in Ireland for his role as Miley Byrne   knowledge conflicts.
+              in the RTE soap opera Glenroe and later starred in
+             the BBC series Ballykissangel. He also appeared
+                                       5  Related Work             in the Hollywood movie Alexander and provided
+             the voice for the Oscar-nominated, animated Irish
+                                           Summarization Factuality  Summarization mod-              film, The Secret of Kells. As a fluent Irish speaker
+           and advocate of the language, Lally had roles in    els have shown a tendency to generate hallucinated
+             several Irish language films ...                    texts (Maynez et al., 2020; Pagnoni et al., 2021).
+  Regular    Westminister actor Pat Lally died in hospital on                                                This has led to growing efforts to improve the fac-
+           Tuesday night aged 82                                                        tual consistency, including applying attentions to
+ CAD     Actor Lally, best known for Glenroe and Bal-
+             lykissangel, has died in hospital on Tuesday        fact triples extracted from source documents (Cao
+                                                           et al., 2018; Zhu et al., 2021), optimizing sum-
+                 MemoTrap
+                                                  marization models towards a factual consistency
+  Input     Write a quote that ends in the word “early”. Better
+                                                  metrics (Nan et al., 2021; Cao and Wang, 2021),              late than
+  Regular    never                                      learning a post-editing error corrector (Dong et al.,
+ CAD      early                                  2020) and removing noisy training samples (Kang
+                                            and Hashimoto, 2020; Goyal and Durrett, 2021).
+Table 4: Qualitative examples of contrast-aware decod-
+                                              However, all these methods require additional fine-
+ing. The nonfactual or inconsistent texts are highlighted
+                                                  tuning and are not directly suitable for zero-shotin yellow.
+.                                            and few-shot prompting scenarios.
+
+                                        Knowledge Conflicts  When presented with an
+CAD stays consistent with different model sizes in   updated document with conflicting knowledge,
+CNN-DM. In Memotrap and NQSWAP, this gain   we expect language models to generate responses
+increases as the model size grows, indicating that   based on the provided contexts rather than relying
+larger LMs can have a greater tendency to rely on    solely on outdated parametric knowledge. This set-
+their prior knowledge instead of reading the con-    ting is especially valuable to retrieval-augmented
+texts, thereby benefiting more from CAD.           language models (Khandelwal et al., 2020; Shi
+                                                             et al., 2023; Min et al., 2022; Yasunaga et al., 2023),
+Effect of adjustment level α  Context-aware   where documents retrieved from external databases
+decoding introduces a hyperparameter α, which    are used as additional input to provide LMs addi-
+serves to control the adjustment level of CAD (a    tional knowledge. However, simply adding docu-
+small α makes the distribution closer to the original   ments does not always change the model predic-
+next token distribution). We conduct experiments    tions, as current LMs often overlook the contexts
+
+=== PDF第6页 ===
+          Figure 3: Effect of the adjustment level α. The y-axis is the performance and the x-axis is α.
+
+
+and rely heavily on their prior parametric knowl-   6  Conclusion
+edge (Longpre et al., 2021; Chen et al., 2022). Ex-
+                                                      Off-the-shelf language models may suffer from an
+isting approaches for improving model’s faithful-
+                                                         insufficient attention to the supplied context com-
+ness to the context, such as the prompting-based
+                                                pared to its learned prior knowledge, leading to
+method (Zhou et al., 2023), are limited in that
+                                             an unfaithful generation to the input context. We
+they could only apply to large-scale instruction-
+                                                     present context-aware decoding, a simple inference-
+finetuned LMs like OpenAI’s text-davinci-003. In
+                                                 time method that downweights an output probabil-
+contrast, our work investigates a decoding strategy
+                                                              ity associated with the model’s prior knowledge to
+to tackle this problem, which is applicable to any
+                                             promote models’ attention to the contextual infor-
+LM.
+                                                 mation. We experiment on two families of tasks
+                                                         that require a strong attention to the context, sum-
+                                                    marization and knowledge conflicts tasks. We show
+                                                        that CAD provides more reliable and factual out-
+                                                   puts across different language models of variousContrastive Decoding Methods  Contrastive de-
+                                                           sizes.coding methods have been extensively explored for
+text generation. Coherence boosting (Malkin et al.,
+2021) demotes a short context from a full context,                                          References
+focusing on the longer-range context for coherence
+                                                    Sid Black, Gao Leo,  Phil Wang, Connor Leahy,and overall better generation quality. MMI-based
+                                                  and Stella Biderman. 2021.   GPT-Neo:  Large
+decoding (Li et al., 2015) uses a contrastive formu-                                                          Scale Autoregressive Language Modeling with Mesh-
+lation to improve output diversity in dialog genera-      Tensorflow.
+tion. In this work, we adopt a same intuition and
+                                              Shuyang Cao and Lu Wang. 2021.    Cliff:  Con-focus on analyzing the knowledge conflict scenar-
+                                                                   trastive learning for improving faithfulness and fac-
+ios where the faithfulness to the context is particu-                                                                   tuality in abstractive summarization. arXiv preprint
+larly important but difficult for the regular decoding      arXiv:2109.09209.
+methods. DExperts (Liu et al., 2021) demotes the
+                                                      Ziqiang Cao, Furu Wei, Wenjie Li, and Sujian Li. 2018.output distribution of an anti-expert (e.g., exposed
+                                                                Faithful to the original: Fact aware neural abstractive
+to toxic language) to help lead the generations free                                                        summarization. In Proceedings of the AAAI Confer-
+from the unwanted attributes. Contrastive decoding      ence on Artificial Intelligence, volume 32.
+(Li et al., 2022) demotes an amateur model (e.g.,
+                                                     Stephanie C. Y. Chan, Adam Santoro, Andrew Kyle
+models with a very small number of parameters)
+                                                   Lampinen,  Jane X. Wang,  Aaditya K  Singh,
+to help distill the expert knowledge learned in the       Pierre H. Richemond, Jay Mcclelland, and Felix
+larger, more competitive models. In general, con-       Hill. 2022. Data distributional properties drive emer-
+trastive decoding has shown to be a general way to      gent in-context learning in transformers.  ArXiv,
+                                                        abs/2205.05055.control model outputs, which we reinforce by con-
+sidering the new case of factual consistency with   Hung-Ting Chen, Michael Zhang, and Eunsol Choi.
+the textual context.                                     2022. Rich knowledge sources bring complex knowl-
+
+=== PDF第7页 ===
+  edge conflicts: Recalibrating models to reflect con-   Xiang Lisa Li, Ari Holtzman, Daniel Fried, Percy Liang,
+   flicting evidence. In Proceedings of the 2022 Con-      Jason Eisner, Tatsunori Hashimoto, Luke Zettle-
+   ference on Empirical Methods in Natural Language      moyer, and Mike Lewis. 2022. Contrastive decoding:
+  Processing, pages 2292–2307, Abu Dhabi, United      Open-ended text generation as optimization. ArXiv,
+  Arab Emirates. Association for Computational Lin-      abs/2210.15097.
+   guistics.
+                                              Chin-Yew Lin. 2004. ROUGE: A package for auto-
+Hyung Won Chung, Le Hou, Shayne Longpre, Bar-      matic evaluation of summaries. In Text Summariza-
+   ret Zoph, Yi Tay, William Fedus, Eric Li, Xuezhi       tion Branches Out, pages 74–81, Barcelona, Spain.
+  Wang, Mostafa Dehghani, Siddhartha Brahma, et al.      Association for Computational Linguistics.
+  2022. Scaling instruction-finetuned language models.
+  arXiv preprint arXiv:2210.11416.                     Alisa  Liu  and  Jiacheng  Liu.  2023.     The
+                                                memotrap    dataset.          https://github.
+Yue Dong, Shuohang Wang, Zhe Gan, Yu Cheng, Jackie                                                 com/inverse-scaling/prize/blob/main/
+  Chi Kit Cheung, and Jingjing Liu. 2020.  Multi-                                                  data-release/README.md.
+   fact correction in abstractive text summarization. In
+  Proceedings of the 2020 Conference on Empirical    Alisa  Liu,  Maarten  Sap,  Ximing  Lu,  Swabha
+  Methods in Natural Language Processing (EMNLP),      Swayamdipta, Chandra Bhagavatula, Noah A. Smith,
+  pages 9320–9331, Online. Association for Computa-      and Yejin Choi. 2021. Dexperts: Decoding-time con-
+   tional Linguistics.                                            trolled text generation with experts and anti-experts.
+                                                          In Annual Meeting of the Association for Computa-Shangbin Feng, Vidhisha Balachandran, Yuyang Bai,
+                                                                tional Linguistics.  and Yulia Tsvetkov. 2023. Factkb: Generalizable fac-
+   tuality evaluation using language models enhanced                                               Shayne Longpre, Kartik Perisetla, Anthony Chen,
+  with factual knowledge.                                                         Nikhil Ramesh, Chris DuBois, and Sameer Singh.
+Tanya Goyal and Greg Durrett. 2021. Annotating and      2021. Entity-based knowledge conflicts in question
+  modeling fine-grained factuality in summarization.      answering. In Proceedings of the 2021 Conference
+   In Proceedings of the 2021 Conference of the North      on Empirical Methods in Natural Language Process-
+  American Chapter of the Association for Computa-       ing, pages 7052–7063, Online and Punta Cana, Do-
+   tional Linguistics: Human Language Technologies,      minican Republic. Association for Computational
+  pages 1449–1462, Online. Association for Computa-       Linguistics.
+   tional Linguistics.
+                                                   Nikolay Malkin, Zhen Wang, and Nebojsa Jojic. 2021.
+Jonathan Ho and Tim Salimans. 2022. Classifier-free      Coherence boosting: When your pretrained language
+   diffusion guidance. ArXiv, abs/2207.12598.            model is not paying enough attention.  In Annual
+                                                    Meeting of the Association for Computational Lin-
+Ari Holtzman, Jan Buys, Li Du, Maxwell Forbes, and        guistics.
+  Yejin Choi. 2019. The curious case of neural text de-
+   generation. In International Conference on Learning    Joshua Maynez, Shashi Narayan, Bernd Bohnet, and
+   Representations.                                Ryan McDonald. 2020. On faithfulness and factu-
+                                                                    ality in abstractive summarization. In Proceedings
+Daniel Kang and Tatsunori B. Hashimoto. 2020. Im-                                                              of the 58th Annual Meeting of the Association for
+  proved natural language generation via loss trunca-                                                    Computational Linguistics, pages 1906–1919, On-
+   tion. In Proceedings of the 58th Annual Meeting of                                                                       line. Association for Computational Linguistics.
+   the Association for Computational Linguistics, pages
+  718–731, Online. Association for Computational Lin-                                            Sewon Min, Weijia Shi, Mike Lewis, Xilun Chen, Wen
+   guistics.                                                             tau Yih, Hannaneh Hajishirzi, and Luke Zettlemoyer.
+                                                       2022. Nonparametric masked language modeling.Urvashi Khandelwal, Omer Levy, Dan Jurafsky, Luke
+   Zettlemoyer, and Mike Lewis. 2020. Generalization
+                                              Feng Nan, Cicero Nogueira dos Santos, Henghui Zhu,
+  through memorization: Nearest neighbor language
+                                                             Patrick Ng, Kathleen McKeown, Ramesh Nallapati,
+  models. In International Conference on Learning
+                                                         Dejiao Zhang, Zhiguo Wang, Andrew O. Arnold, and
+   Representations.
+                                                  Bing Xiang. 2021. Improving factual consistency
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-      of abstractive summarization via question answering.
+   field, Michael Collins, Ankur Parikh, Chris Alberti,      In Proceedings of the 59th Annual Meeting of the
+   Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-      Association for Computational Linguistics and the
+   ton Lee, et al. 2019. Natural questions: a benchmark      11th International Joint Conference on Natural Lan-
+   for question answering research. Transactions of the      guage Processing (Volume 1: Long Papers), pages
+  Association for Computational Linguistics, 7:452–      6881–6894, Online. Association for Computational
+  466.                                                        Linguistics.
+
+Jiwei Li, Michel Galley, Chris Brockett, Jianfeng Gao,   Shashi Narayan, Shay B. Cohen, and Mirella Lapata.
+  and William B. Dolan. 2015. A diversity-promoting      2018. Don’t give me the details, just the summary!
+   objective function for neural conversation models.      topic-aware convolutional neural networks for ex-
+  ArXiv, abs/1510.03055.                               treme summarization. In Proceedings of the 2018
+
+=== PDF第8页 ===
+  Conference on Empirical Methods in Natural Lan-
+  guage Processing, pages 1797–1807, Brussels, Bel-
+  gium. Association for Computational Linguistics.
+
+Artidoro Pagnoni, Vidhisha Balachandran, and Yulia
+  Tsvetkov. 2021. Understanding factuality in abstrac-
+   tive summarization with FRANK: A benchmark for
+   factuality metrics. In Proceedings of the 2021 Con-
+   ference of the North American Chapter of the Asso-
+   ciation for Computational Linguistics: Human Lan-
+  guage Technologies, pages 4812–4829, Online. As-
+   sociation for Computational Linguistics.
+
+Abigail See, Peter J Liu, and Christopher D Man-
+   ning. 2017.   Get to the point:  Summarization
+  with pointer-generator networks.  arXiv preprint
+  arXiv:1704.04368.
+
+Weijia Shi, Sewon Min, Michihiro Yasunaga, Minjoon
+   Seo, Rich James, Mike Lewis, Luke Zettlemoyer, and
+  Wen tau Yih. 2023. Replug: Retrieval-augmented
+  black-box language models.
+
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+   Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+   Baptiste Rozière, Naman Goyal,  Eric Hambro,
+   Faisal Azhar, et al. 2023. LLaMA: Open and ef-
+   ficient foundation language models. arXiv preprint
+  arXiv:2302.13971.
+
+Michihiro Yasunaga, Armen Aghajanyan, Weijia Shi,
+  Rich James, Jure Leskovec, Percy Liang, Mike Lewis,
+  Luke Zettlemoyer, and Wen-tau Yih. 2023. Retrieval-
+  augmented multimodal language modeling. In Inter-
+   national Conference on Machine Learning (ICML).
+
+Susan Zhang, Stephen Roller, Naman Goyal, Mikel
+   Artetxe, Moya Chen, Shuohui Chen, Christopher De-
+  wan, Mona Diab, Xian Li, Xi Victoria Lin, et al. 2022.
+  Opt: Open pre-trained transformer language models.
+  arXiv preprint arXiv:2205.01068.
+
+Tianyi Zhang, Faisal Ladhak, Esin Durmus, Percy Liang,
+  Kathleen McKeown, and Tatsunori B. Hashimoto.
+  2023. Benchmarking large language models for news
+  summarization.
+
+Wenxuan Zhou, Sheng Zhang, Hoifung Poon, and
+  Muhao Chen. 2023. Context-faithful prompting for
+   large language models. ArXiv, abs/2303.11315.
+
+Chenguang Zhu, William Hinthorn, Ruochen Xu,
+  Qingkai Zeng, Michael Zeng, Xuedong Huang, and
+  Meng Jiang. 2021. Enhancing factual consistency
+   of abstractive summarization. In Proceedings of the
+  2021 Conference of the North American Chapter of
+   the Association for Computational Linguistics: Hu-
+  man Language Technologies, pages 718–733, Online.
+  Association for Computational Linguistics.

@@ -1,0 +1,962 @@
+
+=== PDF第1页 ===
+      Toward Reliable Scientific Hypothesis Generation: Evaluating Truthfulness and
+                          Hallucination in Large Language Models
+
+                Guangzhi Xiong1 , Eric Xie1 , Corey Williams1 , Myles Kim1 , Amir Hassan
+                    Shariatmadari1 , Sikun Guo1 , Stefan Bekiranov1 and Aidong Zhang1
+                                                1University of Virginia
+                 {hhu4zu, jrg4wx, cmw6pa, mbt8hz, ahs5ce, qkm6sq, sb3de, aidong}@virginia.edu
+
+
+                          Abstract                            synthesize vast amounts of scientific literature positions them
+                                                                         as valuable tools in aiding researchers, particularly for tasks
+              Large language models (LLMs) have shown sig-                                                                   such as literature reviews, summarization, and even gener-
+                 nificant potential in scientific disciplines such as                                                                            ating new hypotheses [Qi et al., 2023; Zhou et al., 2024;2025        biomedicine, particularly in hypothesis generation,                                                      M. Bran et al., 2024; Wright et al., 2022; Zeng et al., 2023;
+             where they can analyze vast literature, identify pat-                                                            D’Arcy et al., 2024; Ifargan et al., 2025; Yang et al., 2025].
+                 terns, and suggest research directions.  However,
+                                                         One particularly promising application of LLMs is theirJun        a key challenge lies in evaluating the truthfulness
+                                                                     use in scientific hypothesis generation, where they can as-               of generated hypotheses, as verifying their accu-
+8                                                                                   sist in identifying promising research directions [Park et al.,               racy often requires substantial time and resources.
+                                                                   2024; Si et al., 2024; Guo et al., 2025]. By analyzing ex-                Additionally, the hallucination problem in LLMs
+                                                                            tensive scientific literature, LLMs can uncover gaps in exist-              can lead to the generation of hypotheses that ap-
+                                                                        ing knowledge and propose novel hypotheses that may not               pear plausible but are ultimately incorrect, under-
+                                                                 be immediately apparent to human researchers. For instance,             mining their reliability.  To facilitate the system-
+                                                 LLMs have been successfully applied to propose novel drug                  atic study of these challenges, we introduce Truth-
+                                                                    combinations for breast cancer treatment, some of which[cs.CL]       Hypo, a benchmark for assessing the capabilities
+                                                               were later validated in laboratory experiments, showcasing               of LLMs in generating truthful scientific hypothe-
+                                                                                   their potential to accelerate biomedical discoveries [Abdel-                 ses, and KnowHD, a knowledge-based hallucina-
+                                                         Rehim et al., 2024].                tion detector to evaluate how well hypotheses are
+                                                                        Despite these advancements, there are substantial chal-             grounded in existing knowledge. Our results show
+                                                                        lenges that limit the practical utility of LLMs in scientific                 that LLMs struggle to generate truthful hypothe-
+                                                                       hypothesis generation. A critical concern is the inability                 ses. By analyzing hallucinations in reasoning steps,
+                                                                              to evaluate the truthfulness of generated hypotheses. While           we demonstrate that the groundedness scores pro-
+                                                 LLMs can generate hypotheses that seem plausible, it remains              vided by KnowHD serve as an effective metric for
+                                                                          uncertain whether these hypotheses are valid and grounded                  filtering truthful hypotheses from the diverse out-
+                                                                              in existing knowledge or merely hallucinated and scientifi-               puts of LLMs.  Human evaluations further vali-
+                                                                              cally invalid. This issue is further exacerbated by the well-               date the utility of KnowHD in identifying truth-
+                                                              documented “hallucination” problem, where LLMs confi-                 ful hypotheses and accelerating scientific discov-
+                                                                         dently produce information that is factually inaccurate or                 ery.  Our data and source code are available at
+                                                                       unsupported, posing challenges to their reliability in scien-              https://github.com/Teddy-XiongGZ/TruthHypo.
+                                                                                                  tific contexts [Jin et al., 2024]. While current research hasarXiv:2505.14599v2                                                                       largely focused on improving the novelty and diversity of
+       1  Introduction                                     LLM-generated hypotheses, their truthfulness and grounding
+         Large language models (LLMs) have transformed the land-     in established knowledge remain underexplored [Baek et al.,
+          scape of artificial intelligence, demonstrating remarkable ca-    2024; Hu et al., 2024; Si et al., 2024].
+            pabilities across diverse applications, from natural language     To address these challenges, we introduce TruthHypo, a
+          understanding to creative content generation [Karanikolas et    comprehensive benchmark for evaluating the ability of LLMs
+              al., 2023; Franceschelli and Musolesi, 2024; Raiaan et al.,     to generate truthful  scientific hypotheses, and KnowHD,
+          2024]. These models, trained on extensive corpora of text,    a knowledge-based hallucination detection framework de-
+          demonstrate an ability to analyze, summarize, and generate    signed to assess the groundedness of these hypotheses. Truth-
+          human-like text, enabling advancements across diverse do-    Hypo, built on a biomedical knowledge graph along with a
+          mains. Recently, there has been a growing interest in leverag-    domain-specific corpus, provides a controlled environment to
+          ing LLMs for scientific discovery [Zhong et al., 2023; Yang    evaluate how well LLM-generated hypotheses align with es-
+            et al., 2023; Kumar et al., 2023; Liu et al., 2024; Baek et     tablished scientific knowledge. KnowHD focuses on analyz-
+              al., 2024; Guo et al., 2024]. Their capacity to process and    ing the reasoning processes of LLMs to identify hypotheses
+
+=== PDF第2页 ===
+          Dataset Construction             Task Formulation             Truthfulness Evaluation
+
+                  PubTator 3.0
+                                                                                                                                   Relation 1
+                                             Chemical    Disease    Gene                      Any
+           Knowledge Partitioning         & Gene    & Gene    & Gene                        Relation
+                                                                                         Generated                   Relation 2
+                                                                                              Hypothesis
+              Test Data Refinement
+                                                                                      No
+                                                                                              No Relation
+                                                                                                                     Relation
+             Relation Type Selection        KG                         Literature
+                                               LLM                                       F1         Accuracy
+
+           Negative Sample Creation
+                                                                                     Ground         Link         Relation
+                                                                                                        Truth       Existence       Label
+                                                        Rationale      Hypothesis
+              TruthHypo Dataset
+
+
+      Figure 1: Overview of the TruthHypo benchmark, including dataset construction, task formulation, and truthfulness evaluation.
+
+
+that are likely hallucinated or untruthful. Our findings reveal    2.1  Dataset Construction
+that LLMs face significant challenges in generating truthful                                                   The dataset for TruthHypo is derived from PubTator 3.0 [Wei
+hypotheses.  By analyzing hallucinations in the reasoning                                                                         et al., 2024], a comprehensive biomedical knowledge graph
+processes behind generated hypotheses, we demonstrate that                                                                      that includes annotated relations (also called edges) extracted
+groundedness scores from KnowHD serve as an effective sig-                                                      from scientific articles. To simulate the temporal progres-
+nal for identifying truthful hypotheses from the diverse out-                                                               sion of scientific discovery, we partitioned the graph into
+puts of LLMs. Human evaluations on open-ended hypothe-                                                           “seen” and “unseen” subsets based on the publication years
+sis generation tasks further confirm the utility of KnowHD in                                                               of the corresponding articles.  Relations in the “seen” sub-
+identifying scientifically valid hypotheses.                                                                       set were extracted from papers published before 2023, identi-
+  Our main contributions are summarized as follows:                                                                      fied by PMIDs ≤366000001. The “unseen” subset, designed
+   • We introduce TruthHypo, a comprehensive benchmark     to represent new discoveries, comprises relations extracted
+     designed to evaluate the ability of LLMs to generate    from papers published after 2024, identified by PMIDs ≥
+     truthful scientific hypotheses.                          38200000.
+   • We propose KnowHD, a knowledge-based hallucination     To ensure no overlap between the two subsets, we removed
+     detection framework that assesses the groundedness of    the edges in the unseen subset that shared head and tail enti-
+    LLM-generated hypotheses and identifies hallucinated     ties with those in the seen subset.  In addition, to maintain
+     claims by analyzing the rationale behind the hypothesis     quality and validity, only relations discovered by multiple ar-
+     generation.                                                        ticles in the test data were retained.  This filtering process
+                                                             guarantees that the unseen subset exclusively contains knowl-
+   • We provide an extensive analysis of existing LLMs on                                                        edge unavailable before 2024, simulating the conditions of
+    TruthHypo, highlighting their limitations and challenges                                                                  future scientific research.
+     in generating truthful hypotheses.                                                                 In building the dataset, we focused on three key relation
+   • Our evaluation further reveals the connection between     types: “Chemical & Gene”, “Disease & Gene”, and “Gene
+     hallucination and truthfulness of generated hypotheses,  & Gene”. These relation types were chosen for their com-
+    showing the effectiveness of using KnowHD to select    plementary nature, detailed annotations, and potential for ob-
+     truthful and grounded hypotheses.                            jective evaluation. To construct comprehensive classification
+                                                                 tasks for evaluating different LLMs, we augment the dataset
+2  Truthful Hypothesis Generation                  with negative test cases to assess whether LLMs tend to make
+   Benchmark                                                false-positive predictions on entity pairs that lack a direct re-
+                                                                  lationship in the existing knowledge base. The number of
+To systematically evaluate the ability of large language mod-    negative samples (labeled as “no relation”) for each relation
+els (LLMs) to generate truthful scientific hypotheses, we in-    type is controlled to align with the average number of in-
+troduce TruthHypo, a benchmark tailored for biomedical hy-    stances across other labels of the same relation type. The
+pothesis generation. TruthHypo is designed to simulate real-     final dataset has 1209 instances for the “Chemical & Gene”
+world conditions by employing rigorous dataset construction,     task, 268 instances for the “Disease & Gene” task, and 547
+task formulation, and truthfulness evaluation metrics. An
+overview of the dataset construction, task formulation, and      1PMID is the unique identifier of the paper where the edge was
+evaluation framework is depicted in Figure 1.                       extracted.
+
+=== PDF第3页 ===
+instances for the “Gene & Gene” task. A summary of the    2.3  Evaluation Metrics
+dataset statistics is presented in Table 1.                                                   To evaluate the quality of generated scientific hypotheses, we
+                                                     employ a set of complementary metrics tailored to different
+          Task              Label       # Instance         aspects of hypothesis generation. These metrics assess the
+                                                         performance of LLMs in identifying valid connections be-                          positive correlate     328
+                                                       tween entities (link-level evaluation) and predicting specific    Chemical & Gene   negative correlate     478
+                                                                    relations (relation-level evaluation).                       no relation        403
+                                                           For link-level evaluation, we focus on precision, recall, and
+                             stimulate         104         F1 score. Precision measures the proportion of correctly iden-
+     Disease & Gene          inhibit          75               tified connections among all hypothesized connections, em-
+                       no relation        89            phasizing the reduction of false positives.  Recall evaluates
+                          positive correlate     247            the model’s ability to comprehensively identify all valid con-
+     Gene & Gene     negative correlate     118            nections, capturing its sensitivity to true positives. The F1
+                       no relation        182            score, as the harmonic mean of precision and recall, provides
+                                                           a balanced measure of performance, combining both the ac-
+  Table 1: Statistics of various tasks in the TruthHypo benchmark.     curacy of predictions and the coverage of valid connections.
+                                                       These link-level metrics are critical for assessing the LLM’s
+                                                                        ability to hypothesize plausible relationships between enti-
+2.2  Task Formulation                                               ties, regardless of the specific relation type.
+The TruthHypo benchmark includes three tasks, correspond-      For relation-level evaluation, we employ accuracy to mea-
+ing to the selected relation types: “Chemical & Gene”, “Dis-    sure how often the generated hypotheses match the correct
+ease & Gene”, and “Gene & Gene”. For each task, the input     relation labels in the ground truth.  Accuracy captures the
+is a hypothesis generation query with two entities (see Figure     overall correctness of hypotheses by considering both the ex-
+5 in Appendix D for the template), and the LLM is required     istence of a connection and the predicted relation type. While
+to hypothesize the potential relationship between them based     precision, recall, and F1 focus on identifying potential con-
+on available knowledge and reasoning.                           nections, accuracy provides a finer-grained assessment of the
+  To comprehensively assess LLM performance, we evalu-    model’s capability to generate accurate relation labels.
+ate their ability to generate hypotheses under various knowl-     By combining link-level and relation-level evaluations, the
+edge augmentation settings.  In the first setting, LLMs rely    TruthHypo benchmark comprehensively measures the truth-
+solely on their parametric knowledge – information encoded    fulness of LLM-generated hypotheses, assessing the ability
+in their parameters during pretraining on large corpora. This    of LLMs to produce scientifically valid outputs.
+evaluates the model’s intrinsic understanding and reasoning
+capabilities.                                    3  Knowledge-based Hallucination Detection
+  To enhance hypothesis generation, we introduce a second
+                                               As discussed earlier, a critical concern regarding the truthful-setting in which LLMs are augmented with structured knowl-
+                                                             ness of LLM-generated hypotheses is the occurrence of hallu-edge from the “seen” knowledge graph. In this approach, key
+                                                                    cinations, where models generate plausible-sounding but un-entities from the input are mapped to nodes in the graph, and
+                                                            supported claims. To address this, we introduce KnowHD,multi-hop link chains connecting these nodes are explored.
+                                                           a knowledge-based hallucination detection framework thatThese chains, representing relevant relationships, are trans-
+                                                                evaluates the groundedness of LLM-generated hypotheses byformed into textual descriptions and provided as context for
+                                                             analyzing the rationale behind their generation. KnowHD op-the model to use during hypothesis generation.
+                                                                   erates using scientific literature, knowledge graphs, or a com-  Another setting leverages information from biomedical
+                                                                bination of both as the knowledge base. An overview of theliterature using a  retrieval-augmented  generation (RAG)
+                                                      framework is presented in Figure 2.pipeline. Relevant documents are retrieved from the PubMed
+                                                     To evaluate groundedness, each hypothesis and its reason-corpus2 using BM25 [Robertson et al., 2009]. To maintain
+                                                             ing chain are first decomposed into a set of atomic claims.consistency with the knowledge graph’s temporal split, only
+                                                           This step is critical because hypotheses often consist of com-articles with PMIDs ≤36600000 are included in the retrieval.
+                                                    pound reasoning steps, some of which may be supported byThis simulates the process of generating hypotheses based on
+                                                                  existing knowledge while others may not. Parsing these intoliterature available at a given point in time.
+                                                          atomic claims allows a more granular evaluation of grounded-   Finally, we consider a combined setting, where both struc-
+                                                             ness and isolates unsupported components. This step is im-tured knowledge from the graph and unstructured information
+                                                         plemented by prompting LLMs with the template shown infrom retrieved literature are used to support hypothesis gener-
+                                                            Figure 10 (Appendix D).ation. This comprehensive approach provides a more holistic
+                                              When using scientific literature as the knowledge base, rel-context, enabling the model to reason across both sources.
+                                                              evant documents for each atomic claim are retrieved fromThe LLM prompt templates we used to combine the external
+                                                                the PubMed corpus, limited to articles published before 2023information with the original user instructions can be found
+                                              (PMID ≤36600000). BM25 is employed to rank documentsin Figures 6, 8, 7, and 9 (Appendix D).
+                                                          based on their relevance to the claim. To ensure computa-
+   2https://pubmed.ncbi.nlm.nih.gov/                                 tional efficiency and focus on the most relevant information,
+
+=== PDF第4页 ===
+          Rationale of Generated Hypothesis               claims enables a detailed assessment of the groundedness
+                                                               of hypotheses, identifying unsupported components and im-
+                                                           proving the reliability of LLM-generated outputs.
+
+       Claim     Claim     Claim             Claim          4  Benchmark Analysis on TruthHypo
+                                                         4.1  Experiment Settings
+                                                   To assess the ability of existing LLMs to generate truthful
+                              claim                                    scientific hypotheses, we selected a diverse range of mod-
+    Knowledge                                  Scientific            els varying in type and size. The Llama-3 family [Dubey
+                      context       context
+      Graph                                  Literature             et al., 2024] represents open-source LLMs, while the GPT-4
+                                                            family [Achiam et al., 2023] exemplifies proprietary models.                              claim
+                                                From each family, we evaluated two LLMs of different sizes
+                                                         (Llama-3.1-8B & Llama-3.1-70B, GPT-4o-mini & GPT-4o)
+                       groundedness
+                                                                   to investigate size-related differences in performance.  All
+                                          LLMs were trained on the knowledge available before 2024,
+Figure 2: Overview of the KnowHD hallucination detection frame-    preventing recall of the exact knowledge for hypothesis gen-
+work.  Hypotheses are parsed into atomic claims, which are then     eration. More implementation details are in Appendix A.
+evaluated for groundedness using a knowledge graph, scientific lit-     The TruthHypo benchmark evaluates LLMs across four
+erature or both as knowledge sources.                                                                       distinct settings: (1) parametric knowledge only, (2) paramet-
+                                                                          ric knowledge with knowledge graphs (KG), (3) parametric
+only the top-k documents are retained. The context retrieved    knowledge with literature (Lit.), and (4) parametric knowl-
+from the literature corpus D for a claim p is defined as:         edge with both KG and literature. These settings allow us
+                                                                   to explore the impact of external knowledge sources on hy-
+  contextD(p) = {d1, d2, · · · , dk|                               pothesis generation. The F1 and accuracy scores of different
+                                                            (1)
+              di ∈D, BM25(p; di) ≥τ, rank(di) ≤k},        models are reported in this section. More detailed results on
+                                                                the precision and recall can be found in Appendix C.
+where di represents a document in the corpus, BM25(p; di)
+is the relevance score assigned to the document for the claim    4.2  Comparison of LLMs in Truthful Hypothesis
+p. τ is a threshold ensuring relevance, and rank(di) denotes        Generation
+the rank of di in the BM25-retrieved list.                                                            Table 2 presents the evaluation results for different LLMs and
+  When using a knowledge graph G as the knowledge base,                                                      knowledge settings on TruthHypo. Across all tasks, the re-
+the context for a claim is derived from the graph structure.                                                                       sults indicate that most LLMs struggle to generate truthful
+For a claim p, relevant knowledge is extracted as:                                                                         scientific hypotheses, with only GPT-4o achieving mean ac-
+                                                                curacies exceeding 60%. Additionally, we can observe that   contextG(p) = {(eh, r, et) ∈G |{eh, et} ⊆V(p)} ,    (2)
+                                                                     link-level F1 scores are higher than relation-level accuracy
+where (eh, r, et) represents an edge in the knowledge graph     scores, which indicates that LLMs can identify potential con-
+with head entity eh, tail entity et, and relation r. The set V(p)    nections between entities but often fail to accurately predict
+contains all entities mentioned in the claim p.                    the specific relationships.
+  The groundedness of a claim  is determined based on      For models from the same family with different sizes,
+whether the given context information (contextD, contextG,     larger LLMs tend to generate scientific hypotheses more
+or contextD ∪contextG) can fully support the claim, which     likely to be truthful. This can be attributed to two main fac-
+is implemented by prompting LLMs to provide a judgment     tors.  First, larger LLMs generally perform better because
+using the template in Figure 12 (Appendix D). If the con-    they can store and leverage more knowledge in their param-
+catenated context collectively entails the claim, it is consid-     eters, as shown by the results of parametric knowledge-only
+ered grounded. The overall groundedness of a hypothesis h     setting. Second, LLMs of different sizes have diverse capa-
+is computed as:                                                           bilities to process external knowledge for hypothesis genera-
+                                                                         tion. For example, GPT-4o-mini shows a modest 1.14% ac-
+                    1
+   groudedness(h) =   X  1[context(p) |= p],   (3)    curacy improvement when augmented with KG and literature,
+                      |C(h)|                            p∈C(h)                         whereas GPT-4o achieves a more substantial 5.14% increase
+                                                          under the same conditions. This suggests that larger LLMs
+where C(h) represents the set of atomic claims for hypothesis    can better utilize additional context to reason about truth-
+h, and 1[x |= y] returns 1 if x entails y and 0 otherwise. The     ful scientific hypotheses. Similar trends are observed when
+context(p) can be contextD(p), contextG(p), or contextD(p)∪    comparing Llama-3.1-8B and Llama-3.1-70B. Interestingly,
+contextG(p).                                                  smaller models, such as Llama-3.1-8B, sometimes experience
+  By offering both literature-based and graph-based con-    decreased performance when information from KG and liter-
+texts, KnowHD provides a robust framework for hallucina-     ature is introduced. This degradation may stem from chal-
+tion detection, offering flexibility to adapt to the available    lenges in effectively integrating internal and external infor-
+knowledge sources.  This systematic evaluation of atomic    mation, which can disrupt the model’s reasoning processes.
+
+=== PDF第5页 ===
+                                          Chemical & Gene   Disease & Gene  Gene & Gene     Average
+            Knowledge      LLM
+                                          F1      Acc      F1     Acc     F1    Acc    F1    Acc
+
+                              Llama-3.1-8B    80.16     42.43     79.37    41.04    79.19   46.07   66.90   43.23
+               Parametric       Llama-3.1-70B   81.36     52.44     83.29    54.48    76.66   49.91   71.54   52.03
+           [Wei et al., 2022]     GPT-4o-mini    83.31     61.29     81.84    59.33    79.32   53.02   75.49   58.79
+                              GPT-4o      80.74     66.17     75.38    54.85    71.56   55.58   73.17   61.81
+
+                              Llama-3.1-8B    81.37     40.61     79.59    48.13    79.61   48.45   70.65   43.73
+            Parametric + KG    Llama-3.1-70B   87.85     62.86     67.62    52.24    78.29   58.14   79.10   60.18
+          [Baek et al., 2024]    GPT-4o-mini    86.42     57.65     74.17    55.60    81.65   62.34   79.40   58.65
+                              GPT-4o      88.66     63.85     79.50    56.72    82.73   61.06   81.62   62.15
+
+                              Llama-3.1-8B    80.78     46.07     80.46    43.28    79.91   42.60   68.58   44.76
+            Parametric + Lit.    Llama-3.1-70B   82.56     56.74     84.16    52.99    79.18   51.55   73.37   54.84
+          [Lewis et al., 2020]    GPT-4o-mini    85.28     59.80     85.71    53.73    81.50   51.19   77.08   56.67
+                              GPT-4o      79.52     65.92     75.84    55.97    64.69   51.92   71.84   60.82
+
+                              Llama-3.1-8B    75.98     36.48     77.58    41.42    79.19   45.70   65.37   39.62
+            Parametric + KG    Llama-3.1-70B   84.80     59.31     77.64    56.34    81.24   55.76   77.37   57.95
+           + Literature       GPT-4o-mini    88.34     60.96     84.47    58.21    84.17   58.50   81.42   59.93
+                              GPT-4o      89.71     69.31     82.86    62.31    85.91   63.99   83.55   66.95
+
+
+Table 2: Performance comparison of different LLMs on the TruthHypo benchmark across various knowledge settings. The metrics reported
+are link-level F1 and relation-level accuracy (Acc) for each task (Chemical & Gene, Disease & Gene, Gene & Gene), as well as their
+averages. “Param.” denotes parametric knowledge, while “KG” and “Lit.” refer to knowledge graphs and literature, respectively. All scores
+are percentages (%).
+
+
+  Performance differences are also observed across the three                            KnowHD
+relation types: “Chemical & Gene”, “Disease & Gene” and         Task      Knowledge                                                            KG      Lit.  KG + Lit.
+“Gene & Gene”. Notably, all larger models, including GPT-
+4o, GPT-4o-mini, and Llama-3.1-70B, tend to perform better                      Parametric    44.77   67.34     74.49
+on “Chemical & Gene” tasks than on the other two types.         Chemical  + KG         49.93   51.08     73.03
+                                        & Gene    + Lit.         47.19   76.30     83.20This trend suggests that the “Chemical & Gene” task may
+                                                                 + KG + Lit.   50.57   65.25     78.90
+be more aligned with the pre-trained knowledge or reason-
+ing capabilities of these models.  In contrast, the smaller                      Parametric    45.44   71.56     78.91
+Llama-3.1-8B shows a more inconsistent pattern, with per-          Disease    + KG         57.07   60.70     79.81
+formance varying across tasks and settings, likely reflecting      & Gene    + Lit.         49.34   78.65     85.32
+                                                                 + KG + Lit.   51.11   75.26     86.68its more limited parametric capacity and reasoning abilities.
+These variations in performance across relation types may                      Parametric    42.94   67.81     76.16
+be attributed to differences in training data distributions or        Gene     + KG         58.07   56.41     79.64
+the complexity of the relation types themselves. The rela-      & Gene    + Lit.         44.49   76.43     84.48
+tively stronger performance on the “Chemical & Gene” task                 + KG + Lit.   54.03   67.96     82.87
+highlights potential domain-specific biases or strengths in the
+LLMs, offering insights into their suitability for targeted ap-     Table 3: KnownHD (KG, Lit., and KG + Lit.) groudedness scores
+                                                                      of hypotheses generated by GPT-4o-mini under different knowledgeplications in real-world scientific discovery.
+                                                                               settings. All scores are percentages (%).
+
+4.3  Hallucination Detection on LLM-generated
+     Hypotheses                                                                 detector can hardly verify the rationale generated based on
+To assess the groundedness of the generated hypotheses,    adding KG information to parametric knowledge with only
+we evaluated their rationales using KnowHD under various    51.08% of the claims being grounded. Combining KG and
+knowledge settings. KnowHD measures how well a hypothe-     literature yields the highest groundedness scores, effectively
+sis is supported by structured knowledge (KG), unstructured    leveraging the complementary strengths of both sources to
+knowledge (literature), or both combined. The groundedness     identify grounded claims and detect hallucinations.
+evaluation results for hypotheses generated by GPT-4o-mini     To further explore the relationship between hallucination
+are presented in Table 3.                                  and truthfulness, Figure 3 examines mean accuracy as a func-
+  The results demonstrate distinct contributions of KG and     tion of groundedness scores. Hypotheses were grouped based
+literature to grounding hypotheses. For example, KnowHD    on their groundedness scores, and the average accuracy for
+with the literature as the support knowledge base can ver-    each group was calculated. The figure reveals a positive cor-
+ify 76.30% claims in the rationales of literature-augmented     relation between groundedness scores and hypothesis truth-
+‘Chemical & Gene” hypotheses. However, the hallucination     fulness.  As groundedness scores increase, the likelihood
+
+=== PDF第6页 ===
+                       Chemical & Gene                     Disease & Gene                   Gene & Gene
+                100                                         100                                         100
+
+
+                 80                                          80                                          80
+               (%)  60                                          60                                          60
+
+
+                 40                                          40                                          40                                         Accuracy
+
+                 20                                          20                                          20
+
+
+                  0                                           0                                           0
+                   0      20     40     60     80     100     0      20     40     60     80     100     0      20     40     60     80     100
+                          Groundedness (%)                       Groundedness (%)                       Groundedness (%)
+                                                  Parametric          Parametric + KG          Parametric + Lit.          Parametric + KG + Lit.
+
+
+Figure 3: Mean accuracy corresponding to different levels of groundedness. Hypotheses are grouped based on their groundedness scores
+provided by KnowHD (KG + Literature). Only groups with no less than 10 hypotheses are shown in the plots. The dot size reflects the
+number of samples in each level of groundedness.
+
+
+of the hypothesis being truthful also increases.  For exam-                             greedy           majority         groundedness
+ple, GPT-4o-mini achieves a mean accuracy of 60.96% on                       64                                                                         63.44
+“Chemical & Gene” tasks under the combined KG + Liter-
+ature setting, but this rises to 72.77% for hypotheses with                       62          61.86                   61.46
+groundedness scores above 80%. These findings underscore              (%)                                60.62                                 60.52
+the potential of KnowHD to identify hypotheses with a higher                       60               59.83                                          59.93
+probability of being truthful, particularly in contexts enriched                           58.79              58.65                         58.89                                                                                                                                                                                                                                                                                             Accuracy 58with external knowledge.
+                                                                                                                                                                          56.67 56.77
+
+
+                                                                                                                                            56
+4.4  Improving Generation of Truthful Hypotheses
+     with KnowHD                                                                                                54
+                                                                                                  Param.      Param.+KG     Param.+Lit.   Param.+KG+Lit.
+
+To validate the utility of KnowHD on enhancing hypothesis
+                                                                   Figure 4: Accuracy improvements of GPT-4o-mini using KnowHD
+generation, we prompted LLMs to generate five candidate hy-
+                                                 (KG + Lit.) groundedness scores for hypothesis selection. “Param.”,
+potheses for each input and selected the one with the highest                                                  “KG” and “Lit.” denote parametric knowledge, knowledge graphs,
+groundedness score as the final output. This approach was    and literature, respectively.
+compared to two baselines: the greedy search method, where
+the hypothesis is generated using greedy next-token selec-
+tion by the LLM, and the self-consistency method [Wang et   5  Human Study on Open-ended Tasks
+al., 2022], which selects hypotheses based on majority voting                                                   To further assess the generalizability of KnowHD’s effective-
+across multiple predictions.                                                             ness in selecting truthful hypotheses, we conducted exper-
+  As shown in Figure 4, groundedness-based hypothesis se-    iments on open-ended hypothesis generation tasks.  These
+lection generally outperforms both the greedy search and     tasks were designed to evaluate whether KnowHD could reli-
+majority-voting methods across most knowledge settings. In    ably identify hypotheses with a higher likelihood of truthful-
+the parametric knowledge-only setting, the majority-voting    ness across broader and less structured generation scenarios.
+method achieves slightly higher accuracy (61.86%) compared    For this analysis, we utilized the publicly available hypothesis
+to groundedness-based selection (59.83%). However, as ex-    generation dataset introduced by Qi et al. [2024], which in-
+ternal knowledge is introduced, groundedness-based selec-    volves generating free-form hypotheses based on given back-
+tion demonstrates consistent improvements over both base-    ground information. We selected GPT-4o-mini as the tested
+lines. For example, in the combined parametric + KG + Lit-   LLM and enhanced its hypothesis generation process by in-
+erature setting, GPT-4o-mini achieves an average accuracy    corporating external knowledge from scientific literature and
+of 63.44% when groundedness-based selection is used, ap-    knowledge graphs (KG). The model was prompted to gener-
+proaching the performance of the larger GPT-4o model.          ate five distinct scientific hypotheses for each input. These
+  These results highlight the effectiveness of groundedness    hypotheses were then evaluated by KnowHD, which assessed
+scores in scenarios where external knowledge is incorporated,     their groundedness based on their alignment with both struc-
+as they help identify hypotheses that are more likely to be    tured (KG) and unstructured (literature) knowledge sources.
+truthful. By detecting hallucinations in reasoning steps and     To analyze the relationship between groundedness scores
+focusing on grounded hypotheses, KnowHD provides a ro-    and hypothesis truthfulness, we filtered generated hypotheses
+bust mechanism for enhancing the reliability and truthfulness     to create pairs with contrasting groundedness levels. For each
+of LLM-generated scientific hypotheses.                          input, we identified one hypothesis with the highest ground-
+
+=== PDF第7页 ===
+ Group            Groudedness    GPT-4o     Human       6.2  Knowledge Graph Reasoning
+  highly-grounded      83.94         61.11         59.26       Knowledge graph reasoning involves inferring missing facts
+ lowly-grounded       40.61         38.89         40.74        or relationships within a knowledge graph, with tasks such
+                                                               as link prediction, entity classification, and relation extrac-
+  p-value            7.84 ×10−11   1.05 ×10−2   2.71 ×10−2                                                                   tion being extensively studied [Nickel et al., 2015; Lin et
+                                                                                  al., 2015; Ji et  al., 2021; Shu et  al., 2024].   Traditional
+Table 4: Results of analysis on open-ended hypothesis generation                                                                   link prediction focuses on predicting edges between entities
+tasks. “GPT” and “Human” denote the selection ratios by GPT-4o
+                                                          based on graph structure. These tasks primarily target struc-
+and human experts, respectively. All scores are percentages (%). p-
+                                                                tured graph completion, emphasizing pattern detection rathervalues were calculated using Wilcoxon signed-rank test and Z-test.
+                                                             than creative reasoning [Zhang and Chen, 2018; Krenn et
+                                                                                  al., 2023; Liu et al., 2023; Wu et al., 2023; Gu and Krenn,
+edness score and another with the lowest. We retained pairs    2024]. TruthHypo introduces a novel benchmark that cen-
+where the higher groundedness score was at 30% greater than     ters on LLM-driven scientific hypothesis generation, lever-
+the lower score. This filtering resulted in 54 pairs of hypothe-    aging LLMs’ ability to flexibly integrate external knowledge
+ses with significant differences in groundedness levels. To    through contextual inputs.  Unlike static graph reasoning,
+validate KnowHD’s effectiveness, we involved two domain    TruthHypo evaluates how well LLMs generate grounded and
+experts to annotate each pair (80% agreement), selecting the     truthful hypotheses.  This shift highlights the growing role
+hypothesis they deemed more likely truthful based on the    of LLMs in scientific discovery and bridges the gap between
+given information.  Additionally, GPT-4o was prompted to    symbolic graph reasoning and natural language creativity.
+analyze the same pairs and provide its judgment. Results of
+this annotation study, summarized in Table 4, report the se-    6.3  Retrieval-augmented Generation
+lection ratio for each group, defined as the proportion of hy-    Retrieval-augmented generation (RAG) has emerged as a
+potheses in each group identified as more truthful.              powerful approach for improving the factual accuracy and
+  The results demonstrate a significant relationship between    relevance of LLM outputs by integrating external knowledge
+groundedness scores and the perceived truthfulness of hy-    during the generation process. This technique has been ap-
+potheses. Hypotheses with higher groundedness scores were     plied with literature retrieval, as demonstrated by [Lewis et
+consistently more likely to be selected as truthful by both hu-      al., 2020], to dynamically incorporate up-to-date information
+man experts and GPT-4o, as indicated by the substantial dif-     into model outputs. Retrieval-augmented generation methods
+ferences in selection ratios. These findings highlight the util-    enhance the ability of LLMs to ground their outputs in ex-
+ity of KnowHD in distinguishing truthful hypotheses, even     ternal knowledge, making them particularly valuable in tasks
+in unstructured, open-ended generation tasks. By effectively    requiring factual accuracy, such as scientific text generation
+leveraging groundedness as a criterion, KnowHD provides     [L´ala et al., 2023; Munikoti et al., 2023]. In addition to liter-
+a robust mechanism for improving the reliability of LLM-     ature retrieval, retrieval-augmented generation using knowl-
+generated hypotheses, reinforcing its potential for facilitating    edge graphs has gained attention for its potential to provide
+real-world scientific discovery processes.                         structured, domain-specific knowledge during text generation
+                                                        [Peng et al., 2024; Ma et al., 2024; Wang et al., 2025]. Truth-
+6  Related Work                               Hypo builds on this paradigm by integrating both literature
+                                                      and knowledge graph retrieval to provide a robust evaluation
+6.1   Scientific Hypothesis Generation                                                               of LLMs’ ability to generate truthful scientific hypotheses.
+The use of LLMs for scientific hypothesis generation is a    This dual approach enables a comprehensive analysis of the
+rapidly growing field, leveraging the ability of these models     role of external knowledge in mitigating hallucinations and
+to process and synthesize vast amounts of scientific literature    ensuring the groundedness of generated hypotheses.
+[Qi et al., 2023; Yang et al., 2023; Zhou et al., 2024; Ciuc˘a
+et al., 2023; Skarlinski et al., 2024; Radensky et al., 2024;   7  Conclusion
+Xiong et al., 2024c; Guo et al., 2024]. LLMs have been ap-
+                                        We presented TruthHypo, a benchmark for evaluating the
+plied in identifying research gaps and generating novel hy-
+                                                                        ability of LLMs to generate truthful scientific hypotheses, and
+potheses, with notable successes in areas such as drug dis-
+                                             KnowHD, a framework for detecting hallucinations by as-
+covery, where generated hypotheses have led to experimen-
+                                                               sessing groundedness in reasoning. Through extensive eval-
+tally validated drug combinations [Abdel-Rehim et al., 2024].
+                                                                   uation, we highlighted the limitations of existing LLMs and
+Despite these advancements, most existing studies emphasize
+                                                          demonstrated that selecting highly grounded hypotheses im-
+the novelty and diversity of hypotheses without addressing
+                                                            proves truthfulness.  These contributions offer valuable in-
+the critical aspect of truthfulness [Qi et al., 2024; Baek et al.,
+                                                                   sights for improving the reliability and utility of LLMs in sci-
+2024; Wang et al., 2023; Hu et al., 2024; Li et al., 2024].
+                                                                         entific discovery.
+The prevalent hallucination problem exacerbates this issue,
+as LLMs often generate hypotheses that appear plausible but
+                                          Acknowledgementslack factual support [Huang et al., 2023]. This gap motivates
+the development of TruthHypo, a benchmark explicitly de-    This work  is supported in part by the US National Sci-
+signed to assess the ability of LLMs to generate truthful and    ence Foundation under grants 2217071, 2213700, 2106913,
+grounded scientific hypotheses.                             2008208, and NIH grant 1R01LM014012.
+
+=== PDF第8页 ===
+References                                                Peng, Xiaocheng Feng, Bing Qin, et al. A survey on
+                                                                    hallucination in large language models:  Principles, tax-Abbi Abdel-Rehim, Hector Zenil, Oghenejokpeme Orhobor,
+                                                       onomy, challenges, and open questions.  arXiv preprint  Marie Fisher, Ross J Collins, Elizabeth Bourne, Gareth W
+                                                             arXiv:2311.05232, 2023.  Fearnley, Emma Tate, Holly X Smith, Larisa N Soldatova,
+   et al. Scientific hypothesis generation by a large language    Tal Ifargan, Lukas Hafner, Maor Kern, Ori Alcalay, and
+  model: Laboratory validation in breast cancer treatment.     Roy Kishony.  Autonomous llm-driven research—from
+  arXiv preprint arXiv:2405.12258, 2024.                        data to human-verifiable research papers.  NEJM AI,
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ah-      2(1):AIoa2400555, 2025.
+  mad,  Ilge Akkaya,  Florencia Leoni Aleman,  Diogo                                                       Shaoxiong Ji, Shirui Pan, Erik Cambria, Pekka Marttinen,
+  Almeida, Janko Altenschmidt, Sam Altman, Shyamal                                                         and S Yu Philip. A survey on knowledge graphs: Repre-
+  Anadkat, et al.  Gpt-4 technical report.  arXiv preprint                                                                      sentation, acquisition, and applications. IEEE transactions
+  arXiv:2303.08774, 2023.                                                      on neural networks and learning systems, 33(2):494–514,
+Jinheon Baek, Sujay Kumar Jauhar, Silviu Cucerzan, and      2021.
+  Sung Ju Hwang.  Researchagent:  Iterative research idea
+                                                      Qiao  Jin,  Nicholas Wan,  Robert Leaman, Shubo  Tian,  generation over scientific literature with large language
+                                                          Zhizheng Wang, Yifan Yang, Zifeng Wang, Guangzhi  models. arXiv preprint arXiv:2404.07738, 2024.
+                                                           Xiong, Po-Ting Lai, Qingqing Zhu, et al.  Demystifying
+Ioana Ciuc˘a, Yuan-Sen Ting, Sandor Kruk, and Kartheik Iyer.       large language models for medicine: A primer.  arXiv
+  Harnessing the power of adversarial prompting and large       preprint arXiv:2410.18856, 2024.
+  language models for robust hypothesis generation in as-
+  tronomy. arXiv preprint arXiv:2306.11648, 2023.             Nikitas Karanikolas, Eirini Manga, Nikoletta Samaridi, Eleni
+                                                              Tousidou, and Michael Vassilakopoulos. Large language
+Mike D’Arcy, Tom Hope,  Larry Birnbaum,  and Doug
+                                                        models versus natural language understanding and genera-
+  Downey. Marg: Multi-agent review generation for scien-
+                                                                           tion. In Proceedings of the 27th Pan-Hellenic Conference
+   tific papers. arXiv preprint arXiv:2401.04259, 2024.
+                                                      on Progress in Computing and Informatics, pages 278–
+Finale Doshi-Velez and Been Kim. Towards a rigorous sci-      290, 2023.
+  ence of interpretable machine learning.  arXiv preprint
+                                                      Mario Krenn, Lorenzo Buffoni, Bruno Coutinho, Sagi Ep-  arXiv:1702.08608, 2017.
+                                                                          pel, Jacob Gates Foster, Andrew Gritsevskiy, Harlin Lee,
+Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Ab-                                                          Yichao Lu, Jo˜ao P Moutinho, Nima Sanjabi, et al. Fore-
+  hishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil                                                                   casting the future of artificial intelligence with machine
+  Mathur, Alan Schelten, Amy Yang, Angela Fan, et al. The                                                                 learning-based link prediction in an exponentially grow-
+  llama 3 herd of models. arXiv preprint arXiv:2407.21783,                                                                ing knowledge network.  Nature Machine Intelligence,
+  2024.                                                            5(11):1326–1335, 2023.
+Giorgio Franceschelli and Mirco Musolesi. On the creativity
+                                                       Varun Kumar, Leonard Gleyzer, Adar Kahana, Khemraj
+  of large language models.  AI & SOCIETY, pages 1–11,
+                                                               Shukla, and George Em Karniadakis.  Mycrunchgpt: A
+  2024.
+                                                                 chatgpt assisted framework for scientific machine learning.
+Xuemei Gu and Mario Krenn.  Forecasting high-impact re-      arXiv preprint arXiv:2306.15551, 2023.
+  search topics via machine learning on evolving knowledge
+  graphs. arXiv preprint arXiv:2402.08640, 2024.             Jakub L´ala, Odhran O’Donoghue, Aleksandar Shtedritski,
+                                              Sam Cox, Samuel G Rodriques, and Andrew D White. Pa-
+Sikun Guo, Amir Hassan Shariatmadari, Guangzhi Xiong,                                                                 perqa: Retrieval-augmented generative agent for scientific
+  and Aidong Zhang.  Embracing foundation models for                                                                    research. arXiv preprint arXiv:2312.07559, 2023.
+  advancing scientific discovery.   In 2024 IEEE Interna-
+   tional Conference on Big Data (BigData), pages 1746–    Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni,
+  1755. IEEE, 2024.                                          Vladimir Karpukhin, Naman Goyal,  Heinrich  K¨uttler,
+                                                    Mike  Lewis,  Wen-tau  Yih, Tim  Rockt¨aschel,  et  al.Sikun Guo, Amir Hassan Shariatmadari, Guangzhi Xiong,
+                                                              Retrieval-augmented generation for knowledge-intensive  Albert Huang, Myles Kim, Corey M. Williams, Stefan
+                                                                nlp tasks. Advances in Neural Information Processing Sys-  Bekiranov, and Aidong Zhang. Ideabench: Benchmarking
+                                                                 tems, 33:9459–9474, 2020.   large language models for research idea generation. In 31st
+  SIGKDD Conference on Knowledge Discovery and Data   Long Li, Weiwen Xu, Jiayan Guo, Ruochen Zhao, Xingxuan
+  Mining - Datasets and Benchmarks Track, 2025.                  Li, Yuqian Yuan, Boqiang Zhang, Yuming Jiang, Yifei Xin,
+Xiang Hu, Hongyu Fu, Jinge Wang, Yifeng Wang, Zhikun Li,     Ronghao Dang, et al. Chain of ideas: Revolutionizing re-
+  Renjun Xu, Yu Lu, Yaochu Jin, Lili Pan, and Zhenzhong       search via novel idea development with llm agents. arXiv
+  Lan. Nova: An iterative planning and search approach to       preprint arXiv:2410.13185, 2024.
+  enhance novelty and diversity of llm generated ideas. arXiv                                                        Yankai Lin, Zhiyuan Liu, Maosong Sun, Yang Liu, and Xuan
+  preprint arXiv:2410.14255, 2024.                                                          Zhu. Learning entity and relation embeddings for knowl-
+Lei Huang, Weijiang Yu, Weitao Ma, Weihong Zhong,      edge graph completion. In Proceedings of the AAAI con-
+  Zhangyin Feng, Haotian Wang, Qianglong Chen, Weihua       ference on artificial intelligence, volume 29, 2015.
+
+=== PDF第9页 ===
+Xingyu Liu, Juan Chen, and Quan Wen. A survey on graph       generators: A comprehensive evaluation. In First Confer-
+   classification and link prediction based on gnn.  arXiv      ence on Language Modeling, 2024.
+  preprint arXiv:2307.00865, 2023.                                                          Marissa Radensky, Simra Shahid, Raymond Fok, Pao Sian-
+Shengchao Liu, Jiongxiao Wang, Yijin Yang, Chengpeng       gliulue, Tom Hope, and Daniel S Weld. Scideator: Human-
+  Wang, Ling Liu, Hongyu Guo, and Chaowei Xiao. Conver-      llm scientific idea generation grounded in research-paper
+   sational drug editing using retrieval and domain feedback.       facet recombination.  arXiv preprint arXiv:2409.14634,
+  In The Twelfth International Conference on Learning Rep-      2024.
+   resentations, 2024.                                                   Mohaimenul Azam Khan Raiaan, Md Saddam Hossain
+Hui Wen Loh, Chui Ping Ooi, Silvia Seoni, Prabal Datta      Mukta, Kaniz Fatema, Nur Mohammad Fahad, Sadman
+  Barua, Filippo Molinari, and U Rajendra Acharya. Appli-       Sakib, Most Marufatul Jannat Mim, Jubaer Ahmad, Mo-
+  cation of explainable artificial intelligence for healthcare:     hammed Eunus Ali, and Sami Azam. A review on large
+ A systematic review of the last decade (2011–2022). Com-      language models: Architectures, applications, taxonomies,
+  puter methods and programs in biomedicine, 226:107161,      open issues and challenges. IEEE Access, 2024.
+  2022.                                                         Stephen Robertson, Hugo Zaragoza, et al. The probabilistic
+Man Luo, Arindam Mitra, Tejas Gokhale, and Chitta Baral.       relevance framework: Bm25 and beyond. Foundations and
+  Improving biomedical information retrieval with neural re-      Trends® in Information Retrieval, 3(4):333–389, 2009.
+   trievers. In Proceedings of the AAAI Conference on Artifi-                                               Dong Shu, Tianle Chen, Mingyu Jin, Chong Zhang, Meng-
+   cial Intelligence, volume 36, pages 11038–11046, 2022.                                                         nan Du, and Yongfeng Zhang. Knowledge graph large lan-
+Andres M. Bran, Sam Cox, Oliver Schilter, Carlo Baldassari,      guage model (kg-llm) for link prediction. arXiv preprint
+  Andrew D White, and Philippe Schwaller.  Augmenting      arXiv:2403.07311, 2024.
+   large language models with chemistry tools. Nature Ma-                                                          Chenglei Si, Diyi Yang, and Tatsunori Hashimoto.  Can
+  chine Intelligence, pages 1–11, 2024.                                                               llms generate novel research ideas?  a large-scale hu-
+Shengjie Ma, Chengjin Xu, Xuhui Jiang, Muzhi Li, Huaren     man study with 100+ nlp researchers.   arXiv preprint
+  Qu, and Jian Guo.  Think-on-graph 2.0: Deep and inter-      arXiv:2409.04109, 2024.
+  pretable large language model reasoning with knowledge                                                             Sanchit Sinha, Guangzhi Xiong, and Aidong Zhang. Colidr:
+  graph-guided retrieval. arXiv e-prints, pages arXiv–2407,                                                         Concept learning using aggregated disentangled represen-
+  2024.                                                                           tations.  In Proceedings of the 30th ACM SIGKDD Con-
+Tim Miller. Explainable ai is dead, long live explainable ai!       ference on Knowledge Discovery and Data Mining, pages
+  hypothesis-driven decision support using evaluative ai. In      2699–2710, 2024.
+  Proceedings of the 2023 ACM conference on fairness, ac-                                                             Sanchit Sinha, Guangzhi Xiong, and Aidong Zhang. A self-
+   countability, and transparency, pages 333–342, 2023.                                                                 explaining neural architecture for generalizable concept
+Sai Munikoti, Anurag Acharya, Sridevi Wagle, and Sameera       learning. In Proceedings of the Thirty-Third International
+  Horawalavithana. Evaluating the effectiveness of retrieval-       Joint Conference on Artificial Intelligence, pages 503–511,
+  augmented large language models in scientific document      2024.
+  reasoning. arXiv preprint arXiv:2311.04348, 2023.                                                        Michael D Skarlinski, Sam Cox, Jon M Laurent, James D
+Maximilian Nickel, Kevin Murphy, Volker Tresp, and Ev-       Braza, Michaela Hinks, Michael J Hammerling, Manvitha
+  geniy Gabrilovich. A review of relational machine learn-       Ponnapati, Samuel G Rodriques, and Andrew D White.
+  ing for knowledge graphs.   Proceedings of the IEEE,      Language agents achieve superhuman synthesis of scien-
+  104(1):11–33, 2015.                                                          tific knowledge. arXiv preprint arXiv:2409.13740, 2024.
+
+Yang Jeong Park, Daniel Kaplan, Zhichu Ren, Chia-Wei Hsu,    Xuezhi Wang,  Jason Wei, Dale Schuurmans, Quoc Le,
+  Changhao Li, Haowei Xu, Sipei Li, and Ju Li. Can chat-     Ed Chi,  Sharan Narang, Aakanksha Chowdhery, and
+  gpt be used to generate scientific hypotheses?  Journal of     Denny  Zhou.     Self-consistency  improves  chain  of
+  Materiomics, 10(3):578–584, 2024.                           thought reasoning in language models.  arXiv preprint
+                                                             arXiv:2203.11171, 2022.Boci Peng, Yun Zhu, Yongchao Liu, Xiaohe Bo, Haizhou
+   Shi, Chuntao Hong, Yan Zhang, and Siliang Tang. Graph    Qingyun Wang, Doug Downey, Heng Ji, and Tom Hope. Sci-
+  retrieval-augmented generation: A survey. arXiv preprint     mon:  Scientific inspiration machines optimized for nov-
+  arXiv:2408.08921, 2024.                                                elty. arXiv preprint arXiv:2305.14259, 2023.
+
+Biqing Qi, Kaiyan Zhang, Haoxiang Li, Kai Tian, Sihang     Shijie Wang, Wenqi Fan, Yue Feng, Xinyu Ma, Shuaiqiang
+  Zeng, Zhang-Ren Chen, and Bowen Zhou. Large language     Wang, and Dawei Yin.   Knowledge graph  retrieval-
+  models are zero shot hypothesis proposers. arXiv preprint      augmented  generation  for  llm-based recommendation.
+  arXiv:2311.05965, 2023.                                    arXiv preprint arXiv:2501.02226, 2025.
+
+Biqing Qi, Kaiyan Zhang, Kai Tian, Haoxiang Li, Zhang-Ren    Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma,
+  Chen, Sihang Zeng, Ermo Hua, Hu Jinfang, and Bowen       Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-
+  Zhou.  Large language models as biomedical hypothesis      thought prompting elicits reasoning in large language mod-
+
+=== PDF第10页 ===
+   els. Advances in neural information processing systems,
+  35:24824–24837, 2022.
+Chih-Hsuan Wei, Alexis Allot, Po-Ting Lai, Robert Leaman,
+  Shubo Tian, Ling Luo, Qiao Jin, Zhizheng Wang, Qingyu
+  Chen, and Zhiyong Lu. Pubtator 3.0: an ai-powered liter-
+   ature resource for unlocking biomedical knowledge. Nu-
+   cleic Acids Research, page gkae235, 2024.
+Dustin Wright, David Wadden, Kyle Lo, Bailey Kuehl, Ar-
+  man Cohan, Isabelle Augenstein, and Lucy Lu Wang. Gen-
+   erating scientific claims for zero-shot scientific fact check-
+   ing. arXiv preprint arXiv:2203.12990, 2022.
+Chaokai Wu, Yansong Wang, and Tao Jia. Dynamic link pre-
+   diction using graph representation learning with enhanced
+   structure and temporal information.  In 2023 26th Inter-
+  national Conference on Computer Supported Cooperative
+  Work in Design (CSCWD), pages 279–284. IEEE, 2023.
+Guangzhi  Xiong,  Qiao  Jin,  Zhiyong  Lu,  and Aidong
+  Zhang. Benchmarking retrieval-augmented generation for
+  medicine.  In Findings of the Association for Computa-
+   tional Linguistics: ACL 2024, 2024.
+Guangzhi Xiong, Qiao  Jin, Xiao Wang,  Minjia Zhang,
+  Zhiyong Lu, and Aidong Zhang.  Improving retrieval-
+  augmented generation in medicine with iterative follow-up
+  questions. In Biocomputing 2025: Proceedings of the Pa-
+   cific Symposium, pages 199–214. World Scientific, 2024.
+Guangzhi Xiong,  Eric Xie, Amir Hassan Shariatmadari,
+  Sikun Guo, Stefan Bekiranov, and Aidong Zhang.  Im-
+  proving  scientific  hypothesis  generation  with  knowl-
+  edge grounded large language models.  arXiv preprint
+  arXiv:2411.02382, 2024.
+Zonglin Yang, Xinya Du, Junxian Li, Jie Zheng, Soujanya
+   Poria, and Erik Cambria. Large language models for auto-
+  mated open-domain scientific hypotheses discovery. arXiv
+  preprint arXiv:2309.02726, 2023.
+Zonglin Yang, Wanhao Liu, Ben Gao, Tong Xie, Yuqiang
+   Li, Wanli Ouyang, Soujanya Poria, Erik Cambria, and
+  Dongzhan Zhou.  Large language models for rediscov-
+  ering unseen chemistry scientific hypotheses.   In 2nd
+  AI4Research Workshop: Towards a Knowledge-grounded
+   Scientific Research Lifecycle, 2025.
+Qi Zeng, Mankeerat Sidhu, Hou Pong Chan, Lu Wang, and
+  Heng Ji.  Meta-review generation with checklist-guided
+   iterative introspection. arXiv preprint arXiv:2305.14647,
+  2023.
+Muhan Zhang and Yixin Chen.  Link prediction based on
+  graph neural networks.  Advances in neural information
+  processing systems, 31, 2018.
+Ruiqi Zhong, Peter Zhang, Steve Li, Jinwoo Ahn, Dan Klein,
+  and Jacob Steinhardt. Goal driven discovery of distribu-
+   tional differences via language descriptions. Advances in
+  Neural Information Processing Systems, 36:40204–40237,
+  2023.
+Yangqiaoyu Zhou, Haokun Liu, Tejes Srivastava, Hongyuan
+  Mei, and Chenhao Tan. Hypothesis generation with large
+  language models. arXiv preprint arXiv:2404.04326, 2024.
+
+=== PDF第11页 ===
+A  Implementation Details              C  Additional Quantitative Results on
+For the retrieval of external knowledge from scientific liter-      TruthHypo
+ature, we implemented the information retrieval system by                                                            Table 2 presents the F1 score of various LLMs on the Truth-
+adopting the BM25 retriever [Robertson et al., 2009] for pro-                                               Hypo benchmark, evaluating their ability to identify the exis-
+cessed PubMed chunks provided by the MedRAG toolkit                                                              tence of a new relation given current knowledge. To provide
+[Xiong et al., 2024a,b]. BM25 (Best Matching 25) is a prob-                                                           a more granular analysis, Table 6 breaks down the results into
+abilistic retrieval model that ranks documents based on term                                                                precision and recall for different tasks, offering insights into
+frequency, document length normalization, and the specificity                                                                the strengths and weaknesses of each model and knowledge
+of terms through inverse document frequency (IDF). We se-                                                          augmentation setting.
+lected BM25 as our text retriever because it is particularly
+                                                  From the results in Table 6, we observe that smaller LLMs,
+effective for the biomedical domain, where dense retrievers
+                                                         such as Llama-3.1-8B, tend to achieve higher recall scores
+often struggle to encode the nuanced semantics of biomedical
+                                                               across all tasks, along with relatively lower precision. This in-
+terms such as gene names [Luo et al., 2022]. BM25’s reliance
+                                                                  dicates that while these models can generate a comprehensive
+on exact term matching with statistical weighting makes it
+                                                                       set of hypotheses, they are prone to a high false positive rate,
+well-suited for capturing term-specific relevance in structured
+                                                      which could pose challenges in real-world applications, such
+biomedical text. In our experiments, τ in Equation (1) is set
+                                                               as scientific hypothesis generation, where precision is often
+as 0.0. The number of retrieved documents is set as k = 32
+                                                                              critical. High false positive rates could result in wasted time
+for hypothesis generation, and k = 8 for claim verification.
+                                                      and resources when pursuing hypotheses that are unlikely to
+  To identify biomedical entities in a given claim, we used a
+                                                           hold upon experimental validation.
+two-step process. In the first step, we prompted LLMs to ex-
+                                                         Given that validating new biomedical hypotheses often re-tract the entity mentions directly from the claim (Figure 11).
+                                                                quires months or even years of research, ensuring high pre-This step focused on identifying relevant biomedical terms,
+                                                                  cision in hypothesis generation is of paramount importance.such as gene names, proteins, or diseases, without additional
+                                            Among the tested models, GPT-4o with external knowledgeprocessing or complex workflows. The extracted entity men-
+                                                      from the literature achieved the highest precision across alltions were then used in the second step, where each men-
+                                                                      tasks, demonstrating its ability to generate hypotheses withtion was matched to its unified representation in the PubTator
+                                                          fewer false positives.  However, this precision came at the3.0 knowledge graph. This matching was implemented us-
+                                                         expense of lower recall, especially when compared to GPT-ing a BM25 retriever. For constructing the BM25 index, each
+                                                    4o with knowledge augmentations from both literature andpiece of text, or “chunk”, was designed by concatenating all
+                                                      knowledge graphs (KG). This trade-off highlights the impor-possible mentions of a given entity stored in PubTator 3.0.
+                                                              tance of balancing precision and recall based on the specificBy leveraging BM25’s ranking capabilities, we retrieved the
+                                                            requirements of a given application.most relevant chunk corresponding to each entity mention,
+                                              When comparing different knowledge settings, we foundensuring accurate alignment with PubTator’s unified entities.
+                                                                      that  the improvements provided by  external knowledge
+                                                             sources varied across tasks and models. For example, knowl-
+B  Computational Cost                                                        edge graph (KG) information significantly enhanced the pre-
+Table 5 shows the number of all tokens used in experiments     cision of all LLMs on tasks involving “Disease & Gene” and
+for Table 2. It shows that the additional knowledge from ei-    “Gene & Gene” relations, but it did not notably improve the
+ther the knowledge graph (KG) or literature (Lit.) will sig-    precision of GPT-4o on the “Chemical & Gene” task.  In
+nificantly increase the number of input tokens. In particular,     contrast, the literature knowledge augmentation slightly im-
+the literature brings more tokens than KG, as the knowledge    proved the precision of all LLMs except GPT-4o-mini. Inter-
+in KG is always structured and summarized.  While input     estingly, the setting that combined both knowledge sources
+lengths vary across different settings, output lengths are rela-    provided a more balanced precision improvement, offering
+tively stable, a consistent pattern shown in different LLMs.      a middle ground between the individual benefits of KG and
+                                                                   literature-based augmentations.
+                                                                   Additionally, Table 6 reveals that larger models such as                                       Setting
+  LLM    Type                                    GPT-4o consistently outperformed smaller models in pre-
+                     Param.   +KG     +Lit.   +KG+Lit.                                                                     cision, regardless of the knowledge setting, reflecting their
+   Llama     Input    295.8k   1.7M   25.8M    27.2M         ability to integrate complex external information effectively.
+   -3.1-8B   Output   811.1k   1.0M    782.5k    1.2M        This highlights the potential of larger models to better utilize
+   Llama     Input    295.8k   1.7M   25.8M    27.2M        structured and unstructured knowledge sources for hypothe-
+  -3.1-70B   Output   813.7k   881.2k   777.6k    767.8k         sis generation. However, smaller models, with their higher
+                                                                          recall, may still serve as useful tools for exploratory or broad
+  GPT-4o    Input    295.8k   1.7M   25.8M    27.2M                                                             hypothesis generation tasks where exhaustive coverage is pri-
+    -mini    Output   751.6k   684.0k   787.2k    707.1k
+                                                                     oritized over precision.
+               Input    295.8k   1.7M   25.8M    27.2M          Overall, the analysis demonstrates that the choice of LLM  GPT-4o
+             Output   909.9k   839.1k   891.5k    875.3k       and knowledge augmentation strategy should be guided by
+                                                                the specific trade-offs between precision and recall that align
+ Table 5: Summary of #tokens used for all experiments in Table 2.     with the requirements of the downstream task. For biomedi-
+
+=== PDF第12页 ===
+cal applications, where precision is often paramount, leverag-
+ing models like GPT-4o with literature-based augmentations
+appears to be the most effective approach.
+  To further understand the limitations of hypothesis gener-
+ation with high groundedness scores, we conducted an in-
+depth analysis of the error patterns. We identified two repre-
+sentative types of errors: (1) cases where the LLM incorrectly
+infers that there is no association between the given entities,
+despite supporting evidence; and (2) cases where the model
+simply echoes or paraphrases the provided context without
+engaging in substantive reasoning or hypothesis formation.
+These findings highlight the need for more robust mecha-
+nisms to ensure both accurate association detection and gen-
+uine reasoning in hypothesis generation, enhancing the inter-
+pretability and trustworthiness of the overall system [Doshi-
+Velez and Kim, 2017; Loh et al., 2022; Miller, 2023; Sinha et
+al., 2024a,b].
+
+D  Prompt Templates for LLMs in
+   Experiments
+Figure 5 shows the template we used to construct a hypothe-
+sis generation query given two different entities. The prompt
+templates for the use of LLMs in the “Parametric”, “Para-
+metric + KG”, “Parametric + Lit.”, and “Parametric + KG
++ Lit.”  settings are presented in Figures 6, 7, 8, 9, respec-
+tively.  These templates were designed to guide the LLMs
+in effectively leveraging various sources of knowledge while
+maintaining a pre-determined structure in the model output to
+facilitate consistent parsing and downstream analysis.
+  Figure 10 shows the template for LLMs to extract scien-
+tific claims from the entire rationale. For the identification of
+biomedical entities and the use of LLMs for claim verifica-
+tion, we employed the templates shown in Figures 11 and 12,
+respectively. The entity identification templates (Figure 11)
+were crafted to enable the LLMs to extract precise mentions
+of biomedical entities such as genes or diseases from textual
+claims. These prompts were carefully designed to minimize
+ambiguity, ensuring that entities sharing the same mention
+could be properly distinguished using their unique IDs.
+
+=== PDF第13页 ===
+                                    Chemical & Gene   Disease & Gene  Gene & Gene     Average
+       Knowledge      LLM
+                                          Prec     Recall     Prec    Recall    Prec   Recall   Prec   Recall
+
+                        Llama-3.1-8B   67.57     98.51     66.79    97.77    66.92   96.99   67.29   98.00
+         Parametric      Llama-3.1-70B   74.69     89.33     75.23    93.30    73.13   80.55   74.37   87.48
+     Wei et al. [2022]    GPT-4o-mini    83.00     83.62     79.47    84.36    75.50   83.56   80.37   83.70
+                        GPT-4o      90.59     72.83     82.67    69.27    83.27   62.74   87.60   69.63
+
+                        Llama-3.1-8B   71.42     94.54     74.04    86.03    72.16   88.77   71.93   91.85
+      Parametric + KG   Llama-3.1-70B   90.63     85.24     93.14    53.07    88.58   70.14   90.34   76.89
+     Baek et al. [2024]    GPT-4o-mini    86.37     86.48     91.06    62.57    92.39   73.15   88.27   79.70
+                        GPT-4o      86.27     91.19     91.30    70.39    87.96   78.08   87.21   84.89
+
+                        Llama-3.1-8B   68.82     97.77     68.36    97.77    68.49   95.89   68.67   97.26
+      Parametric + Lit.   Llama-3.1-70B   74.92     91.94     75.56    94.97    74.58   84.38   74.92   90.30
+     Lewis et al. [2020]   GPT-4o-mini    78.18     93.80     80.10    92.18    74.94   89.32   77.55   92.37
+                        GPT-4o      92.73     69.60     83.78    69.27    89.37   50.68   90.62   64.44
+
+                        Llama-3.1-8B   68.21     85.73     70.64    86.03    69.96   91.23   69.01   87.26
+      Parametric + KG   Llama-3.1-70B   84.13     85.48     87.41    69.83    80.05   82.47   83.33   82.59
+       + Literature      GPT-4o-mini    82.61     94.91     82.45    86.59    83.16   85.21   82.73   91.19
+                        GPT-4o      86.61     93.05     84.80    81.01    87.50   84.38   86.61   89.11
+
+
+Table 6: Performance comparison of different LLMs on the TruthHypo benchmark across various knowledge settings, with precision and
+recall as the evaluation metrics. “Prec” denotes the link-level precision, while “Recall” represents the link-level recall.
+
+
+       Prompt template for constructing user input with given entities
+
+      Can we  hypothesize  the  potential  relation between {{entity type 1}} {{entity name 1}}
+     ({{entity ID 1}}) and {{entity type 2}} {{entity name 2}} ({{entity ID 2}})?
+      The  final  hypothesis  can  be  one  of  [{{relation label 1}},  {{relation label 2}},
+       ‘no relation’].
+
+
+
+                               Figure 5: Prompt template for constructing user input with given entities.
+
+
+       Prompt template for hypothesis generation with parametric knowledge only
+
+      You are a scientist. Your task is to generate a scientific hypothesis following given instructions.
+
+      ### User Input
+     {{input}}
+
+      Your output must include two sections:
+        1. **### Step-by-step Reasoning**:
+         - Think step-by-step to derive the hypothesis.
+
+        2. **### Structured Output**:
+         - Present your proposed hypothesis in the following JSON format:
+      ‘‘‘json
+      {
+       “proposed hypothesis”: “Statement of the proposed hypothesis”
+      }
+     ‘‘‘
+
+
+
+
+                         Figure 6: Prompt template for hypothesis generation with parametric knowledge only.
+
+=== PDF第14页 ===
+ Prompt template for hypothesis generation with knowledge from parameters and KG
+
+You are a scientist. Your task is to generate a scientific hypothesis following given instructions.
+
+### Relevant Knowledge
+{{knowledge}}
+
+### User Input
+{{input}}
+
+Your output must include two sections:
+1. **### Step-by-step Reasoning**:
+- Think step-by-step to derive the hypothesis.
+
+2. **### Structured Output**:
+- Present your proposed hypothesis in the following JSON format:
+‘‘‘json
+{
+“proposed hypothesis”: “Statement of the proposed hypothesis”
+}
+‘‘‘
+
+
+
+
+   Figure 7: Prompt template for hypothesis generation with knowledge from parameters and knowledge graphs (KGs).
+
+
+
+
+
+ Prompt template for hypothesis generation with knowledge from parameters and literature
+
+You are a scientist. Your task is to generate a scientific hypothesis following given instructions.
+
+### Relevant Documents
+{{document}}
+
+### User Input
+{{input}}
+
+Your output must include two sections:
+1. **### Step-by-step Reasoning**:
+- Think step-by-step to derive the hypothesis.
+
+2. **### Structured Output**:
+- Present your proposed hypothesis in the following JSON format:
+‘‘‘json
+{
+“proposed hypothesis”: “Statement of the proposed hypothesis”
+}
+‘‘‘
+
+
+
+
+          Figure 8: Prompt template for hypothesis generation with knowledge from parameters and literature.
+
+=== PDF第15页 ===
+ Prompt template for hypothesis generation with knowledge from parameters and KG and literature
+
+You are a scientist. Your task is to generate a scientific hypothesis following given instructions.
+
+### Relevant Documents
+{{document}}
+
+### Relevant Knowledge
+{{knowledge}}
+
+### User Input
+{{input}}
+
+Your output must include two sections:
+1. **### Step-by-step Reasoning**:
+- Think step-by-step to derive the hypothesis.
+
+2. **### Structured Output**:
+- Present your proposed hypothesis in the following JSON format:
+‘‘‘json
+{
+“proposed hypothesis”: “Statement of the proposed hypothesis”
+}
+‘‘‘
+
+
+
+
+        Figure 9: Prompt template for hypothesis generation with knowledge from parameters, KG, and literature.
+
+
+
+ Prompt template for claim identification
+
+### Statement
+{{statement}}
+
+Summarize the statement as a list of claims which will be further verified by external resources. Output the
+summarized claims in the JSON format: ‘‘‘json{“claims”: [“claim1”, ...]}‘‘‘
+
+
+
+
+                                 Figure 10: Prompt template for claim identification.
+
+
+
+ Prompt template for entity recognition
+
+### Background
+{{background}}
+
+Extract key entities from the background statement that will be used to search for relevant information in
+an external knowledge graph.  Each entity should be extracted as “entity type (e.g., Disease/Chemical/-
+Gene/Mutation) entity name (entity id  if presented)”.  Output the extracted entities in the JSON format:
+‘‘‘json{“entities”: [“entity1”, ...]}‘‘‘
+
+
+
+
+                                 Figure 11: Prompt template for entity recognition.
+
+=== PDF第16页 ===
+ Prompt template for claim verification
+
+You are a scientist. Your task is to verify if the relevant documents and knowledge (if applicable) can support
+the given claim.
+
+### Relevant Documents
+{{document}}
+
+### Relevant Knowledge
+{{knowledge}}
+
+### Claim
+{{claim}}
+
+Judge if the given information supports the claim. Output {“groundedness”: 1} if the materials support the
+claim else {“groundedness”: 0}.
+
+
+
+
+                                  Figure 12: Prompt template for claim verification.

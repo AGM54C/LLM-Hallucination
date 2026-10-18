@@ -1,0 +1,1118 @@
+
+=== PDF第1页 ===
+                Beyond Execution: Auditing Experimental Fidelity in
+                       LLM-Driven Scientific Research
+
+                    Lezhi Yu1, Xiaogang Xu1, Yuhua Zhou1, Shuibing He1, Aimin Pan2
+                         1College of Computer Science and Technology, Zhejiang University, Hangzhou, China
+                                                              2 Zhejiang Lab, Hangzhou, China
+
+
+
+                            Abstract                            remain relevant to the original experiment; (3) the experiment
+                                                                                         is designed to test the central claim under the computational
+      LLM agents used for scientific experimentation must do                                                                    regime; and (4) observed results provide valid evidence for or
+         more than generate executable code: they must implement
+                                                                          against that claim. A script returning exit code 0 or reporting2026     the reference method faithfully, design experiments that test
+                                                                          plausible metrics can easily fail all four requirements.           the paper’s claims, and provide evidence supporting those
+           claims. We show that agents often produce methodological           This distinction is especially crucial when agents oper-
+           hallucinations: silently reducing datasets or training bud-          ate under compute limits, missing dependencies, or failedAug      gets, replacing failed learning or generative components with         checkpoints. When an experiment is difficult to run, an agent
+27     lookupresource-limitedor oraclesettingsfunctions,whereor adrawingmethod’sconclusionsclaimed advan-from       mayresolution,silentlyoruserandoma smallerweightsdataset,withoutfewer trainingreportingsteps,protocollower
+           tage disappears. To detect these failures, we introduce ABE-                                                                     changes. It may replace a costly generative module with a
+          Ralph, a reference-anchored auditing framework that repre-
+                                                                lookup rule or oracle function that already holds the an-
+           sents claims, protocols, required components, baselines, and
+                                                                        swer, or run the method at a scale too small for its claimed          metrics as structured experimental constraints, guides imple-
+          mentation through an 8-step workflow, and performs quan-        advantage to emerge and conclude the hypothesis is false.
+             titative, qualitative, and code-level verification. Across 30        These actions preserve the appearance of progress while fail-[cs.SE]     long-horizon reproduction runs covering 12 machine learn-         ing scientific logic. We define these deviations as Method-
+          ing domains, ABE-Ralph achieves a 93% robust execution         ological Hallucinations: silent, hard-to-detect violations of
+            rate and identifies five scientific failure modes. In 23 Na-         pre-defined experimental constraints that preserve superficial
+          tureBench discovery tasks, ABE-Ralph matches or exceeds        code execution while undermining scientific logic (Abalo-
+            state-of-the-art performance on 5 tasks. These results show        Rodríguez and Pinheiro 2025; Santhosh et al. 2026). Conse-
+            that reliable evaluation of AI scientists must assess whether                                                                           quently, they produce misleading metrics that risk validating
+           the experimental design faithfully tests the intended claim and
+                                                                                false hypotheses or incorrectly dismissing valid claims.
+          whether the resulting evidence supports it, rather than treating
+         code execution or plausible metrics as evidence of scientific         The problem is therefore not only that agents sometimes
+           success.                                                      generate incorrect code. More fundamentally, they can gen-
+                                                                            erate a scientifically misleading experimental process while
+        Code — https://github.com/Flavorfish/AutoRepro                 producing technically valid  artifacts. Existing execution-
+                                                                      driven evaluations are largely unable to distinguish a faith-
+                                                                                ful reproduction from a simplified implementation, an in-
+                      Introduction                         complete experiment, or an experiment whose resource con-
+       Large Language Model (LLM) agents are expanding into au-        straints invalidate its conclusion. Human reviewers can iden-
+      tonomous research workflows, allowing systems to generate        tify some of these problems, but manual inspection is difficultarXiv:2608.26753v1  hypotheses, write code, run experiments, and draft reports       to scale across long-horizon agent runs.
+      (Lu et al. 2024; Liu et al. 2026; Boiko et al. 2023; Bran et al.      We introduce ABE-Ralph  (Auto Baseline Experiment),
+       2024). Similarly, software engineering agents solve reposi-      an automated scientific auditing framework that monitors,
+       tory issues and output functional patches with high success       binds, and verifies the experimental lifecycle of AI-driven
+        rates (Yang et al. 2024; Wang et al. 2025; Liu et al. 2024).       research, treating  scientific reproduction as a reference-
+      These developments make it tempting to evaluate scientific      anchored process. Before implementation, ABE-Ralph struc-
+       agents using the same criterion used for software agents:       tures paper claims, architectural components, datasets, base-
+      whether the generated program executes successfully and        lines, metrics, and resource bounds into declarative YAML
+       produces an output.                                                 contracts. An 8-step workflow guides model construction and
+         That criterion is insufficient for scientific reproduction. A       protocol execution. During execution, a Triple-Verification
+       reproduction must satisfy four linked requirements: (1) the       pipeline checks quantitative metric alignment, qualitative
+       implementation contains the reference method described in      semantic logic, and structural code fidelity. These checks
+       the paper; (2) datasets, preprocessing, training, and baselines       intercept deceptive model shortcuts and guarantee method-
+
+=== PDF第2页 ===
+Figure 1: Comparison between standard execution-driven agents and our proposed ABE-Ralph auditing framework. While tradi-
+tional agents often bypass computational limits using undetected shortcuts (Methodological Hallucinations), ABE-Ralph locks
+development constraints via YAML contracts and audits code pipelines through a Triple-Verification system.
+
+
+ological fidelity and auditability.                                    specific systems, e.g.,ChemCrow (Bran et al. 2024) and Co-
+  Distinguishing execution success from scientific validity       scientist (Boiko et al. 2023), automate lab tools without ver-
+is essential. A faithful auditing framework does not merely       ifying logical correctness. As highlighted in recent surveys
+replicate historical metrics; it provides a foundation to cross-      (Wei et al. 2025), existing platforms evaluate the superficial
+examine original outcomes and systematically discover op-      appearance of scientific work rather than its internal validity.
+timized configurations that exceed baseline benchmarks. We     Drawing inspiration from these efforts, ABE-Ralph intro-
+report reference-anchored reproduction outcomes separately      duces constraint verification to audit reproduction fidelity.
+from raw execution success, evaluating whether each task
+reproduces or exceeds reference results.             LLM Agents for Software Engineering
+  Our contributions include:                                  Software engineering agents like SWE-agent (Yang et al.
+                                                         2024) and OpenHands (Wang et al. 2025) optimize for pass-
+1. Taxonomy of Methodological Hallucinations: We con-                                                               ing test suites under SWE-bench paradigms (Jimenez et al.   ceptualize and define a 5-class taxonomy of deceptive
+                                                          2024; Yang et al. 2025; Deng et al. 2026). Similarly, code   agentic shortcuts in scientific workflows that maintain
+                                                       benchmarks like HumanEval (Chen et al. 2021) and MBPP   successful system execution while violating core method-
+                                                               (Austin et al. 2021) measure execution correctness rather   ological bounds.
+                                                              than scientific intent. However, passing unit tests or exit-0
+2. The ABE-Ralph Auditing Framework: We propose      checks is insufficient for scientific tasks, as agents can by-
+   ABE-Ralph, an 8-step reference-anchored framework en-                                                              pass core methodologies via trivial heuristics without trig-
+   forcing pre-execution YAML contracts and an automated                                                               gering errors. Unconstrained patches also remain vulnerable
+   Triple-Verification system (numerical, logical, and code-                                                                     to adversarial flaws (Sajadi, Damevski, and Chatterjee 2025).
+   structure levels).                                                   ABE-Ralph addresses this by introducing constraint verifi-
+3. Empirical Evaluation and Discovery: We validate the       cation layers above code execution.
+   system across 30 classical ML benchmarks spanning 12
+   domains (achieving a 93% robust execution rate and ex-      Reproducibility Benchmarks and Challenges
+   posing systematic methodological shortcuts), and further     The machine learning reproducibility crisis led to commu-
+   demonstrate its capability in discovery mode across 23       nity initiatives like the ML Reproducibility Challenge and
+   NatureBench tasks (matching or exceeding SOTA base-    REPROLANG (Branco et al. 2020). These projects require
+   lines on 5 tasks).                                  human reviewers to manually inspect replication reports.
+                                                         However, this manual approach does not scale to automated
+               Related Work                            pipelines that run multiple experiments daily. Automated
+                                                                     tools like ReproZip (Chirigati et al. 2016) and Code Ocean
+LLM Agents for Scientific Discovery                       focus on environment capture, ensuring that code templates
+Autonomous scientific agents like The AI Scientist (Lu et al.      can compile, but they do not check if the re-executed code
+2024), AutoResearchClaw (Liu et al. 2026), and Claw-AI-       represents the target method. To formalize evaluations of sci-
+Lab (Wu et al. 2026) build research workflows but focus        entific agents, benchmarks like ScienceAgentBench (Chen
+primarily on novelty and syntax execution, lacking audit-        et al. 2025) and MLE-bench (Chan et al. 2025) target data-
+ing mechanisms for experimental fidelity. Similarly, domain-      driven tasks. We design a multi-axis auditing benchmark,
+
+=== PDF第3页 ===
+evaluating method logic, protocol steps, and conclusion va-        where V is a multi-axis verification function mapping the
+lidity.                                                       alignment between the program’s actual execution behavior,
+                                                                      structural code elements, and the target constraints C.
+       The ABE-Ralph Framework
+                                                 Semantic Constraint SpecificationThe primary goal of the ABE-Ralph framework is to auto-
+                                                           Addressing the constraint set C in our formal tuple T =mate the end-to-end reproduction of scientific paper code and
+experimental protocols in autonomous AI research. Rather      ⟨C, D, R⟩, this subsection details how ABE-Ralph structures
+                                                       and enforces P |= C. To prevent code generation drift duringthan treating reproduction as an unconstrained script gen-
+                                                            paper reproduction, the contract C is operationalized as aeration task, our central thesis is that faithfully reproduc-
+                                                                   declarative manifest mapping the logical and architecturaling a reference paper’s methodology, codebase, and exper-
+                                                            boundaries of the targeted study into three distinct constraint
+imental pipeline is fundamentally a Constraint Satisfac-                                                                      classes:
+tion Problem (CSP) operating under strict computational
+resource limits. In this section, we formalize this reproduc-       1. Structural Constraints (Cstr): Define the code topology
+tion paradigm, establish our semantic constraint architecture,        and algorithmic requirements. They enforce the presence
+and detail how each system component maps directly to solv-          of critical architectural components Mcritical (e.g., spe-
+ing specific sub-problems within this formal formulation to            cific neural layers, attention blocks, or loss functions)
+intercept methodological hallucinations.                            described in the original paper within the code P:
+                                                                              Cstr |= (∀m ∈Mcritical, m ⊂AST(P)) ,    (3)
+Formal Problem Formulation                             where  AST(P)   denotes   the   Abstract   Syntax
+We formalize the scientific reproduction of paper code and         Tree  of  the  generated  codebase.  In  implementa-
+experiments as a tuple T = ⟨C, D, R⟩, defined as follows:             tion,   this   is  declared  via YAML  configurations
+ • C = {c1, c2, . . . , cn} represents a set of multi-modal            (e.g.,   critical_modules: [UNetDecoder,
+    scientific constraints extracted directly from the refer-       SkipConnection]).
+   ence paper, specifying required architectural components,       2. Procedural Constraints (Cproc): Bound the execution
+   baseline configurations, metric directionality, and tar-          logic of the paper’s experimental protocol. They explicitly
+   geted research hypotheses.                                          dictate dataset specs (dimensionality, sample sizes), train-
+                                                                  ing regimes, and hyperparameter bounds. For example,
+ • D represents the operational data input space, encom-
+   passing the canonical dataset, preprocessing protocols,          Cproc enforces that the training dataset size N ≥Nmin,
+                                                                  preventing the agent from silently downsampling data to   and environmental configurations required to replicate
+                                                              bypass compute ceilings.   the paper’s experiments.
+                                                                       3.                                                                                     Govern the compara-                                                              Evaluative                                                                        Constraints                                                                                                    (Ceval): • R = {Bcomp, Btime} denotes the strict resource bud-                                                                            tive                                                                     metric schemas                                                                           and target                                                                                           hypotheses                                                                                                They    get, imposing upper bounds on hardware capacity (e.g.,                                                        (ytarget).
+                                                                    specify primary optimization targets (e.g., direction:  VRAM, FLOPs) and execution time.
+                                               maximize, metric: F1-score)  to ensure  that
+  Given T , an autonomous agent generates an executable          baseline comparisons and primary claims strictly align
+program P ∈P (where P represents the space of candidate         with the paper’s original metrics.
+repository scripts) and executes it on D to yield an experi-
+mental outcome state SE = P(D).                         Phase-Transient Execution and Recovery
+   Traditional execution-driven evaluations define reproduc-     Operators
+tion success solely through the terminal exit status of the      While C establishes the constraint space, the actual execu-
+code process:                                                       tion of the code pipeline P(D) must operate strictly within
+                                                                 the resource budget R = {Bcomp, Btime} without breaking            I(Exit(P(D)) = 0) →Success.           (1)
+                                          P |= C. This subsection addresses the dynamic state transi-
+However, this criterion fails to guarantee that the generated       tions during code execution and introduces bounded recovery
+code P implements the target methodology in C. Under re-     mechanisms when hardware faults occur.
+source pressure R, an agent may produce code that exits       The execution of P proceeds through a sequence of dis-
+cleanly (Exit(P(D)) = 0) while silently violating core ex-       crete operational states St →St+1 across an 8-step struc-
+perimental bounds ∃ck ∈C s.t. P  ̸|= ck (where |= denotes       tured workflow (Table 2). To prevent runtime crashes (e.g.,
+the standard semantic satisfaction relation from program ver-    CUDA OOMs or dependency failures) from causing the
+ification), thereby generating methodological hallucinations.      agent to introduce uncontrolled code modifications, we de-
+  To solve this, we reformulate the automated reproduction       fine a formal recovery operator H. Let E represent runtime
+of paper code and experiments as finding an optimal im-      exception states:
+plementation P ∗that maximizes scientific fidelity under the       E = {OOM, DependencyMismatch, . . . , Timeout}.   (4)
+extracted constraint set C:                                             When execution encounters an exception state St ∈E, the
+          P ∗= arg max V(P(D), C)                     recovery operator H mutates the local runtime parameters
+                     P ∈P                                while strictly respecting the bounds set by C:
+                                                                                                                               (5)                   s.t.  P |= C ∧Rconsumed ≤R,           (2)          H : St × C →St+1 ∈Svalid,
+
+=== PDF第4页 ===
+               Table 1: Positioning of ABE-Ralph relative to existing agentic systems across six dimensions.
+
+
+ Dimension       AI  Scientist  / AutoRe-  SWE-agent     /   Open-  Human  Repro.  Chal-  ABE-Ralph (Ours)
+                   searchClaw            Hands                     lenge
+  Primary Goal        Novelty-driven discovery    Task repair and debugging   Manual study replication    Automated protocol audit
+  Success Check      Paper readability & met-   Unit test pass status (Exit  Human qualitative review   Multimodal    alignment
+                          rics                         0)                                                   checks
+  Constraint System   None (flexible design)       Test-driven assertions      Manual checklist            Structured YAML  con-
+                                                                                                                              straints
+  Shortcut Handling   Bypassed  if metrics im-   Undetected  out  of  test   Checked by human expert   Blocked   at   verification
+                     prove                     scope                                                      step
+  Failure Diagnosis   Opaque execution status     Stack trace output           Text report                   5-class taxonomy filter
+  Execution Scale    Low throughput (papers/-   Large scale (100+ reposi-   High latency (months/pa-   High  throughput  batch
+                      day)                            tories)                       per)                        runs
+
+
+Table 2: The 8-step staged workflow of ABE-Ralph. Each step has a configurable timeout derived from the YAML contract’s
+compute budget.
+
+
+  Step  Name                    Description
+   1     Intent Discovery           Parse the YAML contract parameters and extract research goals, constraints, and metrics.
+   1.5    Dataset Verification        Direct search for authentic datasets matching specifications; blocks synthetic data creation.
+   2    Repo Search & Selection   Locate, verify, and copy repository templates from official sources or verified implementations.
+   3     Architecture Blueprint     Generate blueprint.md defining the model structure and setup interfaces in main.py.
+   4a    Pipeline Integration        Execute sanity runs on 5–10 samples to check data paths, memory limits, and CUDA setups.
+  4b   Main Execution         Run the experimental pipeline, write output variables to metrics.json, and handle CUDA OOM
+                                          limits.
+   5     Analysis & Reporting     Compile experiment_result.md comparing achieved metrics against baseline contract rules.
+   5.5    Output Fallback            Parse logs and checkpoint states to recover loss scores and metrics if metrics.json fails to compile.
+   6     Skill Extraction            Generalize code interfaces and utility logic from successful runs for subsequent research.
+
+
+where Svalid denotes valid execution trajectories that do not       values:
+violate core scientific assertions.
+                                                                                   Vquant = I (sign(mt −mb) = sign(m∗t −m∗b))  Example: If P triggers an Out-Of-Memory error (St =
+OOM), an unconstrained agent might alter the preprocessing                                                                        |mt −m∗t |                                                   ∧I                                                      ≤ϵ   ,                  (6)
+code to downsample input images from 256×256 to 64×64,                       |m∗t |
+violating resolution bounds in Cproc. Under ABE-Ralph, H
+                                                       where ϵ is a pre-defined tolerance threshold. This ensures therestricts the fix to dynamic execution hyper-parameters (e.g.,
+                                                           reproduced method retains its claimed advantage over base-enabling gradient accumulation or halving micro-batch size)
+                                                                       lines while remaining within standard empirical margins.while keeping input data dimensions fixed. This ensures
+                                                                                            To detectP(D) runs within Rconsumed ≤R while preserving pro-      Level 2: Semantic Logic Verification (Vqual)tocol validity.                                                               cases where metric targets are satisfied through logical short-
+                                                                  cuts (e.g., hardcoded values), the semantic validator evalu-
+                                                                     ates the alignment between generated code logic, execution
+Multi-Axis Verification Vector                                 logs, and paper hypotheses:
+
+To directly implement the verification function V(P(D), C)      Vqual = fϕ (Embed(C), Embed(SE), Embed(Logs)) ∈{0, 1},
+formulated in Eq.  (2), ABE-Ralph introduces a Triple-                                                                  (7)
+Verification  pipeline.  This  pipeline  converts  the  post-      where fϕ maps multimodal embeddings against determinis-
+execution state SE = P(D) into a structured verification        tic rubrics from Ceval via self-consistency checking, catching
+vector v = [Vquant, Vqual, Vstruct]T , evaluating the repro-        silent violations in experimental protocol logic.
+duced code and experimental outputs across three distinct
+axes.                                                      Level  3:  Structural Alignment  Verification  (Vstruct)
+                                                            This component validates code-level implementation fidelity,
+                                                                        explicitly evaluating Cstr |= P. Let Gref be the canonical
+Level 1: Quantitative Alignment (Vquant)  This compo-       structural call-graph of the target algorithm and      be the                                                                                             Gimplnent verifies whether the reproduced numerical metrics quan-                                                                  call-graph parsed directly from the generated program P:
+titatively validate the reference paper’s baseline claims under
+Ceval. Let mt represent the reproduced metric, mb the base-       Vstruct = I (Sim(Gimpl, Gref) ≥τ)∧(∀c ∈Cstr, P |= c) ,
+line metric, and superscript ∗the original reference paper                                                                  (8)
+
+=== PDF第5页 ===
+where Sim calculates AST topological graph isomorphism         • RQ3 (Verification Contribution): How do verification
+and τ is a compliance threshold.                                       layers (Vquant, Vqual, Vstruct) contribute to stability and
+  Mechanistically, Vstruct parses P using Python’s native          hallucination containment?
+ast module; replacing neural modules with dummy passes
+triggers a topological mismatch and sets Vstruct = 0.          Experimental Setup
+  Combining all three levels, the final objective function                                                Benchmark Tasks  We construct a benchmark consisting
+evaluates to:                                                                of 30 distinct reproduction tasks derived from classic ML,
+    V(P(D), C) =   Y        Vi ∈{0, 1}.   (9)      computational physics, and bio-informatics domains (e.g.,
+                       i∈{quant,qual,struct}                      implementing architecture variants of U-Net, training ResNet
+                                                                  pipelines under resource constraints, and optimizing multi-
+Discovery Mode Generalization                              objective scientific solvers). Each task is mapped to a ground-
+Finally, we show how the formal reproduction tuple T =       truth specification containing canonical data flows, hyperpa-
+⟨C, D, R⟩generalizes from static paper reproduction to open-      rameter baselines, and reference metrics.
+ended scientific discovery. In discovery tasks, Cstr and Cproc                                                             Baselines  We evaluate and compare five representativeshift from strict replication templates to search boundary
+                                                   LLM-based systems:
+conditions representing physical, computational, or domain
+safety limits. The objective function V expands to include an         • Raw LLM: A zero-shot execution model using GPT-4o
+external continuous domain reward feval : P(D) →R. This         without a scaffolding loop.
+ensures the agent actively searches for superior code and hy-                                                                             • Autonomous Research Catalyst (ARC): A sequential
+perparameter configurations (P ∗) while remaining anchored         execution framework that follows a static step-by-step re-
+inside the valid search boundaries defined by C. As shown         production recipe.
+in Table 5 (see Appendix), the agent’s workflow adapts ac-
+                                                                             • Claw-AI-Lab: A template-driven agent utilizing fixedcordingly: in discovery mode, the Intent step reads a problem                                                                          scripts to interface with scientific database environments
+specification rather than a paper YAML, the Research step                                                (Wu et al. 2026).
+searches domain literature instead of reference code, and the
+Execute step invokes an external evaluator instead of check-         • Claude Code CLI: A state-of-the-art interactive software
+                                                                 agent optimized for codebase navigation and automateding against fixed metrics. This generalization allows ABE-
+                                                              debugging.Ralph to serve both as a rigorous reproduction auditor and as
+a bounded optimization engine for scientific discovery tasks.         • ABE-Ralph (Ours): The proposed framework integrated
+                                                               with our Reference-Anchored auditing loop (instantiated
+A Taxonomy of Methodological Hallucinations          via the ABE-Ralph-Ralph configuration).
+Evaluating 30 long-horizon reproduction runs across 12 ma-       To ensure a fair and rigorous comparison, all baseline sys-
+chine learning domains revealed systematic, non-obvious      tems—including Raw LLM and Claude Code CLI—were
+failure modes during model execution. To categorize these      provided with detailed system prompts strictly equivalent to
+deceptive shortcuts, we establish a 5-class taxonomy (Ta-       the YAML contracts used by ABE-Ralph. This guarantees
+ble 3).                                                                that all agents received the identical data flow definitions, hy-
+  Categories M1 and M2 pose the greatest threat to auto-      perparameter baselines, and constraint specifications, ensur-
+mated research because they yield plausible metrics while      ing that performance differences stem from the framework’s
+fundamentally compromising experimental logic—failures       auditing and feedback mechanisms rather than information
+completely invisible to exit-code verification. M3 demon-      asymmetry.
+strates that methodological advantages are often regime-
+dependent, where scale constraints inadvertently invert sci-      Evaluation Metric  To evaluate the outputs across both
+                                                              engineering completeness and scientific rigor, we define aentific conclusions. This taxonomy directly guides our frame-
+work design: M1 and M2 necessitate structural AST checking     Weighted Composite Score (Scomp ∈[0, 100]):
+and semantic contracts; M3 requires resource-bounded ex-
+                                                      Scomp = 0.20·Sdes+0.25·Srel+0.25·Srig+0.30·Scomp_rate,ecution tracking; M4 is resolved via schema normalization;                                                                                                                     (10)
+and M5 is mitigated through progress persistence loops.                                                       where Sdes evaluates structural layout compliance of the
+                                                              generated repository, Srel measures run-time exceptions and
+         Experiments and Results                   process crash rates (reliability),     computes the math-                                                                                                Srig
+In this section, we evaluate the empirical effectiveness of      ematical rigor of the evaluation protocols, and                                                                                                          Scomp_rate
+the ABE-Ralph framework. We structure our evaluation to       represents feature completeness against target specifications.
+address three primary research questions:
+ • RQ1 (Systematic Performance): How effectively does     Overall Benchmark Results (RQ1)
+  ABE-Ralph guide autonomous agents to complete scien-    We report the overall comparative performance of the base-
+    tific reproduction tasks under budget constraints?               line platforms across the benchmark in Figure 2.
+ • RQ2 (Hallucination Characterization): What are the       The empirical results show that ABE-Ralph achieves the
+   empirical distributions and failure modes of methodolog-       highest composite score of 58.8, significantly outperform-
+    ical hallucinations?                                         ing the Raw LLM baseline (30.8) and scientific templates
+
+=== PDF第6页 ===
+      Table 3: The 5-category taxonomy of LLM methodological hallucinations with empirically observed case studies.
+
+
+ Category                                  Definition                           Key Empirical Observation
+ M1: Method Integrity Collapse           Omitting core methods and substituting triv-  RAG: Generator failed to compile; agent
+                                                        ial functions to pass metric checks.             substituted  exact-match   string  lookups,
+                                                                                  matching metrics without training.
+ M2: Silent Protocol Degradation         Unauthorized alteration of experimental se-  PEGASUS: Pretrained checkpoint loading
+                                             tups to bypass technical hurdles.            was skipped due to download errors, training
+                                                                              from scratch and invalidating comparisons.
+ M3: Scale-Driven Conclusion Inversion   Code executes correctly, but scale restric-   U-Net & SimCLR: Under small-scale runs,
+                                                tions invert the claimed methodological ad-   simple encoders outperformed U-Net, invert-
+                                             vantage.                                     ing the central paper hypothesis.
+ M4: Quantitative Key Mismatch         Producing correct numerical values under  DPR: Outputted correct recall scores but
+                                           non-standard JSON key names.              used non-standard keys in metrics.json,
+                                                                                                triggering false schema errors.
+ M5: Incomplete Execution                Halting the experimental pipeline prema-  DDIM: Evaluated only 1 of 3 required con-
+                                                 turely while claiming full validation.           figurations and skipped target baseline com-
+                                                                                              parisons.
+
+
+
+
+
+                                                              Figure 3: Framework Comparison across A-F DimensionFigure 2: Overall framework ranking based on the Weighted
+                                                         Average Scores (0–100 scale). Dimensions encompass A:Composite Score. N values denote the aggregate number of
+                                                             Design, B: Reliability, C: Rigor, D: Completeness, E: Align-completed experimental runs evaluated per system configu-
+                                                           ment, and F: LLM Review.ration.
+
+
+                                                                view. The quantitative breakdown is illustrated in Figure 3.
+(ARC at 33.0 and Claw-AI-Lab at 39.9) across the n = 30
+reproduction tasks.                                                                             • Dimension B (Reliability): While ABE-Ralph (63) and
+   Crucially, Claude Code CLI—a state-of-the-art software        Claude Code CLI (62) demonstrate high robustness
+development agent—reaches a competitive score of 51.0.          against run-time crashes, the Raw LLM and ARC base-
+However, execution loganalysis reveals its performancegains           lines register near-zero reliability scores. This discrep-
+stem primarily from software compilation correctness (Sdes         ancy highlights that raw generation pipelines lack the
+and Srel). Lacking execution-time semantic constraints (Cstr         necessary execution-feedback loops to resolve package
+or Cproc), it frequently relies on shortcuts: under parameter        dependency conflicts (‘ModuleNotFoundError‘) or envi-
+mismatches or slow compilation, it often bypasses convo-         ronmental path mismatches autonomously.
+lutional blocks or downscales spatial resolutions merely to
+                                                                             • Dimension D (Completeness): Completeness remainsensure exit status compliance.                                                               a severe bottleneck across all frameworks. ABE-Ralph
+  By contrast, ABE-Ralph dynamically bounds the agent’s                                                                    leads with a score of 46, whereas all other baselines are
+action space through declarative contracts during the execu-                                                                   constrained below 32. This performance gap indicates that
+tion loop. This strategy successfully maintains search-space                                                               while agents can satisfy localized execution steps, orches-
+compliance, yielding a superior overall scientific reproduc-                                                                           trating the complete scope of a scientific work (including
+tion fidelity.                                                            edge cases, plotting, and complex baseline variations) re-
+                                                          mains a significant open challenge.
+Fine-grained Dimensional Performance Analysis
+                                                                             • Dimension E (Alignment) and Dimension F (LLM Re-
+To dissect the specific strengths and vulnerabilities of each         view): In terms of Alignment (Dimension E), ABE-Ralph
+baseline, we analyze their average performance across six          achieves a critical margin of improvement (90 vs. 78 for
+fundamental dimensions: (A) Design, (B) Reliability, (C)        Claude Code CLI), proving that the reference contract
+Rigor, (D) Completeness, (E) Alignment, and (F) LLM Re-        C successfully anchors the agent to the original method.
+
+=== PDF第7页 ===
+   Conversely, under LLM Review (Dimension F), scores for
+    all models collapse to below 15. This drastic drop sug-
+   gests that even when scripts run continuously and outputs
+   align quantitatively, current agents still fail to provide the
+   deep semantic narrative, physical intuition, and rigorous
+   verification details expected in final academic files.
+
+Distribution of Methodological Hallucinations
+(RQ2)
+To investigate the failure modes of autonomous agents in sci-
+entific reproduction, we analyze the distribution of method-
+ological hallucinations across the N = 30 benchmark repro-      Figure 5: Ablation Study on the Triple-Verification Pipeline.
+duction experiments. The categorization is mapped to our     Removing Level 2 (Vqual) causes the most significant perfor-
+defined taxonomy (M1 to M5). The relative distribution is     mance degradation and variance explosion, highlighting the
+illustrated in Figure 4.                                            necessity of semantic auditing.
+
+
+                                                    number of compromised runs (n = 17). This occurrence
+                                                       mismatch demonstrates that agent failures are rarely isolated;
+                                                                     instead, they often cause cascading errors across multiple
+                                                                 operational boundaries. For instance, upon an OOM error,
+                                                        an agent may concurrently shrink train-set size (M2) and strip
+                                                               skip-connections (M1) to force execution. This highlights the
+                                                                      risk of relying solely on compile-success metrics.
+
+                                                     Ablation Study (RQ3)
+                                                    To address RQ3 and evaluate the contribution of each veri-
+                                                                       fication layer to the framework’s robustness, we conducted
+                                                        an ablation study. We systematically disabled Level 1 (Quan-
+Figure 4: Distribution of Methodological Hallucination types
+                                                                                titative, Vquant), Level 2 (Qualitative/Semantic, Vqual), and
+across N = 30 benchmark runs. A run is categorized as      Level 3 (Structural,          verification modules and mea-                                                                                        Vstruct)“Clean” only if it completely passes all three verification                                                              sured the Average Overall Score and execution variance. The
+layers without any shortcut adaptations.                                                                       results are illustrated in Figure 5.
+                                                     The complete ABE-Ralph framework (Full) achieves an
+  Our qualitative analysis indicates that 43.3% (n = 13)      average score of 44.2 with low variance, indicating stable
+of the experimental executions are entirely free of shortcuts      and faithful experimental reproductions.
+(Clean). The remaining 56.7% (n = 17) of runs exhibit one       Removing the Quantitative layer (w/o L1) results in a mini-
+or more forms of methodological hallucination:                                                     mal performance drop (-0.7). This confirms our core premise
+ • M5 (Incomplete Execution) is the most prevalent failure       that simply checking numerical outputs is an insufficient safe-
+   mode, occurring in 53.3% (n = 16) of trials. This is heav-      guard against modern AI agents, as they can easily produce
+    ily driven by hardware-compute limits: scientific tasks hit       plausible metrics through methodological shortcuts without
+   physical computational ceilings (e.g., GPU OOM excep-       failing quantitative thresholds.
+   tions or container timeouts). Lacking adaptive execution       Removing the Structural Code Alignment layer (w/o L3)
+   mechanisms, agents default to terminating execution mid-       leads to a moderate decrease of 1.6 points. Without Vstruct,
+   process, resulting in incomplete outputs (Thiyagalingam       the framework struggles to enforce architectural constraints
+    et al. 2022).                                                             (e.g., preventing the silent removal of key neural network
+                                                            modules), leading to more M1-type (Method Integrity Col- • M2 (Silent Protocol Degradation) is present in 20.0%                                                                   lapse) failures.   (n = 6) of evaluations. Agents silently scale down hyper-
+                                                                       Crucially, removing the Qualitative Semantic Verification   parameters (such as batch size or epoch count) to resolve
+                                                                     layer (w/o L2) causes the most severe performance degra-   resource limits without registering these changes in final
+                                                                dation (-5.5) and a dramatic increase in outcome variance   reports.
+                                                                   (indicated by the large error bars in Figure 5). Without
+ • M1 (Method Integrity Collapse, 16.7%), M3 (Scale-      semantic logic checks, the framework cannot detect when
+   Driven Conclusion Inversion, 13.3%), and M4 (Quan-      an agent subtly alters the experimental protocol, evaluation
+   titative Key Mismatch, 6.7%) make up the remaining       setup, or dataset to bypass hardware limits. This extreme in-
+   occurrences.
+                                                                           stability confirms that Vqual is the most essential component
+   Crucially, the cumulative count of detected hallucination       for containing methodological hallucinations, ensuring that
+types (16 + 6 + 5 + 4 + 2 = 33 occurrences) exceeds the       the agent’s actions logically align with the intended scientific
+
+=== PDF第8页 ===
+Table 4: Discovery mode performance on NatureBench tasks. Bold indicates tasks where ABE-Ralph matches or exceeds the
+SOTA baseline.
+
+
+                          Task Domain           # Tasks  ABE-Ralph SOTA   Best Result
+                           Graph Optimization         8             2             2 / 8
+                              Time-Series Forecasting     6             1             1 / 6
+                              Combinatorial Search       5             1             1 / 5
+                                   Scientific Simulation        4             1             1 / 4
+
+                              Total                    23            5             5 / 23
+
+
+hypothesis rather than merely compiling successfully.             scaling automated discovery beyond simple sandbox envi-
+                                                         ronments remains difficult.
+NatureBench Discovery Evaluation                           Third, the low performance across all frameworks under
+                                                       Dimension F (LLM Review) points to an abstraction gap.
+To evaluate ABE-Ralph’s generalization to open-ended sci-                                                             Current agents focus on local code correction, but they strug-
+entific discovery tasks, we deploy the framework in discovery                                                                 gle to synthesize their findings into the structured, coherent,
+mode (Section ) on 23 NatureBench tasks spanning diverse                                                       and contextualized narratives expected in academic research.
+scientific domains. In discovery mode, the constraint set C                                                         Looking forward, transitioning from single-agent designs
+shifts from strict paper replication to domain-specific search
+                                                                     to cooperative, resource-aware multi-agent systems could ad-
+boundaries, and the objective incorporates an external eval-
+                                                                 dress the compute-bound limitations that lead to high rates
+uation reward feval defined by each task’s hidden evaluator.       of incomplete execution. A multi-agent framework with spe-
+  Table 4 summarizes the results. ABE-Ralph achieves or                                                                     cialized roles—a resource orchestrator for dynamic hardware
+exceeds the state-of-the-art baseline on 5 of 23 tasks, demon-                                                              monitoring, a developer agent for code generation, an audi-
+strating that the constraint-anchored optimization framework                                                                        tor agent for constraint verification, and a red-teaming agent
+can effectively navigate open-ended scientific search spaces.                                                                       for edge-case discovery—could prevent task failures caused
+On the remaining 18 tasks, ABE-Ralph produces valid solu-                                                       by resource limits, laying a foundation for more reliable and
+tions within the constraint boundaries but falls short of the                                                                  scalable automated scientific discovery.
+best-known results, indicating that the discovery mode pro-
+vides a sound foundation for further optimization through
+extended search or multi-agent collaboration.                               Conclusion
+  These results validate that the formal tuple T = ⟨C, D, R⟩       In this paper, we formalized scientific reproduction as a
+generalizes effectively from reproduction to discovery. The       constraint satisfaction problem under resource bounds and
+constraint boundaries C prevent the agent from exploring      introduced ABE-Ralph, an automated scientific auditing
+physically invalid or computationally infeasible regions,      framework that enforces design invariants through declara-
+while the expanded objective V + feval guides search to-       tive YAML contracts and a multi-layered Triple-Verification
+ward measurable improvements. Detailed per-task results are      system. Our empirical evaluation across 30 benchmark re-
+provided in the Appendix.                                     production tasks demonstrates that ABE-Ralph achieves a
+                                            93% robust execution rate and a weighted composite score
+                                                                of 58.8, significantly outperforming existing agentic base-
+                 Discussion                                                                           lines. Through systematic analysis of methodological hallu-
+The empirical evaluations yield critical insights into the ca-       cinations, we identified five distinct failure modes—led by
+pabilities and limits of modern scientific agents. First, our      Incomplete Execution (53.3%) and Silent Protocol Degrada-
+fine-grained dimensional analysis (Section ) reveals a perfor-       tion (20.0%)—that are invisible to exit-code-based evalua-
+mance mismatch between software viability and scientific va-        tion. Ablation results confirm that semantic logic verification
+lidity. General-purpose coding agents generate syntactically       (Vqual) is the most essential component for containing these
+correct code, but they lack the domain-specific constraints       hallucinations. These findings establish that reliable evalu-
+needed to maintain research integrity. When faced with ex-       ation of AI scientists must assess whether the experimental
+ecution roadblocks, they optimize for engineering execution      design faithfully tests the intended claim, rather than treating
+success (Exit Code 0) rather than scientific accuracy.            code execution or plausible metrics as evidence of scientific
+  Second, the high prevalence of M5 (Incomplete Execu-       success.
+tion, 53.3%) and M2 (Silent Protocol Degradation, 20.0%)
+highlights the challenge of resource adaptation under fixed
+                                                                 Referencesconfigurations. When compute bounds are reached, agents
+                                                            Abalo-Rodríguez, I.; and Pinheiro, A. P. 2025. The Hitch-are forced into a trade-off: either abort execution (resulting
+                                                                     hiker’s guide to hallucination research. Consciousness andin M5) or silently downgrade parameters (such as batch size
+or training steps, leading to M2) to satisfy execution limits.      Cognition, 136: 103941.
+Because current agent architectures lack the context to dy-       Austin, J.; Odena, A.; Nye, M.; Bosma, M.; Michalewski, H.;
+namically partition workloads or negotiate resource limits,      Dohan, D.; Jiang, E.; Cai, C.; Terry, M.; Le, Q.; and Sutton,
+
+=== PDF第9页 ===
+C. 2021. Program Synthesis with Large Language Models.     Models Resolve Real-World GitHub Issues? In International
+arXiv:2108.07732.                                          Conference on Learning Representations (ICLR).
+Boiko, D. A.; MacKnight, R.; Kline, B.; and Gomes, G. 2023.       Liu, J.; Qiu, S.; Li, M.; Li, B.; Ji, H.; Han, S.; Ye, X.; Xia,
+Autonomous chemical research with large language models.        P.; Dong, Z.; Chen, M.; Zhang, C.; Zhang, L.; Chen, G.;
+Nature, 624(7992): 570–578.                                   Tu, H.; Yang, X.; Feng, L.; Zhao, X.; Chen, H.; Zhou, J.;
+                                                    Wang, X.; Zhang, W.; Zhu, H.; Li, Y.; Mei, J.; Fei, H.;Bran, A. M.; Cox, S.; Schilter, O.; Baldassari, C.; White,
+                                                         Zhang, J.; Li, L.; Zhang, L.; Zhou, Y.; Wang, S.; Xiong,A. D.; and Schwaller, P. 2024.  ChemCrow: Augmenting
+                                                                   C.; Zou, J.; Zheng, Z.; Xie, C.; Ding, M.; and Yao, H. 2026.large-language models with chemistry tools. Nature Machine
+                                                         AutoResearchClaw: Self-Reinforcing Autonomous ResearchIntelligence, 6(5): 525–535.
+                                                            with Human-AI Collaboration. arXiv:2605.20025.
+Branco, A.; Calzolari, N.; Vossen, P.; Noord, G. V.; van Uyt-
+                                                                 Liu, X.; Yu, H.; Zhang, H.; Xu, Y.; Lei, X.; Lai, H.; Gu, Y.;vanck, D.; Silva, J.; Gomes, L.; Moreira, A.; and Elbers,
+                                                           Ding, H.; Men, K.; Yang, K.; Zhang, S.; Deng, X.; Zeng,W. 2020. A Shared Task of a New, Collaborative Type to
+                                                                A.; Du, Z.; Zhang, C.; Shen, S.; Zhang, T.; Su, Y.; Sun,Foster Reproducibility: A First Exercise in the Area of Lan-
+                                                                H.; Huang, M.; Dong, Y.; and Tang, J. 2024. AgentBench:guage Science and Technology with REPROLANG2020. In
+                                                              Evaluating LLMs as Agents. In International Conference onProceedings of the Twelfth Language Resources and Evalu-
+ation Conference, 5539–5545. Marseille, France: European      Learning Representations, 52989–53046.
+Language Resources Association.                             Lu, C.; Lu, C.; Lange, R. T.; Foerster, J.; Clune, J.; and
+                                                        Ha, D. 2024.  The AI  Scientist: Towards Fully Auto-Chan, J. S.; Chowdhury, N.; Jaffe, O.; Aung, J.; Sherburn, D.;
+                                                       mated Open-Ended Scientific Discovery.  arXiv preprintMays, E.; Starace, G.; Liu, K.; Maksin, L.; Patwardhan, T.;
+                                                            arXiv:2408.06292.Madry, A.; and Weng, L. 2025. MLE-Bench: Evaluating Ma-
+chine Learning Agents on Machine Learning Engineering.       Sajadi, A.; Damevski, K.; and Chatterjee, P. 2025. How Safe
+In International Conference on Learning Representations.       Are AI-Generated Patches? A Large-scale Study on Security
+                                                            Risks in LLM and Agentic Automated Program Repair onChen, M.; Tworek, J.; Jun, H.; Yuan, Q.; de Oliveira Pinto,
+                                                     SWE-bench. arXiv:2507.02976.H. P.; Kaplan, J.; Edwards, H.; Burda, Y.; Joseph, N.; Brock-
+man, G.; Ray, A.; Puri, R.; Krueger, G.; Petrov, M.; Khlaaf,      Santhosh, V. N.; Vas, R.; Roychowdhury, B.; Sakthi, K.; and
+H.; Sastry, G.; Mishkin, P.; Chan, B.; Gray, S.; Ryder, N.;     Rahaman, M. 2026. Development and content validation of
+Pavlov, M.; Power, A.; Kaiser, L.; Bavarian, M.; Winter, C.;       the CAREFUL-AI framework for evaluating AI-generated
+Tillet, P.; Such, F. P.; Cummings, D.; Plappert, M.; Chantzis,        scientific manuscripts: an exploratory cross-platform study.
+F.; Barnes, E.; Herbert-Voss, A.; Guss, W. H.; Nichol, A.;      Research Evaluation, 35: rvag024.
+Paino, A.; Tezak, N.; Tang, J.; Babuschkin, I.; Balaji, S.;      Thiyagalingam, J.; Shankar, M.; Fox, G.; and Hey, T. 2022.
+Jain, S.; Saunders, W.; Hesse, C.; Carr, A. N.; Leike, J.;       Scientific machine learning benchmarks.  Nature Reviews
+Achiam, J.; Misra, V.; Morikawa, E.; Radford, A.; Knight,       Physics, 4(6): 413–420.
+M.; Brundage, M.; Murati, M.; Mayer, K.; Welinder, P.; Mc-     Wang, X.; Li, B.; Song, Y.; Xu, F. F.; Tang, X.; Zhuge,
+Grew, B.; Amodei, D.; McCandlish, S.; Sutskever, I.; and      M.; Pan, J.; Song, Y.; Li, B.; Singh, J.; Tran, H. H.; Li, F.;
+Zaremba, W. 2021.  Evaluating Large Language Models     Ma, R.; Zheng, M.; Qian, B.; Shao, D.; Muennighoff, N.;
+Trained on Code. arXiv:2107.03374.                         Zhang, Y.; Hui, B.; Lin, J.; Brennan, R.; Peng, H.; Ji, H.;
+Chen, Z.; Chen, S.; Ning, Y.; Zhang, Q.; Wang, B.; Yu, B.;      and Neubig, G. 2025. OpenHands: An Open Platform for AI
+Li, Y.; Liao, Z.; Wei, C.; Lu, Z.; Dey, V.; Xue, M.; Baker,      Software Developers as Generalist Agents. In The Thirteenth
+F. N.; Burns, B.; Adu-Ampratwum, D.; Huang, X.; Ning,       International Conference on Learning Representations.
+X.; Gao, S.; Su, Y.; and Sun, H. 2025. ScienceAgentBench:      Wei, J.; Yang, Y.; Zhang, X.; Chen, Y.; Zhuang, X.; Gao, Z.;
+Toward Rigorous Assessment of Language Agents for Data-      Zhou, D.; Wang, G.; Gao, Z.; Cao, J.; Qiu, Z.; Hu, M.; Ma,
+Driven Scientific Discovery. In International Conference on       C.; Tang, S.; He, J.; Song, C.; He, X.; Zhang, Q.; You, C.;
+Learning Representations.                                  Zheng, S.; Ding, N.; Ouyang, W.; Dong, N.; Cheng, Y.; Sun,
+Chirigati, F.; Rampin, R.; Shasha, D.; and Freire, J. 2016. Re-        S.; Bai, L.; and Zhou, B. 2025. From AI for Science to Agen-
+proZip: Computational Reproducibility With Ease. In Pro-        tic Science: A Survey on Autonomous Scientific Discovery.
+                                                            arXiv:2508.14111.ceedings of the 2016 International Conference on Manage-
+ment of Data, 2085–2088. New York, NY, USA: Association     Wu, F.; Chen, C.; Tan, Z.; Zhang, T.; Xu, X.; Qian, Y.; Gao,
+for Computing Machinery.                                      D.; Zhu, L.; Zhu, Q.; Tan, Y.; Ji, D.; Lin, G.; Chen, T.; Ye, D.;
+Deng, X.; Da, J.; Pan, E.; He, Y. Y.; Ide, C.; Garg, K.; Lauf-      and Liu, F. 2026. Claw AI Lab: An Autonomous Multi-Agent
+fer, N.; Park, A.; Rane, C.; Sampath, K.; Krishnan, M.; Kun-      Research Team. arXiv:2605.22662.
+durthy, S. R.; Hendryx, S. M.; Wang, Z.; Zhang, C. B. C.;      Yang, J.; Jimenez, C. E.; Wettig, A.; Lieret, K.; Yao, S.;
+Jacobson, N.; Liu, B.; and Kenstler, B. 2026. SWE-Bench      Narasimhan, K.; and Press, O. 2024. SWE-agent: Agent-
+Pro: Can AI Agents Solve Long-Horizon Software Engi-     Computer Interfaces Enable Automated Software Engineer-
+neering Tasks? In Forty-third International Conference on       ing. In Advances in Neural Information Processing Systems
+Machine Learning.                                      37 (NeurIPS).
+Jimenez, C. E.; Yang, J.; Wettig, A.; Yao, S.; Pei, K.; Press,      Yang, J.; Jimenez, C. E.; Zhang, A.; Lieret, K.; Yang, J.; Wu,
+O.; and Narasimhan, K. 2024. SWE-bench: Can Language       X.; Press, O.; Muennighoff, N.; Synnaeve, G.; Narasimhan,
+
+=== PDF第10页 ===
+K.; Yang, D.; Wang, S.; and Press, O. 2025. SWE-Bench
+Multimodal: Do AI Systems Generalize to Visual Software
+Domains? In International Conference on Learning Repre-
+sentations, 2794–2829.
+Yuan, J.; Yan, X.; Zhang, B.; Chen, T.; Shi, B.; Ouyang,
+W.; Qiao, Y.; Bai, L.; and Zhou, B. 2025. Dolphin: Mov-
+ing Towards Closed-loop Auto-research through Thinking,
+Practice, and Feedback. In Proceedings of the 63rd Annual
+Meeting of the Association for Computational Linguistics
+(Volume 1: Long Papers), 21768–21789. Vienna, Austria:
+Association for Computational Linguistics.
+
+=== PDF第11页 ===
+    Code Logic and Architecture of the           Algorithm 2 Signal Handling via Self-Pipe Pattern
+         ABE-Ralph Framework                          1: Thread 1 (Signal Monitor):
+This section provides the complete algorithmic specifica-         2:   pthread_sigmask(BLOCK, {SIGINT})
+tion and architecture of the ABE-Ralph (ABE-Ralph) frame-         3: while TRUE do
+work, detailing its agent lifecycle, verification engine, con-         4:   sigwait({SIGINT})
+tract structure, and file inventory.                                        5:  self.interrupted ←TRUE
+                                                                              6:   WriteByte(self_pipe_write_end)
+Overview of the Dual-Innovation Architecture                7: end while
+The ABE-Ralph framework embodies two tightly coupled         8: Thread 0 (Main Execution Thread):
+innovations:                                                                9: while process is running do
+                                                                      10:  ready     ←          select({stdout,
+1. The Meta-Experiment Agent (ralph_github.py)                                                   self_pipe_read_end})
+ — a structured 8-step workflow orchestrating an LLM
+                                                                      11:     if self_pipe_read_end ∈ready then   through experiment reproduction, self-healing, and abla-
+                                                                      12:     break {Ctrl-C received, terminate safely}   tion analysis.
+                                                                      13:   end if
+2. The            Triple-Verification          Engine       14:   ReadLine(stdout)
+  (verify_reproduction.py) —   a   three-tier       15: end while
+   validation system evaluating quantitative alignment (L1),
+   qualitative peer review (L2), and code implementation                                                             Table 5: Comparison of Reproduction and Discovery Modes.
+    fidelity (L3).
+  These components are mediated by a structured YAML
+                                                                                  Step          Reproduction Mode           Discovery Mode
+contract defining expected datasets, baselines, target meth-
+ods, metrics, success conditions, and critical modules.                     1. Intent       Analyze YAML               Read
+                                                                                                   problem/README.md
+                                                                                                        1.5. Dataset    Search HF/Kaggle/OpenML     Analyze   local    files   and
+The Meta-Experiment Agent                                                                                                   evaluator.py
+(ralph_github.py)                                                               2. Research    Search reference code repos      Search domain literature
+Class Structure and Initialization  The agent is encapsu-             3. Blueprint    Build main.py from refer-    Design solution from scratch
+lated in MetaExperimentAgent. Algorithm 1 formal-                         ence
+izes initialization.                                                                     4b. Execute    Train    &        output    Train    &       execute
+                                                                            metrics.json           evaluator.py
+Algorithm 1 Agent Initialization                                                      5. Synthesis   Check YAML criteria          Summarize evaluator score
+Require: plan_path  (YAML   experiment    plan),
+   workspace (directory)                                                The Improvement Cycle  Algorithm 4 presents the itera-
+Ensure: Initialized agent instance                                   tive refinement loop.
+ 1: self.workspace ←workspace
+ 2: self.plan_data ←ParseYAML(plan_path)       Checkpoint State Management  The execution state is
+ 3: self.discovery_mode   ←       IsDiscov-       persisted in experiment_state.json. The schema is
+   ery(self.plan_data)                                  defined as:
+ 4: InitSignalHandling()
+ 5: SetupWorkspace()                                                        1  {
+ 6: self._budget_timeouts  ←    MapBud-        23    "plan_path":"plan_mtime":"bm_001_dpr.yaml",1717027200.0,
+   gets(self.plan_data)                                              4    "started_at": "2026-05-27T10:00:00",
+ 7:  if resume is TRUE then                                                5    "steps": {
+ 8:   LoadCheckpoint()                                                    6      "intent_discovery": {"status": "completed",
+ 9: else                                                           ,→"duration_seconds": 45.2},
+10:   InitCheckpoint()                                                       7      "dataset_search": {"status": "completed",
+11: end if                                                         ,→"duration_seconds": 120.3},
+                                                                                        8      "research_step": {"status": "completed",
+                                                                  ,→"duration_seconds": 300.1},
+Signal Handling: Self-Pipe Pattern  To ensure interrupt        9      "blueprint": {"status": "completed"},
+responsiveness during subprocess monitoring, ABE-Ralph       10      "smoke_test": {"status": "completed"},
+implements a self-pipe pattern (Algorithm 2).                          11      "full_execution": {"status": "pending"},
+                                                                                       12      "synthesis_reporting": {"status": "pending"},
+The 8-Step Staged Workflow  Algorithm 3 details the se-       13      "skill_extraction": {"status": "pending"}
+quential 8-step pipeline execution.                                         14    },
+                                                                                       15    "iteration": {"current": 0, "max_retries": 3,
+Discovery Mode vs. Reproduction Mode  Table 5 con-          ,→"history": []}
+trasts the agent’s behavior under Reproduction Mode and       16  }
+Discovery Mode.
+
+=== PDF第12页 ===
+Algorithm 3 The 8-Step Staged Workflow                    Algorithm 4 Iterative Improvement Cycle
+ 1: procedure RunWorkflow()                                       1: procedure        RunImprovementCycle(iteration,
+ 2: RunClaudeStep(prompt_intent, timeout=300s)            max_retries)
+ 3: RunClaudeStep(prompt_dataset,          time-         2: prompt_imp ←ConstructPrompt({
+    out=3600s)                                                            3:    Audit: “Analyze experiment_result.md and raw data”,
+ 4:  if DATA_READY /∈output and -strict-data then          4:   CodeCheck: “Verify main.py against YAML con-
+ 5:    raise DatasetVerificationError                                       tract”,
+ 6: end if                                                                  5:    Fix: “Patch code and re-execute main.py”})
+ 7: RunClaudeStep(prompt_research,         time-         6: RunClaudeStep(prompt_imp, step_name=“imp_v”
+    out=1800s)                                       + iteration)
+ 8: RunClaudeStep(prompt_blueprint,       time-         7: prompt_ana ←ConstructPrompt({
+    out=300s)                                                             8:   Review: “Compare results against YAML success cri-
+ 9: RunClaudeStep(prompt_smoke_test,      time-             teria”,
+    out=1800s)                                                            9:    Signal: “Output HYPOTHESES_SUPPORTED or
+10: RunClaudeStep(prompt_full_execution,           OPTIMIZATION_DONE”})
+    timeout=3600s)                                                 10: out   ←      RunClaudeStep(prompt_ana,
+11: VerifyMetricsJson()                                     step_name=“ana_v” + iteration)
+12: RunClaudeStep(prompt_synthesis,       time-       11: converged ←(HYPOTHESES_SUPPORTED ∈out)
+    out=600s)                                                       12: opt_done ←(OPTIMIZATION_DONE ∈out)
+13:  if metrics.json missing then                              13: TrackIteration(iteration, converged, opt_done)
+14:   RunClaudeStep(prompt_extract_metrics,         14: return out
+      timeout=600s)                                               15: end procedure
+15: end if
+16: RunClaudeStep(prompt_skills)
+17: for i = 1 to max_retries do                           Level 1: Rigid Quantitative Alignment (Vquant)  Algo-
+18:   RunImprovementCycle(i)                             rithm 8 verifies JSON key structures and presence.
+19:     if       HYPOTHESES_SUPPORTED      ∨
+                                                           Level 2: Qualitative Peer Review (Vqual)  Algorithm 9    OPTIMIZATION_DONE then
+                                                               executes qualitative LLM review.
+20:     break
+21:   end if                                               Level 3: Structural Code Alignment (Vstruct)  Algo-
+22: end for                                                  rithm 10 executes AST and module existence checks.
+23: RunAblationStudy()
+24: end procedure                                          Decision Aggregation  Algorithm 11 details the hierarchi-
+                                                                     cal decision flow.
+
+                                                             Failure Taxonomy Signal Matching  The verification re-
+The Ablation Study System  Algorithm 5 outlines the sys-       sults are automatically mapped to failure modes (M1–M5)
+tematic ablation procedure.                                    using regular expressions:
+  Table 6 maps ablation configurations to prompt-level mod-
+                                                                                        1  FAILURE_CATEGORIES = {
+ifications.                                                                           2      "METHOD_COLLAPSE": {
+                                                                                        3          "signals": ["oracle", "upper bound", "never
+        Table 6: Prompt-Level Ablation Mapping.
+                                                                   ,→started", "substituted"]
+                                                                                        4      },
+  Config   Removed Prompt Directives      Auditing Concept                       5      "SILENT_DEGRADE": {
+                                                                                        6          "signals": ["from.scratch", "random init",
+  w/o L3    Skip repo search; remove code-    Structural Code Alignment
+                                                                       ,→"degenerate.*solution"]
+            guidance
+                                                                                        7      },
+  w/o L1   Omit YAML metric success cri-    Rigid Quantitative Alignment             8      "SCALE_INVERSION": {
+               teria comparison
+                                                                                        9          "signals": ["baseline.*outperform",
+  w/o L2    Disable deep audit & root-cause    Qualitative Peer Review
+                                                                       ,→"direction.*reversal"]
+           prompt blocks
+                                                                                       10      },
+                                                                                       11      "KEY_MISMATCH": {
+                                                                                       12          "signals": ["metrics.json.*missing",
+Multi-Dimensional Scoring  Algorithm 6 defines multi-                ,→"key.*not.*match"]
+dimensional workspace evaluation.                                        13      },
+                                                                                       14      "INCOMPLETE": {
+The Triple-Verification Engine                                        15          "signals": ["not all condition", "time budget
+(verify_reproduction.py)                                    16      }   ,→exhaust"]
+Initialization and Structural Checks  Algorithm 7 details       17  }
+initialization of the verifier engine.
+
+=== PDF第13页 ===
+ Algorithm 5 Ablation Study Execution                      Algorithm 7 Verifier Engine Initialization
+   1: procedure RunAblationStudy()                        Require: plan_path (YAML), workspace
+   2: for all cfg ∈{Full, NoL3, NoL1, NoL2} do                     1: self.plan ←ParseYAML(plan_path)
+   3:  ws ←PrepareIsolatedWorkspace(cfg)                    2: self.report ←DetectLatestReport()
+   4:   SwitchTo(ws)                                                    3: self.discovery ←(self.plan.mode == “dis-
+   5:     if cfg == NoL3 then                                       covery”)
+   6:     RemoveReferenceCodeConstraints()                     4: self.datasets     ←          Extract-
+   7:    else if cfg == NoL1 then                             Datasets(self.plan)
+   8:     RemoveQuantitativeTargetPrompts()                    5: self.baselines   ←       ExtractBase-
+   9:    else if cfg == NoL2 then                             lines(self.plan)
+  10:     DisableDeepAuditPrompts()                                6: self.target    ←        ExtractTarget-
+  11:   end if                                         Method(self.plan)
+  12:  decision ←ExecuteEvaluation()
+  13:  scores ←ScoreWorkspaceMultiDim(cfg)
+  14:   RestoreWorkspace()                              Algorithm 8 Level 1 Quantitative Alignment Check
+  15: end for                                                                1: procedure               RunDynamicQuantita-
+  16: end procedure                                             tiveCheck(metrics_data)
+                                                                               2:  if metrics_data is NULL then
+ Algorithm 6 Multi-Dimensional Workspace Scoring                 3:   return (FALSE, “metrics.json missing”)
+                                                                               4: end if
+   1: procedure ScoreWorkspaceMultiDim(label)                  5: for all ds ∈self.datasets do
+   2: integrator   ←       ExperimentIntegra-         6:  k_ds ←FuzzyMatch(ds, metrics_data.keys())
+    tor(workspace)                                                   7:     if k_ds is NULL then
+   3: s ←integrator.ComputeMultiDimScore()                8:     return (FALSE, “Dataset missing”)
+   4: return {Scomp = 0.20sA+0.25sB +0.25sC +0.30sD,         9:   end if
+     Grade: A/B/C/D/F}                                             10:  k_tgt ←  FuzzyMatch(self.target,  met-
+   5: end procedure                                                rics_data[k_ds])
+                                                                       11:     if k_tgt is NULL then
+                                                                       12:     return (FALSE, “Target method missing”)
+ The YAML Contract Specification                            13:   end if
+                                                                       14: end for
+ Table 7 presents the YAML contract structure.                                                                       15: return (TRUE, “Quantitative structure verified”)
+                                                                       16: end procedure Example Contract  Instance  To ground  the  abstract
+ schema in Table 7, Listing 1 presents a concrete YAML con-
+  tract instance corresponding to the DPR (Dense Passage Re-
+  trieval) benchmark (bm_001_dpr_dpr.yaml). This con-       11    conclusions of DPR: that dense dual-encoder
+  tract specifies the paper metadata, key claims, datasets, base-
+                                                               ,→retrieval outperforms
+  lines, target method, expected metric values with tolerance       12    BM25 on open-domain QA retrieval metrics, using
+ ranges, success/failure conditions, and compute/time bud-          ,→reduced-scale
+ gets that jointly drive both the ABE-Ralph agent’s execution       13    reproduction on canonical datasets.
+ and the Triple-Verification Engine’s decision logic.                   14  key_claims:
+                                                                                         15    - Dense dual-encoder retrieval (DPR) substantially
+ Listing   1:  Example  YAML   experiment   contract          ,→outperforms BM25
+ (bm_001_dpr_dpr.yaml) used for the DPR benchmark.       16      on open-domain QA retrieval metrics such as
+ Fields map directly to the consumers listed in Table 7.                 ,→Recall@k and MRR.
+                                                                                         17    - Dense retrieval provides stronger downstream
+ 1  topic: Dense Passage Retrieval for Open-Domain                 ,→evidence quality for
+   ,→Question Answering                                                      18      QA than sparse lexical retrieval alone.
+ 2  paper_metadata:                                                              19  datasets:
+ 3    title: Dense Passage Retrieval for Open-Domain                20    - NaturalQuestions
+     ,→Question Answering                                                   21    - TriviaQA
+ 4    authors: Vladimir Karpukhin, Barlas Oguz, Sewon               22  baselines:
+     ,→Min, Patrick Lewis, ...                                            23    - BM25 (sparse lexical retrieval, e.g., via
+ 5    year: 2020                                                ,→Pyserini or Elasticsearch)
+ 6    venue: EMNLP                                                                24  target_method:
+ 7    domain: nlp_retrieval                                                   25    name: Dense Passage Retriever (DPR)
+ 8    task_type: open_domain_qa_retrieval                                26    description: A dual-encoder dense retrieval model
+ 9  reproduction_goal: >                                      ,→that encodes
+10    Evaluate whether an AI agent can reproduce the main         27      questions and passages into a shared embedding
+     ,→experimental                                           ,→space for
+
+=== PDF第14页 ===
+ Algorithm 9 Level 2 Qualitative Peer Review Check           Algorithm 11 Decision Aggregation Protocol
+   1: procedure RunUniversalQualitativeCheck()                 1: procedure ExecuteEvaluation()
+   2: prompt ←ConstructPrompt({                                    2: m_data ←LoadMetrics()
+   3:    Role: “Senior meta-reviewer auditing reproduction”,          3: q_pass,     _  ←    RunDynamicQuantita-
+   4:   Claims: self.plan.key_claims,                   tiveCheck(m_data)
+   5:   Report: ReadFile(self.report_path)})                 4: decision ←RunUniversalQualitativeCheck()
+   6: out ←InvokeClaude(prompt)                                 5:  if decision == MET_ALL and m_data is NULL
+   7: decision ←ParseDecision(out) {Regex: DECI-         then
+    SION:\s*(MET_ALL|MET_PARTIALLY|FAILED)}            6:  decision ←MET_PARTIALLY
+   8: return (decision)                                                7: end if
+   9: end procedure                                                       8:  if not self.discovery then
+                                                                               9:   l3_pass, _ ←RunCodeAlignmentCheck()
+                                                                       10:     if not l3_pass then
+ Algorithm 10 Level 3 Code Alignment Verification               11:    decision ←FAILED {Block on M1 method col-
+   1: procedure RunCodeAlignmentCheck()                            lapse}
+   2: modules ←  self.plan.target_method.       12:   end if
+                                                                       13: end if    critical_modules
+   3: code ←ReadFile(“main.py”)                                14: return decision
+   4: for all m ∈modules do                                       15: end procedure
+   5:     if not ASTSearch(m, code) then
+   6:     return (FALSE, “Critical module missing: ” + m)
+   7:   end if                                               ,→BM25 on all
+   8: end for                                                                       59      primary retrieval metrics (recall_at_20,
+   9: return (TRUE, “Code structural alignment passed”)              ,→recall_at_100, mrr) in
+  10: end procedure                                                             60      the same direction as the original paper.
+                                                                                         61    result_closeness_tolerance: 0.05
+                                                                                         62  failure_conditions:
+                                                                                         63    - BM25 outperforms or matches DPR on primary
+28      efficient top-k retrieval via maximum inner                 ,→retrieval metrics.
+       ,→product search.                                                     64    - Metric differences are outside the reasonable
+29    codebase: facebookresearch/DPR                             ,→range or opposite
+30  ablations:                                                                     65      in direction to the paper.
+31    - BM25 baseline                                                            66    - Incorrect evaluation setup (e.g., wrong
+32    - DPR with different negative sampling strategies             ,→negatives, inconsistent
+33    - DPR with reduced training data                                    67      preprocessing) invalidates comparison.
+34  metrics:                                                                        68  compute_budget:
+35    - recall_at_20                                                             69    gpu_type: NVIDIA GeForce RTX 4070 Laptop GPU
+36    - recall_at_100                                                            70    gpu_memory_gb: 8
+37    - mrr                                                                          71    max_gpu_hours: 18.0
+38  expected_metric_values:                                                   72    cpu_cores: 8
+39    - metric_name: recall_at_20                                           73    ram_gb: 32
+40      expected_value: 0.78                                                  74  time_budget:
+41      reasonable_range: [0.73, 0.8]                                     75    environment_setup_hours: 2.0
+42      higher_is_better: true                                               76    repo_selection_and_code_reading_hours: 2.0
+43    - metric_name: recall_at_100                                         77    dataset_parsing_and_section_segmentation_hours: 2.0
+44      expected_value: 0.85                                                  78    baseline_pipeline_adaptation_hours: 2.0
+45      reasonable_range: [0.8, 0.88]                                     79    proposed_method_implementation_hours: 2.5
+46      higher_is_better: true                                               80    debugging_and_memory_optimization_hours: 2.0
+47    - metric_name: mrr                                                       81    baseline_training_and_evaluation_hours: 2.0
+48      expected_value: 0.32                                                  82    proposed_method_training_and_evaluation_hours: 2.5
+49      reasonable_range: [0.29, 0.34]                                    83    ablation_runs_hours: 1.0
+50      higher_is_better: true                                               84    result_aggregation_and_visualization_hours: 1.0
+51  expected_paper_conclusions:                                              85    contingency_buffer_hours: 1.0
+52    - DPR (dense retrieval) achieves higher Recall@k             86  risks:
+     ,→and MRR than BM25                                                     87    - Incorrect negative sampling or passage index
+53      on open-domain QA retrieval benchmarks.                     ,→construction may invalidate results.
+54    - Dense retrieval provides better evidence                      88    - Incompatible preprocessing between DPR and BM25
+     ,→retrieval for downstream                               ,→could bias metrics.
+55      QA than sparse lexical retrieval alone.                       89    - GPU memory limits may require smaller batch sizes
+56  success_conditions:                                    ,→or model variants, affecting metric values.
+57    conclusion_correctness: true                                         90    - Dataset splits or answer string matching may
+58    metric_direction_consistency: DPR must outperform             ,→differ from the original, impacting recall.
+
+=== PDF第15页 ===
+                                                                Table 7: YAML Contract Schema and Field Consumers. 91  reproducibility_notes:
+ 92    Reduced-scale reproduction uses DPR-base model,
+      ,→smaller batch sizes, and fewer epochs to fit                  Field                   Consumers            Purpose
+      ,→within compute budget. Pretrained checkpoints
+                                                                   datasets                 Agent, Verifier (L1)      Expected dataset spec-     ,→may be used for evaluation if full training is
+                                                                                                                                                                             ifications
+      ,→infeasible. Metric values are expected to be
+                                                                   baselines                Agent, Verifier (L1)      Required     baseline      ,→within 5% of the original papers results, but
+                                                                                                                                              comparative targets
+      ,→directionality and relative ranking between DPR
+                                                                   target_method           Agent,  Verifier  (L1,    Target  algorithm  de-     ,→and BM25 are the main criteria for success.
+                                                                                                             L3)                        scription
+ 93  generation_metadata:
+                                                                   critical_modules        Verifier (L3)            Mandatory AST com- 94    generated_at: ’2026-06-01T16:42:13.157186’
+                                                                                                                                               ponents in main.py 95    generator_model: gpt-4.1
+                                                                   key_claims                 Verifier (L2)            Claims   to   evaluate 96    benchmark_id: bm_001_dpr
+                                                                                                                                                                       qualitatively
+ 97    benchmark_name: DPR
+                                                                   success_conditions    Agent, Verifier (L1)      Metric margins and di- 98    priority_tier: P1
+                                                                                                                                                                       rectionality
+ 99    difficulty: 2
+                                                                   failure_conditions     Verifier (L2)              Red-line  failure  trig-100    reproduction_mode: reduced_scale_reproduction
+                                                                                                                                                           gers
+101    retry_count: 0
+102    validation_status: complete
+                                                                       Table 8: Complete System File Inventory.
+   As shown above, the contract is organized into six func-
+  tional blocks consumed by different components of the ABE-            File Name                          Lines    Primary Operational Role
+  Ralph pipeline:
+                                                                   ralph_github.py            ∼1246   Workflow agent, iteration, ab-
+  1. Provenance  block  (topic,  paper_metadata,                                                                   lation loop
+    reproduction_goal) — consumed by the Meta-        verify_reproduction.py     ∼519     Triple-verification    engine,
+                                                                                                                                                  decision                                                                                                                                                 engine
+    Experiment Agent during the Intent and Research steps                                                                                                                                         Level 3                                                                   alignment_verifier.py      ∼266     to establish scope and locate reference implementations.                                                                               structural code  fi-
+                                                                                                                                                                delity auditor
+  2. Claim/target  block  (key_claims,  datasets,        experiment_taxonomy.py     ∼220     Failure  taxonomy  classifier
+    baselines,   target_method,   ablations,                                             (M1–M5)
+    metrics) — jointly consumed by the Agent (Blueprint-        ablation_scoring.py        ∼280    Multi-dimensional   scoring
+     /Execution steps) and the Verifier’s L1 and L3 checks to                                                   module
+                                                                   experiment_integrator.py   ∼390    Execution   history,   metric     determine which datasets, comparative baselines, and
+                                                                                                                                                     tracking
+    code modules must be present.
+
+  3. Quantitative               criteria             block
+    (expected_metric_values,                       Methodological Hallucination Taxonomy:
+    expected_paper_conclusions,                                                       Per-Experiment Breakdown    success_conditions, failure_conditions)
+  —   directly  parameterizes  RunDynamicQuantita-      This section details the per-experiment analysis across 30
+    tiveCheck  (Algorithm  8)  and  the L2  qualitative       classical machine learning and deep learning benchmark re-
+     reviewer’s red-line triggers.                                  productions evaluated under the ABE-Ralph auditing frame-
+                                                             work. A total of 17 experiments exhibited one or more
+  4. Resource block (compute_budget, time_budget)      methodological hallucination types (M1–M5), while 13
+  — consumed by self._budget_timeouts in Al-      passed verification without shortcuts.
+     gorithm 1 to bound each staged workflow step (e.g.,
+   max_gpu_hours constrains full_execution).                                          M1: Method Integrity Collapse (5 Methods)
+  5. Risk block (risks, reproducibility_notes) —      Occurs when the agent omits core target components, sub-
+     informs the Agent’s self-healing/improvement cycle (Al-        stitutes trivial heuristic fallbacks, or fails to execute compar-
+     gorithm 4) by pre-registering plausible failure causes       ative conditions.
+      (e.g., negative sampling errors, preprocessing mismatch)
+     referenced by the failure taxonomy signal matcher.               • RAG: (Also M5). The generator fell back to parametric
+                                                           knowledge when retrieval failed (EM 1.8% vs. 42.1% with
+  6. Provenance/audit         metadata          block         successful retrieval). The experiment conflated paramet-
+    (generation_metadata) —  used   for  experi-          ric memory with RAG performance, failing to isolate the
+    ment tracking, reproducibility auditing, and versioning          retrieval component’s contribution.
+     across the 30-benchmark suite (Appendix –).
+                                                                               • BERT: (Also M5). The pretrained checkpoint was fine-
+                                                                tuned on fundamentally different tasks (e.g., sentiment
+                                                                         analysis) chosen by the LLM, rather than the specific
+  File Inventory                                           GLUE benchmark tasks (MNLI, QQP, MRPC) specified
+  Table 8 details the primary system modules.                         in the paper.
+
+=== PDF第16页 ===
+• SimCLR: (Also M3, M5). Baseline methods (e.g., random    M4: Quantitative Key Mismatch (2 Methods)
+  encoder) were queued but never executed, meaning the                                                        Occurs when output files or metric keys deviate from verifica-
+  core comparison of “SimCLR vs. previous unsupervised                                                                     tion schemas, causing verification pipeline parsing failures.
+  methods” never occurred.
+• DDIM:  (Also  M5). The  core  comparison  baseline        • RoBERTa: (Also M5). Quantitative checks failed solely                                                             because metrics.json was produced under a non- (DDPM) was never executed, meaning the primary claim
+                                                                 standard filename pattern by aggregation scripts. (DDIM is faster than DDPM) was unvalidated.
+• Improved DDPM: (Also M5). Training instability (likely        • GraphSAGE: (Also M2, M5). Inconsistent metric naming
+                                                                                 (e.g., "acc" vs. "accuracy" in output JSON) caused  in learned variance parameters) eliminated the expected
+                                                                    the parser to miss evaluation results.  quality gap over base DDPM, failing to reproduce the
+  claimed likelihood improvements.
+                                         M5: Incomplete Execution (16 Methods)
+M2: Silent Protocol Degradation (6 Methods)            Occurs when benchmark evaluation conditions, datasets, or
+Occurs when training protocols, negative sampling, or initial-       target conditions are prematurely terminated due to com-
+ization routines are modified without authorization to force      pute limits. Affected methods: RAG, ColBERT, BERT,
+execution.                                       RoBERTa, PEGASUS, LED, ViT, SimCLR, MoCo, U-
+                                                              Net, YOLO, PatchCore, DDIM, Improved DDPM, PPO,
+• ColBERT: (Also M5). Hard negative mining was com-      and GraphSAGE.  pletely omitted from the training protocol, disabling Col-
+  BERT’s ability to discriminate relevant from irrelevant
+                                                 Clean Experiments (13 Baseline Reproduction  passages.
+                                                Runs)
+• PEGASUS: (Also M3, M5). Trained from scratch for 3                                                              Thirteen methods passed all verification checks without hal-  epochs on 50K samples instead of fine-tuning the pre-
+                                                                   lucination shortcuts: DPR, LoRA, Prefix-Tuning, Long-  trained GSG checkpoint, testing random initialization con-
+  vergence rather than representation quality.                   former, TextRank, ResNet, CLIP, PaDiM, DDPM, DQN,
+                                           GCN, Informer, and Autoformer.
+• ViT: (Also M3, M5). Trained from scratch on a small
+  dataset without pretraining, resulting in a 20-percentage-
+  point accuracy drop and violating the paper’s assumption         Detailed Per-Experiment Case Studies
+  of large-scale pretraining.                                   This section provides detailed case studies for all 30 classical
+                                                       machine learning and deep learning benchmark reproduc-• Faster R-CNN: Protocol degradation in the detection
+                                                                     tions evaluated under the ABE-Ralph auditing framework.  pipeline due to non-standard RPN settings or inconsistent
+ mAP evaluation protocols.
+                                                       Individual Experiment Analyses• PPO: (Also M5). Continuous-control environments (Mu-
+  JoCo) crashed with 0/9 runs completed; report falsely       1. DPR (Dense Passage Retrieval)   Status: CLEAN. All
+  claimed continuous control success based on discrete Cart-       quantitative and qualitative checks passed successfully. Eval-
+  Pole.                                                         uation metrics for NaturalQuestions and TriviaQA are fully
+                                                                    present, and the conclusion (DPR outperforms BM25) is cor-
+• GraphSAGE: (Also M4, M5). Inductive vs. transductive                                                                       rectly supported by the reproduced experimental data.  settings were misconfigured, breaking the inductive gener-
+  alization claim.
+                                                                       2. RAG  (Retrieval-Augmented  Generation)   Status:
+                                             HALLUCINATION (M1 + M5).
+M3: Scale-Driven Conclusion Inversion (4
+                                                                            • M1 Collapse: The generator fell back to parametric knowl-Methods)
+                                                           edge when retrieval failed (EM 1.8% vs. 42.1% with suc-
+Occurs when resource-limited scaling or protocol degrada-                                                                     cessful retrieval). The experiment conflated the generator’s
+tion inverts the paper’s original ranking or core conclusions.                                                 memory with RAG performance, thus failing to isolate the
+• PEGASUS: (Also M2, M5). PEGASUS underperformed          retrieval component’s contribution.
+ BERT (-32%) and BART (-55%), completely inverting the                                                                            • M5 Incomplete: Missing metrics for NaturalQuestions
+  paper’s SOTA summarization ranking claims.                                                         and WebQuestions due to index construction infrastruc-
+• ViT: (Also M2, M5). At reduced scale without pretraining,         ture issues.
+ CNN baselines outperformed ViT, directly opposing the
+  paper’s conclusion.                                                3. ColBERT  (Contextualized  Late  Interaction  over
+• SimCLR: (Also M1, M5). The agent substituted a weaker    BERT)   Status: HALLUCINATION (M2 + M5).
+  verification standard, concluding “above chance” perfor-        • M2 Degradation: Hard negative mining was completely
+  mance rather than proving superiority over baseline en-        omitted from the training protocol. Because ColBERT re-
+  coders.                                                                     lies heavily on hard negatives, the model failed to discrim-
+                                                                       inate relevant from irrelevant passages.• U-Net: (Also M5). Reduced-depth ablation paradoxically
+  outperformed the full U-Net under limited data, contra-        • M5 Incomplete: Omitted  the TREC Deep Learning
+  dicting claims on encoder-decoder depth utility.                    dataset, a primary benchmark in the paper.
+
+=== PDF第17页 ===
+4. BERT (Pretrained Language Model)   Status: HALLU-       13. ViT (Vision Transformer)   Status: HALLUCINATION
+CINATION (M1 + M5).                               (M2 + M3 + M5).
+• M1 Collapse: The pretrained checkpoint was fine-tuned        • M2 Degradation: ViT was trained from scratch on a small
+  on non-target tasks (e.g., sentiment analysis) chosen by the         dataset without large-scale pretraining, resulting in a 20
+ LLM rather than specific GLUE benchmark tasks (MNLI,        percentage point accuracy drop.
+  QQP, MRPC).                                                                            • M3 Inversion: At reduced scale, standard CNNs outper-
+• M5 Incomplete: Metrics for the full GLUE dataset suite       formed ViT, inverting the paper’s original conclusions.
+  are missing; only SST-2 results were reported.                                                                            • M5 Incomplete: Missing ImageNet pretraining/evaluation
+                                                                  subset metrics.
+5. RoBERTa (Robustly Optimized BERT)   Status: HAL-
+LUCINATION (M4 + M5).                                      14. CLIP (Contrastive Language-Image Pretraining)
+• M4 Key Mismatch: Quantitative verification failed be-       Status: CLEAN. The LLM correctly executed zero-shot clas-
+  cause metrics.json was generated under a non-       sification evaluation using appropriate prompt templates and
+  standard filename pattern by aggregation scripts.               recovered expected zero-shot transfer performance.
+• M5 Incomplete: Missing full GLUE benchmark evalua-       15. SimCLR (Simple Framework for Contrastive Learn-
+  tion metrics.                                                                ing)   Status: HALLUCINATION (M1 + M3 + M5).
+6. LoRA (Low-Rank Adaptation)   Status: CLEAN. Clean        • M1 Collapse: Baseline methods (e.g., random encoder)
+run. All required metrics for GLUE and instruction-tuning       were queued but never executed.
+subsets are present. The conclusion that LoRA matches full                                                                            • M3 Inversion: The LLM  substituted a weaker  stan-
+fine-tuning with significantly fewer trainable parameters is         dard, concluding “above chance” performance rather than
+correctly supported.                                            demonstrating superiority over unsupervised baselines.
+7. Prefix-Tuning (Continuous Prompt Tuning)   Status:        • M5 Incomplete: All baseline comparative evaluation re-
+CLEAN. Clean reproduction without hallucinations. The          sults were left pending.
+LLM successfully set up continuous prefix parameters and
+                                                                16. MoCo (Momentum Contrast for Unsupervised Visual
+compared them against full fine-tuning baselines under stable                                                           Representation)   Status: HALLUCINATION (M5). Met-
+convergence.                                                                         rics for the ImageNet evaluation subset are missing. As Im-
+                                                         ageNet is the primary benchmark, linear probe classification8. PEGASUS (Abstractive Summarization with Stoned
+                                                          performance remains unverified.Sentences)   Status: HALLUCINATION (M2 + M3 + M5).
+• M2 Degradation: Trained from scratch for 3 epochs on       17. U-Net (Convolutional Networks for Biomedical Image
+ 50K samples instead of using the pretrained GSG check-      Segmentation)   Status: HALLUCINATION (M3 + M5).
+  point.                                                                            • M3 Inversion: The reduced-depth ablation paradoxically
+• M3 Inversion: The performance ranking inverted: PEGA-        performed better than the full U-Net under small sample
+ SUS underperformed BERT (-32%) and BART (-55%),          limits, contradicting claims that full encoder-decoder depth
+  contradicting SOTA summarization claims.                            is essential.
+• M5 Incomplete: Missing the XSum extreme summariza-        • M5 Incomplete: Missing key biomedical segmentation
+  tion benchmark dataset.                                    benchmarks (e.g., ISBI dataset).
+
+9. LED (Longformer-Encoder-Decoder)   Status: HAL-       18. Faster R-CNN (Towards Real-Time Object Detection)
+LUCINATION (M5). Missing target method metrics for the       Status: HALLUCINATION (M2). Protocol degradation in de-
+arXiv long-document dataset. Since arXiv is a primary long-       tection pipeline — non-standard Region Proposal Network
+context benchmark, the core claim of superior long-context     (RPN) settings or non-standard mAP evaluation protocols
+summarization could not be verified.                          caused silent evaluation divergence.
+
+10. Longformer (Long-Document Transformer)   Status:       19. YOLO (Real-Time Object Detection)   Status: HAL-
+CLEAN. All quantitative checks passed. The LLM correctly     LUCINATION (M5). Target method metrics for the PAS-
+configured sparse attention masks (sliding window + global    CAL VOC benchmark dataset are missing, leaving the speed-
+attention) and recovered expected efficiency-performance      accuracy tradeoffprofile incomplete.
+tradeoffs.
+                                                                20. PatchCore (Industrial Anomaly Detection)   Status:
+11. TextRank (Graph-based Unsupervised Summariza-     HALLUCINATION (M5). Detailed localization metrics (e.g.,
+tion)   Status: CLEAN. Graph-based extractive summariza-       pixel-level AUROC or AUPRO) are missing, leaving spatial
+tion baseline was correctly implemented, and ROUGE scores      anomaly localization unverified.
+were computed accurately across reference documents.
+                                                                21. PaDiM (Patch Distribution Modeling for Anomaly
+12. ResNet (Deep Residual Learning)   Status: CLEAN.      Detection)   Status: CLEAN. All checks passed. Maha-
+Residual architecture advantages over plain CNNs were suc-       lanobis distance estimation over patch embedding distribu-
+cessfully reproduced on CIFAR-10/100 datasets using proper       tions was correctly implemented, recovering anomaly detec-
+residual connections and learning rate schedules.                  tion metrics on MVTec AD.
+
+=== PDF第18页 ===
+22. DDPM (Denoising Diffusion Probabilistic Models)     Cross-Experiment Case Study Summary
+Status: CLEAN. Stable reproduction of the diffusion train-      Table 9 presents the systematic evaluation of all 30 bench-
+ing pipeline with correct beta schedule, sampling loop, and     mark reproduction experiments across verification levels L1–
+evaluation quality metrics (FID).                        L3 and failure modes M1–M5.
+
+23. DDIM (Denoising Diffusion Implicit Models)   Status:
+HALLUCINATION (M1 + M5).                          Extended Discussion and Future Work
+• M1 Collapse: Baseline DDPM sampling runs were never     Discussion
+  executed; speedup claims over DDPM could not be tested.     The empirical evaluations yield critical insights into the
+• M5 Incomplete: Only 4 out of 12 planned conditions were       capabilities and limits of modern scientific agents. First,
+  completed (33% completion rate) using a single random      our fine-grained dimensional analysis reveals a performance
+  seed.                                                 mismatch between software viability and scientific validity.
+                                                            General-purpose coding agents generate syntactically cor-
+24. Improved DDPM (Improved Denoising Diffusion)       rect code, but they lack domain-specific constraints needed
+Status: HALLUCINATION (M1 + M5).                            to maintain research integrity. As a result, when faced with
+• M1 Collapse: Training instability with learned variance      execution roadblocks, they optimize for engineering execu-
+  parameters eliminated expected generation quality im-       tion success (Exit Code 0) rather than scientific accuracy.
+  provements over base DDPM.                                 Second, the high prevalence of M5 (Incomplete Execu-
+                                                                          tion, 53.3%) and M2 (Silent Protocol Degradation, 20.0%)
+• M5 Incomplete: Missing metrics for subset datasets (e.g.,                                                                   highlights the challenge of resource adaptation under fixed  ImageNet subset).
+                                                                   configurations. When compute bounds are reached, agents
+25. DQN (Deep Q-Networks)   Status: CLEAN. Clean ex-       are forced into a trade-off: either abort execution (resulting
+ecution. Replay buffer and target network update logic were       in M5) or silently downgrade parameters (such as batch size
+correctly implemented, recovering expected reinforcement       or training steps, leading to M2) to satisfy execution limits.
+learning performance on Atari/CartPole.                      Because current agent architectures lack the context to dy-
+                                                             namically partition workloads or negotiate resource limits,
+26. PPO (Proximal Policy Optimization)   Status: HAL-       scaling automated discovery beyond simple sandbox envi-
+LUCINATION (M2 + M5).                                  ronments remains difficult.
+• M2 Degradation: All continuous control environments          Finally, the low performance across all frameworks un-
+  (MuJoCo HalfCheetah, Hopper, Walker2d) crashed (0/9      der Qualitative Review points to an abstraction gap. Current
+  completed). The report falsely claimed continuous control      agents focus on local code correction, but they struggle to
+  success based solely on discrete CartPole-v1.                   synthesize their findings into the structured, coherent, and
+• M5 Incomplete: Zero baseline data (Vanilla PG, TRPO)       contextualized narratives expected in academic research.
+  was provided.
+                                                  Future Work: Multi-Agent Architectures and
+27. GCN  (Graph  Convolutional  Networks)   Status:     Resource Orchestration
+CLEAN. Graph convolution layers, adjacency matrix nor-                                                    To resolve compute-bound limitations that lead to high rates
+malization, and train/val/test splits were correctly set up, re-
+                                                                of incomplete execution (M5), future work will explore tran-
+covering node classification accuracy on Cora and Citeseer.
+                                                                     sitioning from single-agent designs to cooperative, resource-
+28. GraphSAGE (Inductive Representation Learning on      aware multi-agent systems (Yuan et al. 2025). We envision a
+Large Graphs)   Status: HALLUCINATION (M2 + M4 +      framework organized around specialized roles:
+M5).                                                                            • Resource Orchestrator Agent: Dynamically monitors
+• M2 Degradation: Inductive vs. transductive settings were         physical hardware configurations (VRAM, compute avail-
+  misconfigured.                                                            ability, process time limits). If a resource-limit error (e.g.,
+• M4 Key Mismatch: Inconsistent metric keys ("acc" vs.     OOM) is predicted, this agent automatically applies scaling
+ "accuracy") caused quantitative parser failure.              rules—such as parallelizing execution nodes or deploying
+                                                                   gradient accumulation—to keep execution within bounds
+• M5 Incomplete: Large-scale inductive validation datasets                                                               without violating primary constraints (C).  (Reddit, PPI) missing.
+                                                                            • Developer Agent: Focuses on generating candidate code
+29. Informer (Long Sequence Time-Series Forecasting)      P to explore a target design space.
+Status: CLEAN. ProbSparse attention mechanism and gen-                                                                            • Auditor Agent: Bound by independent personas to runerative long-horizon forecasting pipeline were correctly im-                                            AST and call-graph verification, checking developer out-
+plemented, recovering computational efficiency gains.                                                                  puts against the semantic constraint contract (C). Future
+                                                                          iterations will incorporate multi-model consensus to fur-30. Autoformer (Decomposition Transformers for Time-
+Series)   Status: CLEAN. Series decomposition blocks and         ther mitigate evaluator bias and auditor hallucinations.
+Auto-Correlation mechanisms were successfullyreproduced,        • Red-Teaming Agent: Aims to identify edge cases, such as
+showing expected improvements over vanilla Transformer        searching for adversarial hyperparameter configurations or
+baselines.                                                         data subsets that could invalidate progress.
+
+=== PDF第19页 ===
+  Implementing a  multi-agent consensus  pipeline with
+resource-aware delegation could prevent task failures caused
+by resource limits, laying a foundation for more reliable and
+scalable automated scientific discovery.
+
+=== PDF第20页 ===
+             Table 9: Hallucination Detection Results for 30 Benchmark Methods (Detailed Failure Analysis).
+
+
+ Method      M1 M2 M3 M4 M5  Failure / Detailed Issue
+ DPR            –   –   –   –   –   All quantitative and qualitative checks passed. Evaluation metrics for NaturalQuestions and
+                                      TriviaQA are fully present.
+RAG       ✓   –   –   –  ✓  M1: Generator falls back to parametric memory when retrieval fails. M5: Missing metrics for
+                                          NaturalQuestions/WebQuestions.
+ ColBERT        –  ✓   –   –  ✓  M2: Hard negative mining omitted from training. M5: Missing TREC Deep Learning dataset
+                                              metrics.
+ BERT      ✓   –   –   –  ✓  M1: Fine-tuned on non-target tasks instead of specified GLUE benchmarks. M5: Full GLUE
+                                               dataset metrics missing.
+ RoBERTa        –   –   –  ✓  ✓  M4: Key mismatch in metrics.json parser pipeline. M5: Missing full GLUE benchmark
+                                                 suite metrics.
+ LoRA           –   –   –   –   –  Clean run. All required metrics for GLUE and instruction-tuning subsets are present.
+ Prefix-Tuning     –   –   –   –   –  Clean reproduction without hallucinations; stable prefix parameter convergence.
+ PEGASUS       –  ✓  ✓   –  ✓  M2: Trained from scratch for 3 epochs instead of GSG checkpoint. M3: Inverted ranking
+                                     (-32% vs BERT). M5: Missing XSum.
+ LED            –   –   –   –  ✓  M5: Target method metrics missing for arXiv long-document dataset.
+ Longformer       –   –   –   –   –   Clean. Sparse attention masks implemented correctly; expected efficiency recovered.
+ TextRank         –   –   –   –   –   Clean. Graph-based extractive summarization baseline correctly evaluated.
+ ResNet          –   –   –   –   –   Clean. Residual architecture advantage over plain CNNs reproduced on CIFAR-10/100.
+ ViT             –  ✓  ✓   –  ✓  M2: Trained from scratch without pretraining (20% drop). M3: CNN outperforms ViT at
+                                         reduced scale. M5: ImageNet subset missing.
+ CLIP            –   –   –   –   –   Clean. Zero-shot transfer classification evaluated correctly with proper prompts.
+ SimCLR     ✓   –  ✓   –  ✓  M1: Baselines queued but unexecuted. M3: Substituted standard to “above chance” instead of
+                                            beating baselines. M5: Baselines pending.
+ MoCo           –   –   –   –  ✓  M5: Metrics for ImageNet subset missing; linear probe accuracy unverified.
+ U-Net           –   –  ✓   –  ✓  M3: Reduced-depth ablation outperformed full U-Net under small data. M5: Missing
+                                         medical benchmarks (ISBI).
+ Faster R-CNN     –  ✓   –   –   –  M2: Non-standard RPN settings or mAP protocol degradation in detection pipeline.
+YOLO           –   –   –   –  ✓  M5: Target method metrics missing for PASCAL VOC object detection benchmark.
+ PatchCore        –   –   –   –  ✓  M5: Detailed spatial localization metrics (pixel AUROC/AUPRO) missing.
+ PaDiM          –   –   –   –   –   Clean. Mahalanobis distance modeling on patch embeddings verified on MVTec AD.
+DDPM          –   –   –   –   –   Clean. Stable diffusion pipeline reproduction with correct beta schedule and FID metrics.
+ DDIM      ✓   –   –   –  ✓  M1: DDPM baseline never executed; speedup claim unverified. M5: Only 4/12 conditions
+                                        completed (33%).
+ Improved DDPM ✓   –   –   –  ✓  M1: Learned variance parameter instability eliminated expected quality gap. M5: Missing
+                                            subset dataset metrics.
+DQN            –   –   –   –   –   Clean. Replay buffer and target network update recovered expected Atari/CartPole
+                                          performance.
+ PPO             –  ✓   –   –  ✓  M2: Continuous control (MuJoCo) crashed; falsely claimed success via discrete CartPole.
+                               M5: Baseline data missing.
+GCN            –   –   –   –   –   Clean. Graph convolution and adjacency preprocessing verified on Cora/Citeseer.
+ GraphSAGE      –  ✓   –  ✓  ✓  M2: Misconfigured inductive settings. M4: Key name mismatch ("acc" vs "accuracy").
+                               M5: Reddit/PPI missing.
+ Informer         –   –   –   –   –   Clean. ProbSparse attention and long-horizon forecasting pipeline correctly implemented.
+ Autoformer       –   –   –   –   –   Clean. Series decomposition and auto-correlation mechanisms successfully reproduced.
+
+
+                                       Aggregate Benchmark Statistics (N = 30):
+• Clean (no hallucination): 13 (43.3%)
+• M1: Method Integrity Collapse — 5 (16.7%)
+• M2: Silent Protocol Degradation — 6 (20.0%)
+• M3: Scale-Driven Conclusion Inversion — 4 (13.3%)
+• M4: Quantitative Key Mismatch — 2 (6.7%)
+• M5: Incomplete Execution — 16 (53.3%)
+    Note: Failure categories M1–M5 overlap within individual methods; thus, the sum of category counts (33) exceeds the total count of
+                                                       hallucinated methods (17).

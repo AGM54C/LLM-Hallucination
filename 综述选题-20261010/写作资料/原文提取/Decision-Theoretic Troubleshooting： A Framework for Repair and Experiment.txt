@@ -1,0 +1,528 @@
+
+=== PDF第1页 ===
+ Decision-Theoretic Troubleshooting: A Framework for Repair and
+                        Experiment
+
+
+
+
+                         John S. Breese   David Heckerman
+
+                                            Microsoft Research
+                                  One Microsoft Way
+                                 Redmond, WA 98052-6399
+                                   {breese,heckerma}@microsoft.com
+
+              Abstract                        current diagnosis is suﬃciently restricted to support
+                                                            action.
+
+   We develop and extend existing  decision-       From a decision making perspective, however, our pri-
+     theoretic methods for troubleshooting a non-       mary objective is to repair the device or cure the pa-
+    functioning device.  Traditionally, diagnosis          tient, not just determine what is wrong. At any stage
+    with Bayesian networks has focused on be-         of the process, there are many possible observations,
+      lief updating—determining the probabilities          tests, or repairs that can be applied. Because these op-
+     of various faults given current observations.         erations are expensive in terms of time and/or money,
+    In this paper, we extend this paradigm to       we wish to generate a sequence of actions that min-
+     include taking actions. In particular, we con-         imizes costs and results in a functioning device (or
+     sider three classes of actions: (1) we can make        healthy patient).  In this paper, we develop a diag-
+    observations regarding the behavior of a de-         nostic procedure (i.e., planner) that selects the next
+     vice and infer likely faults as in traditional        best action by estimating the expected cost of repair
+     diagnosis, (2) we can repair a component and          for various plans. Because computation of the optimal
+    then observe the behavior of the device to in-        plan is intractable, we develop procedures for estimat-
+     fer likely faults, and (3) we can change the         ing the expected cost of repair for plans that
+    conﬁguration of the device, observe its new
+    behavior, and infer the likelihood of faults.                                                                  1. Repair system components in sequence (with no
+    Analysis of latter two classes of troubleshoot-                                                             observations) until the device is repaired
+     ing actions requires incorporating notions of
+     persistence into the belief-network formalism                                                                  2. Gather evidence about the state of the system and
+    used for probabilistic inference.                                                        then repair components
+
+                                                                  3. Change the conﬁguration of the system, observe
+1  Introduction                                        behavior, and then repair components
+
+Given that a device is not working properly or a pa-
+                                     We use these cost estimates myopically to determine
+tient has some complaint, automated-diagnostic sys-
+                                                       the next troubleshooting step. After each action, prob-
+tems have traditionally been been designed to deter-
+                                                                   abilities are updated and a new set of potential plans
+mine the set of faults or diseases that explain the symp-
+                                                        are generated. This cycle continues until the device is
+toms [de Kleer and Williams, 1987, Genesereth, 1984,
+                                                   working properly.
+Heckerman et al., 1992, Breese et al., 1992]. The di-
+agnostician is able to ask questions about the behav-   From the perspective of belief-network diagnosis, the
+ior of the device or test individual components in or-    second two classes of troubleshooting action are prob-
+der to determine if they are working properly. As new    lematic. When we actively set (as opposed to passively
+information is gained, the procedure updates its cur-    observe) the value of a variable in a Bayesian network,
+rent view of the world. Inference focuses on identify-    previous observations regarding device behavior may
+ing the set of faults consistent with the observations    change. For example, in Figure 1 depicting a simpliﬁed
+and, in the probabilistic case, assigning probabilities   model of printing for personal computers, we may ini-
+to the feasible diagnoses. Information gathering pro-     tially be unable to print over the network, but we are
+ceeds until a single cause has been identiﬁed or the    able to print after we set the print logic to print locally.
+
+=== PDF第2页 ===
+There is no mechanism in a single static Bayesian net-         possible repair of an observable component and to
+work to combine the observations before and after this        the repair of an unobservable component.
+action. In this paper, we describe a notion called per-
+sistence, and show how it can be used as a solution to      6. The costs of observation and repair of any com-
+this problem in the context of troubleshooting.              ponent do not depend on previous repair or ob-
+                                                              servation actions.
+
+2  Basic Troubleshooting                                                                  7. Limited  observations:  No  observations,  other
+                                                       than the observation-repair of a component, are
+In this section, we describe a set of assumptions under                                                        undertaken during the course of troubleshooting.
+which it is possible to identify an optimal sequence of
+observations and repair actions in time proportional
+                                                    For the moment, let us consider only observable com-to the number of components in the device, with-
+                                                       ponents. Let Coi and Cri denote the cost of observationout explicitly constructing and rolling back a decision
+                                               and repair of component ci. If we observe and possiblytree. The approach is described in Heckerman et al.
+                                                           repair components in the order c1, . . . , cn, then for the(1995). Let us suppose that the device has n compo-
+                                                     expected cost of repair under state of information I,nents c1, . . . , cn and each component is in exactly one
+                                                   denoted ECR(I), we haveof a ﬁnite set of states. We assume1
+
+                                            ECR(I) =  (Co1 + p1Cr1) +
+  1. There is only one problem-deﬁning variable in the                                  p2
+    Bayesian network for the device.  This variable                  (1 −p1)(Co2 +     Cr2) +                                                                            1 −p1
+     represents the functional status of the device. One                                         p3
+     of the states of this variable must correspond to                  (1 −p1 −p2)(Co3 +         Cr3) + · · ·                                                                                1 −p1 −p2
+    normal operation. In Figure 1, the node labeled
+                                                                 n         i−1    “Printer Output” is the problem-deﬁning node.                                                                =      −    pj      i + piCri   We will write e = normal to denote the event      X  X                                                                         i=1 1   j=1  Co         that the problem deﬁning node is normal.
+
+                                               That is, we ﬁrst observe component c1 incurring cost  2. At the onset of troubleshooting, the device  is
+                                           Co1. With probability p1, we ﬁnd that the component is    faulty—that is the problem deﬁning variable is
+                                                            faulty and repair it (and the device) incurring cost Cr1.    observed to be faulty.
+                                             With probability 1−p1, we ﬁnd that the component is
+  3. Single fault:  Exactly one component  is abnor-    functioning properly, and observe component c2. With
+    mal and is responsible for the failure of the de-    probability p2/(1 −p1), we ﬁnd that c2 is faulty and
+     vice. We use pi to denote the probability that    repair it; and so on.
+     repairing component ci will repair the device un-                                         By reversing the order of the any two steps in the
+    der the current state of information I, that  is                                                           repair sequence, one can show that the minimum ex-
+     pi ≡Pr(e = normal|repair(cI), I).  Under the                                                     pected cost sequence is obtained by ordering the com-
+                                i=1 pi = 1.               ponents according to a decreasing probability to cost     single-fault assumption, Pn
+                                                                 ratio. The expected cost of repair ECR(I) is under-
+  4. Each component  is observable or unobservable.
+                                                     stood to be that under the component ordering where
+   An observable component can be unambiguously
+     tested or inspected to determine correct opera-                    p1 ≥p2 ≥. . . ≥pn .
+     tion.  In this formulation, an observable compo-               Co1   Co2          Con
+    nent that is observed to be abnormal is immedi-
+     ately repaired. An unobservable component can   We sequentially repair or replace the components ac-
+    never be directly observed, but can be repaired    cording to the ordering of their pi/Coi  ratios.  After
+    or replaced.  In Figure 1, the components “Ca-    each repair, we observe whether the device is working
+     ble Port Hardware”, “Network Connection”, and    properly, and if so, terminate.
+    “Driver File Status” are unobservable—one can
+                                                        Including unobservable components in this approach is
+     reinstall the driver ﬁle from disk, but  it  is ex-
+                                                          straightforward. Recall that an unobservable compo-
+    tremely diﬃcult to determine if the ﬁle is corrupt
+                                                     nent ci is simply repaired with cost Cri . Therefore, an     directly.  For convenience, we use observation–
+                                                      unobservable component acts just like an observable
+     repair action to refer both to the observation and
+                                                component that is observed with cost Cri and always
+   1The appropriateness of these assumptions is discussed    found to be faulty and repaired with cost zero. Con-
+in Heckerman et al. (1995).                                 sequently, we can include unobservable components in
+
+=== PDF第3页 ===
+            Figure 1: A simpliﬁed Bayesian network for printing problems on personal computers.
+
+
+our procedure, provided we set Coi to the cost of repair
+of unobservable component ci, and set Cri to zero.2            Net          Net pre                 Net post
+                                                     m Icon2.1  Computing Probabilities of Faulty
+    Components using Persistence
+                                                                  Icon          Icon pre                 Icon postWhen troubleshooting under uncertainty, we need to
+compute the probabilities that components have failed.
+In our approach, we compute these probabilities using            (a)                            (b)
+a Bayesian network. Given the observation that “Print
+Output” is false, we can use a Bayesian-network infer-
+ence algorithm to compute the probability that any or    Figure 2: (a) A Bayesian network for the interaction
+all of the system components are faulty. When we wish    between net connections and print icon appearance.
+to recalculate probabilities given a component of the    (b) A persistence network for determining the proba-
+device has been repaired, updating procedures must     bility that the print icon will appear normal after we
+account for the change in underlying state of the de-    verify net connectivity, given that the icon is currently
+vice and the fact that previous observations may have    greyed out.
+been invalidated.
+
+Consider the simple causal relationship between the    states normal and grey. The two nodes are dependent
+status  of a computer’s connection to the network    as depicted in the Bayesian network in Figure 2a.
+(“Net”), which we model as having states normal or
+                                       Now suppose we observe the icon to be grey, and we
+abnormal, and the appearance of the printer icon in
+                                                want to determine the probability that the icon will be
+the print manager (“Icon”), which we model as having
+                                                     normal, after we make sure the network is connected.
+   2It is also straightforward to add the notion of a ser-   We can do so, using the Bayesian network shown in
+vice call, a ﬁxed charge that will repair any fault with the    Figure 2b.  In this network, “Netpre” and “Netpost”
+device. See Heckerman et al. (1995) for details.              represent whether or not the network is connected, re-
+
+=== PDF第4页 ===
+spectively before and after we establish connectivity .     latter notion, however, pertains to transitions from
+Similarly, “Iconpre” and “Iconpost” represent whether   some state of the world to a counterfactual state of
+or not the icon is normal before and after we connect    the world, whereas causal persistence pertains to tran-
+the network, respectively  .  The node mIcon repre-     sitions between real states of the world at diﬀerent
+sents all of the possible mappings between “Net” and    times. The notion of causal persistence (although not
+“Icon”.  Following Heckerman and Shachter (1995),    in this terminology) is discussed in Heckerman et al.
+we call mIcon and its corresponding variable a map-    (1994). Related notions are discussed in Pearl (1993),
+ping node and mapping variable, respectively. We call    Goldszmidt and Darwiche (1994), and Balke and Pearl
+the remaining nodes and their corresponding variables    (1994).
+domain nodes and domain variables, respectively.
+                                                       In general, suppose we have a Bayesian network for
+As shown in Table 1, the mapping node mIcon has four    a set of domain variables U = {x1, . . . , xn}. Further,
+possible states: (1) ok, where the icon is grey if and    suppose that we want to answer questions of the form:
+only if there is no network, (2) stuck on grey, where   “What would be the probability of X ⊆U if we were to
+the icon is grey regardless of state of the network, (3)    take some action, given that we now observe Y ⊆U.”
+stuck on normal, where the icon is always normal,   To answer such questions, we construct a new Bayesian
+and (4) backwards, where the icon reads grey if and    network as we did in our example.  First, we copy
+only if the network is connected. The node “Iconpre” is    the network, using the ﬁrst and second instances of
+a deterministic function of its cause “Netpre” and the    the network to represent the domain variables before
+node mIcon, as indicated by the double ovals around   and after we take the action.  Second, we introduce
+the node “Iconpre”. For example, if “Netpre” is abnor-   mapping nodes mi for each domain node xi, and as-
+mal and mIcon is backwards, then “Iconpre” will be    sess the prior probabilities of these nodes. Typically,
+normal. The node “Iconpost” is the same determin-    these mapping nodes will be mutually independent,
+istic function of cause “Netpost” and the node mIcon.    but they need not be [Heckerman and Shachter, 1995].
+The uncertainty in the relationship between “Net” and    Also, note that if xi is a root node, then mi = xi and
+“Icon” is encoded in the probabilities for the node   we do not need to explicitly create the mapping node.
+mIcon.  These probabilities are constrained by, but    Third, we make both versions of node xi the same
+not necessarily determined by, the probabilities in the    deterministic function of its parents and mi. Finally,
+Bayesian network.                              we identify those domain nodes in the post-action net-
+                                                work that are aﬀected directly by our action, break
+By using a single node mIcon to represent the map-
+                                                       the arcs from their parents, and set the states of these
+pings between “Network” and “Icon” both before and                                                   nodes to their values as determined by our action.3
+after the action is taken, we encode the assertion that
+                                               Under this construction, as in our example, the shared
+the mapping (or mechanism) between cause and ef-
+                                               mapping nodes encode causal persistence. We refer to
+fect is not aﬀected by actions that may change the
+                                                    Bayesian networks constructed in this manner as per-
+cause. Although we are uncertain about which map-
+                                                            sistence networks.
+ping holds, representing this uncertainty in a single
+node enforces the assertion that the mapping persists
+                                                   2.2  Single-Copy Approximation: Repairacross the action. We could equivalently have two
+mapping nodes, one for before and one for after the                                                  Although a persistence network is a correct represen-
+action, with an arc between the two. The state transi-                                                          tation of the eﬀects of actions, we are still left with
+tion distribution for the mapping variables in this case                                                       the problem that a persistence network often contains
+would encode the restriction that the state of the map-                                          many undirected cycles, making inference computa-
+ping variable after the action is the same as the state                                                             tionally expensive. In this section, we describe an ap-
+before the action.                                                    proximation wherein the repair probabilities can be
+In order to calculate the probability that the icon will   computed without copying the original Bayesian net-
+be normal after establishing network connectivity, we    work. This approximation relies on representing the
+set “Netpost” to state normal and set “Iconpre” to state    behavior of the device using a form of causal indepen-
+grey in the network in Figure 2b. We then apply a    dence (see, e.g., Srinivas [1993] and Heckerman and
+standard belief network inference algorithm to to the    Breese [1996]).
+network to calculate the probability that “Iconpost” =                                            The notion of causal independence is illustrated in Fig-
+normal.                                                      ure 3. The eﬀect of set of causes c1, . . . , cn on an eﬀect
+We refer to this notion as causal persistence. Causal       3In doing  so, we assume that the direct eﬀects  of
+persistence  is  closely  related  to  Heckerman and    actions are deterministic.  The more general case can
+Shachter’s (1995) concept of unresponsiveness.  The    be handled with inﬂuence diagrams  in canonical form
+                                                     [Heckerman and Shachter, 1995].
+
+=== PDF第5页 ===
+                     Table 1: The four possible mappings between “Net” and “Icon”.
+
+                    ok           stuck on grey     stuck on normal      backwards
+        Net   abnormal  normal  abnormal  normal  abnormal  normal  abnormal  normal
+        Icon    grey    normal    grey     grey    normal   normal   normal    grey
+
+
+
+                                                       the repair is equal to the probability that the associ-
+        c 1          c 2                 c n            ated mediator node is abnormal in the original net-                                                     work.  For many troubleshooting domains, we have
+                                                    used the right-hand-side of Equation 1 in place of                     .....                                                       the left-hand-side as an approximation, because the
+                                                         right-hand-side may be computed without copying the
+          e' 1             e' 2                      e' n           Bayesian network for a device. Given the observation
+                                                       that e is abnormal, the single-fault assumption is likely
+                                    f                           to be true, because it is unlikely that two components
+                                                              of a device will fail at the same time. We rescale the
+                                                             probabilities for the nodes e′i, so that the sum over the                         e                                                             probabilities of all non-normal states of all nodes e′i is
+                                                       equal to one.
+
+
+                                                   2.3  Nonbase Observations
+Figure 3: A Bayesian network for the interaction be-
+tween a set of causes and an eﬀect under causal inde-    In Section 2, we considered two special classes of ob-
+pendence.                                                  servations: (1) the observation of the problem-deﬁning
+                                                           variable after a repair is made, and (2) the observation
+e are modeled in terms of a set of mediator variables    of a component before a repair is made (as part of an
+e′1, . . . , e′n and a function f(e′1, . . . , e′n). The mediator    observation-repair action). We refer to these obser-
+                                                         vations as base observations. In many situations, wevariables are dependent on their associated causes ci,
+                                                want to be able to make more general observations.and serve as inputs to the function f. The choice of f is
+                                                    For example, when our car fails to start, we may wantarbitrary, in general, though in many applications it is
+                                                         to check the radio or the headlights in order to checkan or relationship, where the eﬀect is abnormal if any
+                                                       the status of the electrical system. In this section, weof the causal inputs is abnormal.  Typically, we also
+                                                         describe a method for making such general observa-designate one of the causal inputs as a “leak” cause
+                                                               tions.that is always set to its abnormal state. Note that, for
+purposes of troubleshooting as described in Section 2,    Let us suppose we have m nonbase  observations
+the leak causes are summarized as a single “all other”    o1, o2, . . . , om available to us. We assume that obser-
+fault that can be repaired at a ﬁxed cost with a service    vation oi can take on exactly one of ri possible states.
+call, as discussed in [Heckerman et al., 1995].        We write oi = k to indicate that observation oi takes
+                                                on state k. First, we use the procedures described inSuppose our device satisﬁes the following conditions:
+                                                         Sections 2 to generate a troubleshooting sequence con-(1) the interaction between the n components of the
+                                                               sisting of only base observations and repairs. Second,device c1, . . . , cn and the output of the device e satisfy
+                                            we imagine that we make observation oi ﬁrst, and thencausal independence, and (2) the function f has the
+                                                     determine the sequence. The expected cost of observ-property that the output is normal  if all inputs are
+                                                         ing oi with information I, denoted ECO(I, oi), consistsnormal.  For example, the noisy-or relationship and
+                                                              of an observation cost plus the expected cost of a setthe noisy-adder relationship (with 0 corresponding to
+                                                              of conditional plans as given byNormal) satisfy these conditions.  If we impose these
+restrictions, and we assume there is a single component
+                                                ECO(I, oi) =that is faulty, Heckerman et al. (1994) show that
+                                                                                                   ri
+  Pr(epost = Normal|Repair(ci), epre = Abnormal, I)          Coi + X Pr(oi = k|I) ECR(I ∪{oi = k}) (1)
+    = Pr(e′i,pre = Abnormal|epre = Abnormal, I)                  k=1
+
+                                                 Note that the troubleshooting sequence following the
+That is, the probability that the eﬀect is normal after    observation may be diﬀerent for every possible out-
+
+=== PDF第6页 ===
+                                                               for medical diagnosis. For example, a physician diag-
+   C 1       C 2              C 3       C 4       nosing headaches may ask a patient to change diet or
+                         Config                        work habits to rule out various allergy or stress related
+                                                            disorders.
+
+                                            To incorporate this type of reasoning into our frame-
+                                                     work, we need two elements.  First, we need to cal-
+        P1              Switch            P2
+                                                          culate the updated fault probabilities, given we set a
+                                                     conﬁguration parameter and then make an observa-
+                                                               tion. Because we are combining information from two
+      C 5              P3          C 6             situations—the ﬁrst with the conﬁguration parameter
+                                                              set in its original position and the second after the
+                                            change—we will use a persistence network.  Second,
+                   PD                       we need to use these updated fault probabilities to es-
+                                                      timate the expected cost of a plan that starts with a
+                                                     conﬁguration change. We will describe the cost esti-
+Figure 4: A Bayesian network for a simple conﬁgura-    mation framework ﬁrst, and then discuss calculation
+tion scenario.                                                of the necessary probabilities.
+
+                                            Our framework is as follows. In most cases, a conﬁgu-
+                                                          ration node can be treated like any other non-base ob-come of the observation. Finally, we repeat the com-
+                                                          servation (see Section 2.3) in that we may recommendputation of ECO for every possible nonbase observa-
+                                                       that the current state be observed without necessarilytion.
+                                                            setting it to another state. In addition, we allow the
+                                                          following new alternative: (1) set conﬁguration node c
+3  Changing the Conﬁguration               to some value m, (2) make a non-base observation oi,
+                                                           (3) change the conﬁguration back to its original state,
+An expert troubleshooter will often change the setup   and (4) undertake a sequence of repairs. The analysis
+or conﬁguration of a device and observe the new be-    of this new alternative is similar to that described in
+havior of the device to infer the underlying problem(s)    Section 2.3. The expected cost of repair for setting
+with the device.  In this section we provide a deci-    conﬁguration node c to state m followed by observing
+sion theoretic account of this type of troubleshooting,   node oi is given by
+and show how it can be implemented using Bayesian
+networks and the troubleshooting framework we have      ECCO(I, oi, c = m) = Cs + Coi +
+described above.                                                                     ri
+                                                                             Pr(oi,post = k|cpost = m, Ipre)A Bayesian network for a canonical conﬁgurable device    X
+                                                            k=1
+is shown in Figure 4. The device works with either the
+                                                     ECR(Ipre ∪{oi,post = k} ∪{cpost = m}) (2)P1 process or the P2 process. The node Conﬁg corre-
+sponds to an action that determines the conﬁguration
+                                                 where Cs is the cost of changing the conﬁguration fromof the device. The node Switch takes on the value of
+                                                                        its current state to a new state and back. In the courseP1 if Conﬁg is set to 1 and the value of P2 if Conﬁg
+                                                              of troubleshooting, we evaluate this expression for eachis set to 2. The overall behavior of the device, cap-
+                                                           possible conﬁguration–observation pair,4 and recom-tured in the problem deﬁning node (PD), depends on
+                                          mend that conﬁguration–observation pair that has theSwitch and two additional subcomponents, C5 and C6.
+                                                        lowest expected cost.By setting the conﬁguration node to one value or the
+other, we isolate part of the system for inspection.
+                                                   3.1  Calculating Probabilities after a
+To further motivate the scenario, consider a failure in                                                Conﬁguration Change
+printing from your PC to a network printer. In gen-
+eral, the problem could be local to your PC or some-                                            As mentioned, we need to calculate the probability of
+where in the network. We can try to print locally.  If                                                       the faults given we have set a conﬁguration variable
+this action succeeds, then it rules out a host of prob-                                                         to some value and then made some observation. We
+lems associated with the local conﬁguration.  If this                                                      use a persistence network to perform this computa-
+action fails, it will increase the probability of a local                                                               tion. As discussed in Section 2.2, we will again rely
+malfunction. Though changing conﬁguration appears
+to be most compelling in troubleshooting hardware or      4The observation can be restricted to the problem deﬁn-
+other man-made devices, the notion is also relevant    ing node, if desired.
+
+=== PDF第7页 ===
+                                                              fault probabilities of the components for every possi-
+    C 1       C 2              C 3       C 4          ble non-base observation. We use these probabilities
+                                                         to calculate the various repair sequences and associ-
+                            Config                           ated expected costs of repair as described previously.
+       P' 11            P' 12                         P' 23            P' 24          Finally, we repeat this entire set of computations for
+                                                      every possible state of the conﬁguration node other
+           P1              Switch            P2              than its current state. Note that if there are multi-
+                                                            ple conﬁguration nodes and we hypothetically set the
+                                                        value of one conﬁguration node, the value of the other
+                                     P' 3Sw                           conﬁguration nodes must remain the same from the
+                                                     “pre” to “post” network, even if we do not know their
+   C 5            P' 35         P3             P' 36       C 2         values.
+
+                                                   3.2  Single-Copy Approximation:
+                      PD                                                Conﬁguration
+
+                                       An approximation can be undertaken to avoid the use
+Figure 5: A Bayesian network for a simple conﬁgura-    of the persistence network for the computation of the
+tion scenario, expanded to expose its causal indepen-    fault probabilities. First, we set the conﬁguration node
+dence representation.                                    to some value and remove any down stream evidence in
+                                                       the original network. Next, for each possible non-base
+                                                          observation, we note which fault probabilities go to
+on causal independence as a representation of the de-    zero or one. Finally, we generate repair plans, clamp-
+vice’s operation. Here the motivation is not to allow    ing those logically determined component nodes to
+a single-copy approximation, but to reduce the state    their respective values and retaining the original fault
+space of the mapping nodes needed in the persistence    probabilities for the remaining component nodes.
+network. Causal independence imposes a special struc-
+ture on the mapping nodes associated with an eﬀect   4  Summary of the Troubleshooting
+node. Speciﬁcally, there is a single mapping node as-
+                                            Decision Making
+sociated with each cause to mediator link and these
+mapping nodes are mutually independent.
+                                                       In the course of executing this plan, we generate many
+The ﬁrst step is to convert the original Bayesian net-    complete repair plans, but at each stage we only ex-
+work into a causal-independence representation with    ecute the ﬁrst step of one of the plans.  Thus, our
+mediator nodes.  This conversion was applied to the    approximate decision-theoretic method for generating
+network of Figure 4 and is shown in Figure 5. We    a troubleshooting sequence can be summarized as fol-
+then create mapping nodes for each non-root non-    lows. First, we evaluate ECR(I)—the expected cost of
+deterministic domain variable as shown in the upper    repair under our current state of information I. Also,
+left-hand-corner of Figure 6. We then copy all nodes in     for every observation oi, the expected cost of its obser-
+the original network—except the component nodes—    vation ECO(I, oi) is calculated. Also, for every com-
+and include a new node that represents the conﬁgu-    bination of conﬁguration setting and observation, we
+ration after the change. We do not copy the com-    calculate ECCO(I, oi, c = m). Next, we recommend
+ponent nodes, because we assume their states persist    that repair, observation, or conﬁguration–observation
+after the conﬁguration change. The result is shown    that has the lowest expected cost.  If ECR(I) has the
+in Figure 6. Finally, we copy the parent-structure and    lowest value, then we repair c1, check if the device is
+probability/function tables of the copied nodes to their    functioning properly, and quit if so. If an observation
+corresponding copies.                                    or conﬁguration–observation has the lowest expected
+                                                            value, we make that observation. Finally, we update
+The network in Figure 6 is used to evaluate the prob-
+                                                             probabilities in the network, based on the new infor-
+abilities used in Equation 2. We retain all current
+                                                  mation from the observation or the repair, and iterate
+observations in the original (upper left) portion of the
+                                                               this procedure.
+network, presumably including the fact that the prob-
+lem deﬁning node is abnormal. We set the conﬁgura-    Although we evaluate the expected cost of the next
+tion node in the “post” network to a possible value,    step by assuming that a non-base observation or
+and perform probabilistic inference using the network    conﬁguration–observation will be followed by a pure
+to obtain Pr(oi,post = k|cj,post = m, Ipre) for each pos-    repair sequence, in the actual running of the algorithm,
+sible observation oi,post = k. We then compute the    observation and conﬁguration–observations can be in-
+
+=== PDF第8页 ===
+                                                    Config
+                      C 1       C 2              C 3       C 4
+
+               m P11     m P12                 m P23     m P24
+
+                          P 11        P 12                P 23        P 24
+
+
+                                P1             Switch            P2
+
+                                      m P3Sw
+                                             P 3Sw
+
+                    C 5        P 35         P3         P 36       C 6
+                     m P35                    m P36
+                                       PD
+                                                          P 11        P 12       Config      P 23        P 24
+
+
+                                                                  P1              Switch            P2
+
+                                                                             P 3Sw
+
+                                                                  P 35         P3         P 36
+
+
+                                                                   PD
+                                                                                                              Post
+
+
+                    Figure 6: A persistence network for a simple conﬁguration scenario.
+
+
+terleaved with the repair sequence. Similarly, although    option is to print locally and see  if you get output.
+the cost-estimation step assumes a single fault, the al-   With probability 0.42 there is output and the expected
+gorithm will run (albeit approximately) for a device    cost of repair at that point is 7.07 minutes, with a se-
+with multiple faults.                                 quence starting with verifying the net printer is online.
+                                               Under this scenario, we have generally ruled out any
+5  Example                                     problems with the computer itself.  If local printing
+                                                                           fails, (probability is 0.58), then a print driver problem
+                                                           (or some other local problem) is indicated and the ex-We have applied the general approach to troubleshoot-
+                                                     pected cost of repair is 13.83 minutes. The expecteding printing problems, automobile startup problems,
+                                                          cost of the conﬁguration-observation plan is 10.98 min-copier feeder systems, and gas turbines. A model
+                                                             utes, plus 2 minutes for setting (and resetting) the con-addressing Microsoft Windows 95 printing problems,
+                                                      ﬁguration for a total of 12.98 minutes, the best optionwithout the procedure for suggesting conﬁguration
+                                                         at this stage.changes described in Section 3, was implemented and
+delivered as part of the Microsoft Windows 95 Product    In terms of computational overhead, the primary fac-
+Support Services Resource Kit. This system has been    tors are the increased size of the persistence network
+well received and additional troubleshooters based on    relative to the original network and additional infer-
+this approach are in development.                      ence steps needed for conﬁguration recommendations.
+                                                    For the printing problems network (Figure 1) and theAn example of the type of steps generated by the
+                                                     conﬁguration network (Figure 4), the size of the jointroubleshooter follows. For the printer network, trou-
+                                                            tree inference representation and propagation times forbleshooting begins by observing the Print Output node
+                                                       the persistence networks were roughly twice that forin its abnormal state. A pure repair sequence—that
+                                                       the standard single copy versions. We need a num-is with no nonbase observations—starts with verifying
+                                                      ber of additional inference cycles equal to the productthat the network printer is on and online and has an
+                                                              of the number of individual conﬁguration settings andexpected cost of 13.62 minutes. The best nonbase ob-
+                                                       the number of individual observation values. The fac-servation is determination of the printer location, fol-
+                                                            tors have not been signiﬁcant in the examples we havelowed by a repair sequence, with a total expected cost
+                                                  run to date.of 13.71 minutes. The best conﬁguration-observation
+
+=== PDF第9页 ===
+6  Empirical Results                             [Breese et al., 1992] Breese, J., Horvitz, E., Peot, M.,
+                                                     Gay,  R., and Quentin, G. (1992).  Automated
+In previous work [Heckerman et al., 1995], we devel-       decision-analytic diagnosis of thermal performance
+oped a Monte-Carlo technique for estimating trou-       in gas turbines. In Proceedings of the International
+bleshooting costs for a given planner and domain. We     Gas Turbine and Aeroengine Congress and Exposi-
+used a Bayesian network for a given device to generate       tion, Cologne, Germany, American Society of Me-
+a relatively large set of problem instances where one      chanical Engineers.
+or more faults are known to have occurred. This study
+                                                            [de Kleer and Williams, 1987]
+showed that the decision-theoretic troubleshooter had
+                                                     de Kleer, J. and Williams, B. (1987). Diagnosing
+lower expected costs of repair than a static cost–based
+                                                           multiple faults. Artiﬁcial Intelligence, 32:97–130.
+procedure, and also performed well in situations where
+there were multiple faults.                               [Genesereth, 1984] Genesereth, M. (1984). The use of
+                                                          design descriptions in automated diagnosis. Artiﬁ-
+We performed a similar simulation study to verify
+                                                                     cial Intelligence, 24:311–319.
+the performance of the conﬁguration planner versus
+a planner that did not suggest conﬁguration changes.    [Goldszmidt and Darwiche, 1994] Goldszmidt,
+We applied each algorithm to the printing network     M. and Darwiche, A. (1994). Action networks: A
+shown in Figure 1. The planner that suggested conﬁg-      framework for reasoning about actions and change
+uration changes had an average time to resolution of      under uncertainty. In Proceedings of Tenth Confer-
+13.4 minutes, while the average time to repair for the      ence on Uncertainty in Artiﬁcial Intelligence, Seat-
+planner that did not suggest conﬁguration changes was        tle, WA, pages 136–144. Morgan Kaufmann.
+14.4 minutes. Of course, the magnitude of savings in a
+                                                 [Heckerman and Breese, 1996] Heckerman,  D.  and
+particular application depend on the cost and proba-
+                                                           Breese, J. (1996). Causal independence for proba-
+bilities in that domain. For a domain such as printing
+                                                                      bility assessment and inference using Bayesian net-
+problems where are there are millions of incidents per
+                                                        works. IEEE, Systems, Man, and Cybernetics, 26.
+year, even the modest savings estimated here can re-
+                                                            to appear.
+sult in a substantial total time or dollar savings.
+                                                 [Heckerman et al., 1994] Heckerman, D., Breese,  J.,
+7  Summary                                   and Rommelse, K. (1994). Sequential troubleshoot-
+                                                           ing under uncertainty. In Proceedings of Fifth Inter-
+                                                            national Workshop on Principles of Diagnosis, NewWe have developed a system for decision-theoretic
+                                                              Paltz, NY, pages 121–130.troubleshooting where in a system can choose among
+several classes of possible actions—repairing a compo-    [Heckerman et al., 1995] Heckerman, D., Breese,  J.,
+nent, making a passive observation, or changing the     and Rommelse, K. (1995). Decision-theoretic trou-
+conﬁguration of the device and making an observa-      bleshooting. Communications of the ACM, 38:49–
+tion. We have developed approximations in the con-       57.
+text of a myopic cycle for determining the best course
+                                                 [Heckerman et al., 1992] Heckerman, D., Horvitz, E.,of action. An important component of this work has
+                                                 and Nathwani, B. (1992). Toward normative expertbeen to show how to use the concept of persistence to
+                                                          systems: Part I. The Pathﬁnder project. Methodscompute the probabilities of events after repairs and
+                                                                 of Information in Medicine, 31:90–105.conﬁguration changes have been made.
+                                                 [Heckerman and Shachter, 1995] Heckerman, D. and
+Acknowledgments                                   Shachter, R. (1995). Decision-theoretic foundations
+                                                                  for causal reasoning.  Journal of Artiﬁcial Intelli-
+                                                        gence Research, 3:405–430.The authors thank Koos Rommelse and David Hovel
+for discussions and implementation related to  this    [Pearl, 1993] Pearl,  J.  (1993).   From  conditional
+work.                                                  oughts to qualitative decision theory. In Proceedings
+                                                                 of Ninth Conference on Uncertainty in Artiﬁcial In-
+References                                                   telligence, Washington, DC, pages 12–20. Morgan
+                                                 Kaufmann.
+[Balke and Pearl, 1994] Balke,  A.  and  Pearl,   J.                                                               [Srinivas, 1993] Srinivas, S. (1993). A generalization of
+  (1994).  Probabilistic evaluation of counterfactual                                                         the noisy-Or model. In Proceedings of Ninth Confer-
+   queries.  In Proceedings of Tenth Conference on                                                        ence on Uncertainty in Artiﬁcial Intelligence, Wash-
+  Uncertainty in Artiﬁcial Intelligence, Seattle, WA,                                                            ington, DC, pages 208–215. Morgan Kaufmann.
+  pages 46–54. Morgan Kaufmann.

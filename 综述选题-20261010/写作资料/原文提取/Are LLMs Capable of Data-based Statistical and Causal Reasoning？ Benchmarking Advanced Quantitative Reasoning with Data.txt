@@ -1,0 +1,1201 @@
+
+=== PDF第1页 ===
+          Are LLMs Capable of Data-based Statistical and Causal Reasoning?
+              Benchmarking Advanced Quantitative Reasoning with Data
+
+             Xiao Liu1, Zirui Wu1, Xueqing Wu2, Pan Lu2, Kai-Wei Chang2 and Yansong Feng1∗
+                     1Wangxuan Institute of Computer Technology, Peking University
+                    2Computer Science Department, University of California, Los Angeles
+                             {lxlisa,ziruiwu,fengyansong}@pku.edu.cn
+                             {xueqing.wu,panlu,kwchang}@cs.ucla.edu
+
+
+                          Abstract                                            Statistical Reasoning               Causal Reasoning
+                                                                         What is a 95% confidence interval  What is the Average Causal
+                                                                                                      for the population mean of y?       Effect (ATE) from t to y?
+                   Quantitative reasoning is a critical skill to an-                                               ihdp.csv
+                  alyze data, yet the assessment of such abil-               Advanced Quantitative            t      y     x1     x2
+                      ity remains limited.  To address this gap,                 Reasoning with Data         1    5.60   -0.53  -0.34
+                                                                                                                               0    6.88   -1.74  -1.80   …
+             we introduce the Quantitative Reasoning with                                               0    3.00   -0.81  -0.20
+                Data (QRDATA) benchmark, aiming to evalu-              Reasoning Steps            …   …   …   …2024
+                    ate Large Language Models’ capability in sta-               1. Understand the data              1. Understand the data
+                       tistical and causal reasoning with real-world                2. Identify the point estimate       2. Build the causal model
+                                                                                                            3. Verify the conditions              3. Apply propensity scoreJun             data. The benchmark comprises a carefully con-               4. Calculate the margin of error    weighting to estimate ATE
+                    structed dataset of 411 questions accompanied            and construct the interval            4. Run refutation tests9
+               by data sheets from textbooks, online learning
+                   materials, and academic papers. To compare        Figure 1: Examples of advanced quantitative reasoning
+                 models’ quantitative reasoning abilities on data        questions and reasoning steps.
+                and text, we enrich the benchmark with an aux-
+                      iliary set of 290 text-only questions, namely
+                                                                data analysis like visualization and summariza-[cs.CL]         QRTEXT. We evaluate natural language reason-
+                    ing, program-based reasoning, and agent rea-       tion (Cheng et al., 2023; Bai et al., 2023). How-
+                 soning methods including Chain-of-Thought,        ever, little effort has been made to evaluate the
+                 Program-of-Thoughts, ReAct, and code in-      more challenging aspects of quantitative reason-
+                    terpreter assistants on diverse models.  The        ing. On the other hand, there are papers evalu-
+                   strongest model GPT-4 achieves an accuracy                                                                  ating advanced quantitative reasoning abilities of
+                  of 58%, which has much room for improve-
+                                          LLMs (Chen et al., 2023a; Jin et al., 2023a), but
+                 ment. Among open-source models, Deepseek-
+                                                                 they have not investigated whether LLMs can apply                    coder-instruct, a code LLM pretrained on 2T
+                   tokens, gets the highest accuracy of 37%. Anal-       these skills to real data.
+                    ysis reveals that models encounter difficulties in          In this paper, we focus on two main areas of
+                  data analysis and causal reasoning, and strug-      advanced quantitative reasoning: statistical reason-
+                   gle in using causal knowledge and provided       ing and causal reasoning, with examples shown in
+                  data simultaneously.  Code and data are in                                                              Figure 1. Given a data sheet from sample surveys,
+                https://github.com/xxxiaol/QRData.
+                                                                             statistical reasoning aims to infer the underlyingarXiv:2402.17644v2
+                                                                   probability distribution, addressing questions like
+          1  Introduction                                                       what is a 95% confidence interval for the popu-
+                                                                    lation mean of y; while causal reasoning aims to            Data is everywhere in our daily life and work, from
+                                                            understand the causal relationship between vari-             win-loss charts in sports competitions to insurance
+                                                                        ables, addressing questions like what is the average             databases of national health. We rely on our quan-
+                                                                treatment effect1 from t to y.                titative reasoning skills to process the data, more
+                                          We propose the Quantitative Reasoning with               specifically, to extract information from the data,
+                                                        Data (QRDATA) benchmark.  It requires models           draw inferences, and make predictions (Bueno de
+                                                                    to answer a quantitative reasoning question given            Mesquita and Fowler, 2021).
+                                                                data sheets as input. Our benchmark shares a sim-              There  is evidence  that  current Large Lan-
+           guage Models (LLMs) can perform fundamental       1Average treatment effect is a measure of causal effect,
+                                                                               quantifying the difference in average outcomes between units
+                  ∗Corresponding author.                                   assigned to the treatment and units assigned to the control.
+
+=== PDF第2页 ===
+      Data Description                                                               Question
+
+      The CSV file ihdp.csv contains data obtained from the Infant Health and Development
+                                                                     What is the Average Treatment Effect (ATE) of the
+      Program (IHDP). The study is designed to evaluate the effect of home visit from
+                                                                                        dataset? Please round the final answer to the nearest
+       specialist doctors on the cognitive test scores of premature infants. The confounders
+                                                                                    hundredth.
+       x (x1-x25) correspond to collected measurements of the children and their mothers …
+
+          Correct Reasoning Steps:                                             2. Build a causal model based on the data description
+
+        1. Check rows of the dataset to understand its structure                from dowhy import CausalModel
+                                                                        common_causes = ['x1', …, 'x25']
+       import pandas as pd                         t      y     x1     x2            ihdp_model = CausalModel(
+       data = pd.read_csv('ihdp.csv')                                            1    5.60   -0.53  -0.34             data=data, treatment='t', outcome='y',
+       print(data.head())
+                                            0    6.88   -1.74  -1.80   …        common_causes=common_causes
+                                                                      )
+          Sandbox Execution Results:       0    3.00   -0.81  -0.20
+                                …   …   …   …
+                                                                                     4. Run refutation test to validate the estimate
+        3. Recall related method and apply to this scenario
+                                                                The estimate should not change if we add an independent random
+       ATE can be estimated using propensity score weighting:
+                                                                             variable as a common cause to the dataset.
+    …
+       ihdp_estimate = ihdp_model.estimate_effect(                   ihdp_refute_random_common_cause = ihdp_model.refute_estimate(
+         ihdp_identified_estimand,                                     ihdp_identified_estimand, ihdp_estimate,
+         method_name="backdoor.propensity_score_weighting"             method_name="random_common_cause"
+       )                                                           )
+       print('Estimated effect:', ihdp_estimate.value)               print('New effect:', ihdp_refute_random_common_cause.new_effect)
+
+           Estimated effect: 4.02                                New effect: 4.02                         Final Answer: 4.02
+
+
+                   Figure 2: An example question of QRDATA and correct reasoning steps.
+
+
+ilar form with table question answering (Pasupat    contains 290 questions from textbooks and aca-
+and Liang, 2015) and data analysis code gener-   demic papers, and the questions can be solved
+ation (Lai et al., 2023) tasks, but has its unique   based on text descriptions only.
+challenges: 1) Our benchmark requires advanced    We evaluate a wide range of models and rea-
+quantitative knowledge and skills. Consider the ex-   soning approaches on QRDATA. To find what is a
+ample in Figure 2. To answer the question, models   good solution to the task, we implement natural lan-
+need to know what are common methods of esti-   guage reasoning with Chain-of-Thought (Wei et al.,
+mating the average treatment effect and how to use    2022), program-based reasoning with Program-
+them. To the best of our knowledge, few existing   of-Thoughts (Chen et al., 2022), agent reasoning
+benchmarks touch upon concepts in statistical rea-   with ReAct (Yao et al., 2022) and the code inter-
+soning with data, and none of them involve causal    preter assistants of GPT models. We also com-
+reasoning with data. 2) Our benchmark requires    pare general-purpose LLMs with LLMs finetuned
+multi-turn reasoning.  After execution of model    for specific abilities like math, code, and agent
+generated code, models need to read the execution    reasoning, to find out whether these abilities help
+results, and write subsequent code or interpret the    in tackling our benchmark. Experimental results
+results to produce the final answer. In the example,   show that the best closed-source LLM GPT-4 (Ope-
+models should first check the data structure before   nAI, 2023) achieves an accuracy of 58% with the
+safely indexing the variables in step 2. And after   code interpreter assistant, and the best open-source
+the refutation test in step 4, models need to com-  LLM Deepseek-coder-instruct (Guo et al., 2024)
+pare the estimation before and after the refutation,   achieves 37% with Program-of-Thoughts.
+to decide if the estimated effect is reliable, or if     As there is much room for improvement in
+another estimation method should be used.         model performance, we further dive into what are
+  To obtain high-quality quantitative reasoning    the primary difficulties. We find that data analy-
+questions and corresponding data, we construct    sis is challenging for LLMs, especially for smaller
+QRDATA from open-source textbooks,  online    open-source LLMs. And all models including GPT-
+learning resources, and academic papers that are   4 and Gemini (Team et al., 2023) struggle with
+accompanied by data.  This ensures that all the    causal reasoning. They acquire causal knowledge
+questions are reasonable and match well with the   from the pretraining corpus, but can hardly inte-
+data. Through careful manual construction, our    grate the knowledge with the provided data in rea-
+dataset consists of 411 questions along with 195    soning.
+data sheets. To analyze the difficulty of data analy-     Our main contributions are as follows: 1) We
+sis, we also collect an auxiliary dataset of Quanti-   propose QRDATA, the first benchmark for ad-
+tative Reasoning with Text (QRTEXT). QRTEXT   vanced quantitative reasoning with data, to assess
+
+=== PDF第3页 ===
+models’ abilities of data-based statistical and causal                                      Count
+reasoning. 2) We evaluate various models and rea-         Data Files                         195
+soning approaches on QRDATA, and provide in-           Avg. Rows per File              15219
+                                                               Avg. Columns per File             46
+sights into effective approaches to tackle the bench-                                                               Avg. Words of Data Description     73
+mark.  3) We analyze the difficulties of current          Questions                         411
+models in data analysis and causal reasoning.                  Multiple Choice / Numerical     248 / 163
+                                                                                    Statistical / Causal              142 / 269
+                                                               Avg. Words of Question            32
+2  Benchmark Construction
+                                                                 Table 1: Statistics of QRDATA.
+In this section, we introduce how the QRDATA
+benchmark is constructed. To ensure the quality
+                                      Average treatment effectof our benchmark, we first gather teaching and                      Regression analysis
+                                                                                                                                                                                                                                                                                                                                                                                                Quartile                                                            CorrelationInterventional dataresearch resources for quantitative reasoning, and                                                                                       variables data  HeterogenousCategorialtreatment effects      data              Independence                                                                                                         Linear regressionthen annotate questions based on the materials. To             Variable  Hypothesis validation      Matching               Sampling       Inference                                             Probability                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   Instrumental  Numerical                                                                          Confidence                                                                                                   interval          Data analysiscompare the performance of quantitative reasoning                                                                                      Randomized                                                                                                        experiment
+on data and text, we also introduce an auxiliary                          ObservationalCentrality                                                                                                                                                                           Network data    Average treatment effect ondatathe control
+dataset QRTEXT for analysis.                          Average treatment effect on the treated
+                                                                                             ConfounderConditionalselection probability           Difference in differencesChi-square
+Resource Selection. We look for quantitative rea-
+soning resources with the following criteria: 1) The            Figure 3: Key concepts in QRDATA.
+resource is related to quantitative reasoning, espe-
+cially statistical reasoning and causal reasoning. 2)
+                                                  ing the style of Kıcıman et al. (2023). For causalIt contains multiple quantitative reasoning ques-
+                                                   estimation datasets (IHDP and Jobs), we collecttions with corresponding data and answers. 3) It is
+                                                numerical questions of estimating average treat-open-source and allows adaptation.
+                                            ment effect (ATE), average treatment effect on the  Eight resources are selected based on these
+                                                      treated (ATT), and average treatment effect on thecriteria, including two books: OpenIntro Statis-
+                                                     control (ATC) like the example in Figure 2. Moretics (Diez et al., 2012) and Quantitative Social Sci-
+                                                          details are in Appendix A.1.ence (Imai, 2018); one online learning resource:
+                                  We also collect data descriptions like the pur-Causal Inference for the Brave and True2; and
+                                                poses and formats of the data sheets from the re-five datasets from academic papers:  Flow cy-
+                                                     sources, and provide them along with questions totometry (Sachs et al., 2005), IHDP (Hill, 2011),
+                                                models.Jobs (Shalit et al., 2017), Neuropathic pain diag-
+nosis (Tu et al., 2019), and Arctic sea ice (Huang                                                         Statistics. We provide the dataset statistics in Ta-
+et al., 2021).                                                     ble 1, and the number of questions collected from
+Question Collection. We collect multiple-choice   each source in Appendix Table 6. The questions
+questions and numerical questions from these re-  we collect cover a wide range of concepts, and
+sources, and ensure that the gold answer is unique.  we illustrate some of them in Figure 3. We also
+For textbooks and online learning resources, we ex-   summarize the topics and question examples in Ap-
+tract the list of data sheets from their websites. If a   pendix Table 8. Most questions in QRDATA are
+data sheet is used in exercises, we use the exercise   based on a single data sheet, while 4% of questions
+question and its solution as the question and an-   are based on multiple data sheets.
+swer; if it is used in the main content, we annotate     To check whether our dataset has already been
+questions and answers based on the content.        memorized by models in training, we apply the pre-
+  For existing causal discovery datasets (Flow cy-    training data detection method Min-K% Prob (Shi
+tometry, Neuropathic pain diagnosis, and Arctic    et al., 2023) on GPT models and Llama-2, and con-
+sea ice), we collect multiple-choice questions like    firm that our dataset is unlikely to appear in their
+Which cause-and-effect relationship is more likely?    pretraining corpora.
+A. headache causes groin pain B. groin pain causes                                   QRTEXT. To separate the challenge of quanti-
+headache C. No causal relationship exists follow-                                                          tative reasoning from data analysis and analyze
+                                              whether models master the quantitative reasoning    2https://matheusfacure.github.io/python-causality-
+handbook/landing-page.html                                   skills, we create an auxiliary benchmark for com-
+
+=== PDF第4页 ===
+parison called Quantitative Reasoning with Text.    Program-of-Thoughts (PoT). PoT prompting asks
+  Questions in QRTEXT can be answered without   models to generate a Python code program, and
+data, with an example shown in Appendix Figure 4.   uses an external computer to execute the code. The
+We collect questions from OpenIntro Statistics and    output of the code is regarded as the answer. In
+two text-based causal reasoning datasets CLAD-   contrast to TableLlama and CoT prompting, PoT
+DER (Jin et al., 2023a) and CORR2CAUSE (Jin    processes the data sheet with code and gets rid of
+et al., 2023b). QRTEXT contains 290 questions,   the length limit of data. It also enables models to
+100 for statistical reasoning and 190 for causal rea-    call data analysis packages for computation.
+soning. For ease of model comparison, the ratio of                                               ReAct-style Prompting.  ReAct is a prevalent
+statistical/causal questions of QRTEXT is similar to                                              prompting paradigm for agent reasoning. It com-
+QRDATA. Details of QRTEXT question collection                                                   bines reasoning and acting in language models for
+are in Appendix A.2.                                                     task solving. To address our task, we restrict the
+Evaluation Metric. We report the accuracy by    action space to Python code execution, and ask
+comparing the final answer generated by mod-   models to generate thoughts and actions. Differ-
+els with the gold answer.  As models may en-   ent from aforementioned methods that only allow
+counter measurement errors in numerical questions    one-turn generation, ReAct supports multi-turn rea-
+(e.g., different causal effect estimation methods    soning. When a piece of code is generated, we
+will yield minor differences in results), we consider   execute it and feed the output back to models as
+any result within ±3% of the gold answer to be   an observation. Based on the observation, models
+correct.                                               will either generate new thoughts and actions, or
+                                                  decide to predict the final answer.
+3  Methods                                       Code Interpreter Assistants. GPT models can be
+                                                used as agents (called assistants), and a code inter-We develop several zero-shot reasoning methods
+                                                        preter tool is built-in, which could execute Pythonas our baselines. By comparing these methods, we
+                                             code in a sandbox to interpret the data. Similar toaim to find a good solution to the task of quantita-
+                                                  ReAct-style prompting, code interpreter assistantstive reasoning with data.
+                                                allow multi-turn code generation and execution,
+Table Question Answering (Table QA). The task   and end with a text-formed answer.
+of table QA asks models to answer a question based      Details of prompt design and prompt examples
+on tables. To evaluate if our benchmark can be    are in Appendix A.3.
+solved by existing table QA methods, we experi-
+ment with a competitive Table QA method (Zhang   4  Experiments
+et al., 2023). It constructs a table instruction tuning
+dataset TableInstruct, and finetunes models on    4.1  Models
+this dataset.                          We experiment with the CoT, PoT, and ReAct-style
+                                               prompting methods on the following models:Chain-of-Thought (CoT). CoT prompting enables
+models to conduct complex natural language rea-   General-Purpose LLMs. We select Llama-2-
+soning through intermediate reasoning steps. We    chat, Gemini-Pro, and GPT-4 as representatives of
+feed the content of data sheets to models and    general-purpose LLMs. They exhibit strong abil-
+prompt models to respond to a quantitative     ities to follow instructions (Touvron et al., 2023;
+question  using  the  provided  data  ...  Team et al., 2023; OpenAI, 2023).
+Let’s think step by step.  If the data sheet
+                                      Code LLMs. CodeLlama-instruct (Roziere et al.,is too large, we truncate it to fit the length limit.
+                                             2023) is initialized on Llama-2, finetuned on aTo obtain the final answer from the model output,
+                                              code-heavy dataset, and instruction tuned on awe employ ChatGPT for answer extraction follow-
+                                                    code-related instruction dataset. Deepseek-coder-ing Chen et al. (2023a).3
+                                                           instruct (Guo et al., 2024) is pretrained on a project-
+   3To assess the reliability of answer extraction with Chat-    level code corpus from scratch and instruction
+GPT, we randomly sample 50 CoT outputs from all models,   tuned to follow instructions. Both of them perform
+and manually verify the extracted answers. ChatGPT achieves
+                                                 well among open-source code models on severalan accuracy of 98%, demonstrating its proficiency in answer
+extraction.                                      code benchmarks.
+
+=== PDF第5页 ===
+  Model                                       Size   Overall Acc.   Multiple Choice / Numerical   Statistical / Causal
+
+  Random                                                23.0                 38.1 / 0.0                 15.0 / 27.2
+  Table Question Answering
+    TableLlama (Zhang et al., 2023)          7B         9.5                 14.9 / 1.2                  3.5 / 12.6
+  Chain of Thought Prompting
+    Llama-2-chat (Touvron et al., 2023)        7B        22.1                 35.1 / 2.5                 20.4 / 23.0
+   AgentLM (Zeng et al., 2023)            7B        24.3                 40.0 / 0.0                 19.0 / 27.1
+    WizardMath (Luo et al., 2023)           7B        25.1                 40.0 / 2.5                 18.3 / 28.6
+    CodeLlama-instruct (Roziere et al., 2023)    7B        19.2                 31.0 / 1.2                 14.1 / 21.9
+     Deepseek-coder-instruct (Guo et al., 2024)   6.7B       18.7                 30.2 / 1.2                 15.5 / 20.4
+    Gemini-Pro (Team et al., 2023)                    -         31.9                 46.8 / 9.2                 25.4 / 35.3
+    GPT-4 (OpenAI, 2023)                              -         36.5                 57.3 / 4.9                 24.6 / 42.8
+  Program of Thoughts Prompting
+    Llama-2-chat                       7B         3.7                   6.1 / 0.0                   7.8 / 1.5
+   AgentLM                         7B         3.2                   4.4 / 1.2                   8.5 / 0.4
+    WizardMath                        7B        16.8                16.5 / 17.2                 31.7 / 8.9
+    CodeLlama-instruct                   7B        17.3                 24.2 / 6.7                 19.7 / 16.0
+     Deepseek-coder-instruct                  6.7B       37.0                40.7 / 31.3                45.8 / 32.3
+    Gemini-Pro                                            -         26.8                27.8 / 25.2                39.4 / 20.1
+    GPT-4                                                  -         49.1                46.0 / 54.0                72.5 / 36.8
+  ReAct-style Prompting
+    Llama-2-chat                       7B        11.4                 18.5 / 0.6                  4.2 / 15.2
+   AgentLM                         7B        10.7                 16.9 / 1.2                  5.6 / 13.4
+    WizardMath                        7B        18.7                21.0 / 15.3                19.7 / 18.2
+    CodeLlama-instruct                   7B        15.8                 22.2 / 6.1                 16.2 / 15.6
+     Deepseek-coder-instruct                  6.7B       27.3                29.4 / 23.9                38.7 / 21.2
+    Gemini-Pro                                            -         38.9                47.6 / 25.8                41.5 / 37.5
+    GPT-4                                                  -         57.4                59.2 / 54.6                69.0 / 51.3
+  Code Interpreter Assistants
+    GPT-3.5 Turbo                                        -         41.4                42.3 / 39.9                60.6 / 31.2
+    GPT-4                                                  -         57.9                56.9 / 59.5                78.9 / 46.8
+  Human (subset)                                         76.0                71.9 / 83.4                88.8 / 68.8
+
+Table 2: Performance of models on QRDATA. Numbers are accuracies in percentages (%). The best results are in
+bold. For models evaluated with multiple reasoning methods, the model-level best results are underlined.
+
+
+LLM for Mathematical Reasoning.  Wizard-    datasets.
+Math (Luo et al., 2023) is finetuned on Llama-2, en-    As a reference for assessment, we also report
+hancing the mathematical reasoning abilities with    the random baseline and the human performance.
+reinforcement learning. It outperforms many larger   The random baseline is calculated by randomly
+models on mathematical reasoning benchmarks.     choosing from the multiple choices, and all the
+                                                 numerical questions are counted as incorrect.LLM for Agent Reasoning. AgentLM (Zeng et al.,
+                                           The human performance is evaluated by asking2023) is instruction-tuned based on Llama-2 to en-
+                                                     three graduate students who have taken quantita-hance the agent capabilities. It uses a combination
+                                                           tive reasoning courses to answer a random sampleof instructions from general domains and instruc-
+                                                   of 50 questions from QRDATA. Each question istions of interaction trajectories.
+                                             answered by at least two students, and the aver-  For a fair comparison, we use the size of 7B for
+                                               age accuracy is reported. The students are allowedall the open-source models.4 We use the two latest
+                                                      to use a Python executor, and search for conceptsGPT models GPT-3.5 Turbo and GPT-45 for code
+                                                        rather than specific questions on the Internet. 6interpreter assistants. More implementation details
+are in Appendix A.4.
+                                                    4.2  Main Results
+  We select TableLlama (Zhang et  al., 2023)
+as a representative table QA model.   It is fine-   To investigate which reasoning methods and mod-
+tuned on Llama-2-7B (Touvron et al., 2023) with    els better solve our task, we summarize the per-
+TableInstruct, using LongLoRA (Chen et al.,   formance of different models paired with different
+2023b) to extend the context length.    It ex-   reasoning methods in Table 2. GPT-4 with the code
+hibits strong generalization ability across table QA    interpreter assistant achieves the best performance,
+
+   4The size of Deepseek-coder-instruct is 6.7B.                 6The majority of human errors are in causal discovery
+   5The specific versions are gpt-3.5-turbo-1106 and    questions (71%), because state-of-the-art causal discovery
+gpt-4-1106-preview.                                        algorithms cannot fully resolve this task (Vowels et al., 2022).
+
+=== PDF第6页 ===
+and Deepseek-coder-instruct with PoT prompting    other hand, open-source models except code LLMs
+is the best among open-source models. The best   perform better with ReAct-style prompting than
+model is 18% worse than human, showing that   PoT, because multi-turn code execution gives them
+QRDATA is challenging for LLMs.                 chances to fix the generated code, raising the aver-
+                                              age execution success rate from 25.5% to 35.6%.
+Natural Language Reasoning. CoT works best
+                                We also manually review 50 randomly sampled
+for several open-source models like Llama-2-chat
+                                          ReAct outputs of these models, and find that in
+and WizardMath, but the results are close to or
+                                   10% of the cases, the initially generated code is
+even worse than random, as data-based quantita-
+                                                    non-executable, and is fixed in the following steps.
+tive reasoning requires heavy calculations that are
+                                                  This suggests that the iterative, multi-turn nature of
+beyond natural language reasoning. The table QA
+                                                  agent reasoning can contribute to fixing the gener-
+model TableLlama also underperforms across both
+                                                    ated code.
+statistical and causal tasks.
+                                LLMs with Enhanced Abilities. We compare  Models can hardly answer numerical questions
+                                                     three models finetuned on Llama-2 for enhancedwith CoT, with a maximum accuracy of less than
+                                                            abilities of code, math, and agent reasoning with10%. A limitation of CoT and other natural lan-
+                                                      the general-purpose LLM Llama-2-chat. AgentLMguage reasoning methods is that in many cases,
+                                            and WizardMath only gain marginal improve-we cannot feed the whole data sheets into the in-
+                                                 ment, and CodeLlama-instruct even underperformsput, hindering models from performing accurate
+                                                   Llama-2-chat. This may be due to the limited capa-calculations. We further compare CoT and PoT
+                                                             bility of the base model.prompting on a subset of QRDATA where the full
+                                    On the other hand, Deepseek-coder-instruct,data sheets can be fed into the base model, and find
+                                           which masters in code generation, outperformsthat CoT does not exceed PoT on this subset. The
+                                                                all other models with similar sizes by more thanaccuracy of CoT prompting on numerical questions
+                                          10%. We further evaluate Deepseek-coder-instruct-is below 20% across all models, suggesting these
+                                      33B to see if it could approach the performancemodels struggle with performing precise calcula-
+                                                   of closed-source LLMs, but it gets an overall ac-tions on data sheets using CoT.
+                                                 curacy of 31.9% with PoT and 27.0% with ReAct-
+Program-based Reasoning.   PoT  best  suits    style prompting, even lower than the 6.7B model.
+Deepseek-coder-instruct, but to our surprise, an-   Although coding ability is important in solving
+other code LLM CodeLlama-instruct does not per-    quantitative questions with data, the performance
+form well with PoT. The gap in coding abilities can    of code LLMs is still limited compared to larger
+also be seen from the execution success rate, which    general-purpose LLMs like GPT-4.
+is 89% for Deepseek-coder-instruct and 73% for
+                                                         Statistical Reasoning vs. Causal Reasoning. Sta-CodeLlama-instruct.
+                                                                tistical reasoning focuses on identifying patterns
+  Although the overall performance of several non-
+                                                       in data, whereas causal reasoning goes a step fur-
+code LLMs drops with PoT compared to CoT, the
+                                                         ther to find causal relationships beyond correlation.
+accuracy of numerical questions improves with the
+                                              For all models evaluated, the gap between model
+help of code execution. This exhibits the potential
+                                               performance and the random baseline is larger for
+for performance improvement through the hybrid
+                                                              statistical questions than causal questions, show-
+of CoT and PoT rationales (Yue et al., 2023).
+                                                  ing that models obtain better statistical reasoning
+Agent Reasoning. Closed-source LLMs like GPT-    abilities than causal reasoning abilities. Even the
+4 and Gemini-Pro perform best with agent reason-   best-performed model GPT-4 only answers 51% of
+ing. GPT-4 performance with ReAct-style prompt-   causal questions correctly, demonstrating the large
+ing is close to with the code interpreter assistant,   room for improvement in causal reasoning.
+exhibiting that our ReAct-style prompts success-
+                                       5  Analysisfully activate the model abilities.
+  Smaller open-source models can hardly follow  We go deeper into the primary difficulties models
+the complex ReAct-style instructions, which lim-   face in addressing the task of quantitative reasoning
+its their performance. Although AgentLM is fine-   with data. This may provide insights into how to de-
+tuned for agent reasoning,  it cannot generalize    sign methods to better solve our task. We also pro-
+well to the quantitative reasoning task. On the    vide an error analysis of GPT-4 in Appendix A.6.
+
+=== PDF第7页 ===
+ Model              Overall Acc.   Statistical / Causal    is merely 0.7%, compared to 8.8% on QRDATA.
+ Random                  23.7           20.8 / 25.3      These demonstrate that single-turn reasoning is al-
+ Chain of Thought Prompting                        most adequate for quantitative reasoning with text,
+    Llama-2-chat           28.6           33.0 / 26.3
+                                                while multi-turn reasoning is more necessary for   AgentLM              26.6           28.0 / 25.8
+   WizardMath            36.6           46.0 / 31.6       quantitative reasoning with data.
+    CodeLlama-i           26.2           26.0 / 26.3         All models perform better on QRTEXT than QR-
+    Deepseek-coder-i       23.1           18.0 / 25.8
+    Gemini-Pro            37.9           51.0 / 31.1     DATA from 1.8% to 11.5%, and the gap is larger for
+   GPT-4                 52.1           76.0 / 39.5       smaller models. If we control the knowledge and
+ Program of Thoughts Prompting                             skills required by restricting questions to the same
+    Llama-2-chat           21.7           12.0 / 26.8
+   AgentLM              22.4           16.0 / 25.8      source (OpenIntro Statistics), models perform 6%
+   WizardMath            34.1           38.0 / 32.1       better on average. These provide evidence that
+    CodeLlama-i           27.2           26.0 / 27.9                                            most models have difficulty in data analysis.
+    Deepseek-coder-i       39.0           47.0 / 34.7
+    Gemini-Pro            43.1           56.0 / 36.3
+   GPT-4                 59.0           86.0 / 44.7       5.2  Difficulty of Causal Reasoning
+  ReAct-style Prompting
+    Llama-2-chat            3.4              9.0 / 0.5     We observe the performance gap between statisti-
+   AgentLM              11.0            5.0 / 14.2        cal reasoning and causal reasoning on QRDATA,
+   WizardMath            19.7           28.0 / 15.3
+                                             and the gap remains on QRTEXT. GPT-4 achieves    CodeLlama-i            4.8            13.0 / 0.5
+    Deepseek-coder-i       29.0           42.0 / 22.1     89% accuracy in statistical questions on QRTEXT,
+    Gemini-Pro            35.2           52.0 / 26.3       but only about half the accuracy in causal ques-
+   GPT-4                 57.2           86.0 / 42.1
+ Code Interpreter Assistants                                 tions. This exhibits the unique difficulty of causal
+    GPT-3.5 Turbo         47.2           65.0 / 37.9       reasoning regardless of data analysis.
+   GPT-4                 59.7           89.0 / 44.2
+                                                  Table 5 provides a case where GPT-4 with the
+                                             code interpreter assistant mis-predicts a causal
+Table 3: Performance of models on QRTEXT. Numbers
+                                                    question from QRDATA. When asked to predict theare accuracies in percentages (%). Best results are in
+bold, and model-level best results are underlined. The    causal relation between two variables L L1 radicu-
+suffix -i indicates -instruct.                           lopathy and R L5 radiculopathy, GPT-4 proposes
+                                                a wrong plan for calculating the conditional prob-
+    Model          Acc. w/ data   Acc. w/o data          abilities in Step 2. As correlation does not imply
+                                                     causation, although GPT-4 successfully executes    Random             35.7            35.7
+     GPT-3.5 Turbo       35.1            25.3            the plan, it makes a wrong prediction.
+     Gemini-Pro          45.4            48.8
+    GPT-4               50.7            60.0           Easier Said than Done. The unsatisfactory perfor-
+                                         mance on causal questions appears to differ from
+Table 4: Performance of models on multiple-choice    the findings of some previous papers (Willig et al.,
+causal questions of QRDATA with (w/) and without                                                2022; Kıcıman et al., 2023), which show that LLMs
+(w/o) access to the data. Better results are in bold.
+                                                      are capable of causal reasoning in tasks like causal
+                                                 discovery without data. To figure out the reason
+                                                       for the inconsistency, we conduct an experiment5.1   Difficulty of Data Analysis
+                                                        to evaluate if the provided data interfered with the
+We evaluate models7 on our auxiliary benchmark                                               models.  Specifically, we evaluate the best three
+QRTEXT, and compare the performance on QR-                                              models on multiple-choice causal questions of QR-
+TEXT and QRDATA to quantify the difficulty of                                      DATA without giving them the data8, and compare
+data analysis. As shown in Table 3, GPT-4 achieves                                                            their performance with the original setting. We use
+the best accuracy of 59.7% on QRTEXT, and                                                     the best reasoning method for each model: ReAct-
+Deepseek-coder-instruct gets the best accuracy of                                                        style prompting for Gemini-Pro, and code inter-
+39.0% among open-source LLMs.                                                        preter assistants for GPT-3.5 Turbo and GPT-4.
+  The single-turn reasoning methods, CoT and                                        As shown in Table 4, two out of three models
+PoT prompting, work best for all models except                                              perform better without data access, revealing that
+GPT-4 on QRTEXT. For GPT-4, the performance                                                                            it is easier for these LLMs to speculate causal re-
+gap between the code interpreter assistant and PoT
+                                                            8Note that this setting is different with QRTEXT. Without
+   7We do not experiment with TableLlama as the questions    data access, questions in QRDATA are not self-contained.
+do not involve tables.                                    Models need to predict the answers with their commonsense.
+
+=== PDF第8页 ===
+     Question         Which cause-and-effect relationship is more likely? Please answer with A, B, or C.
+                      A. R L5 radiculopathy causes L L1 radiculopathy   B. L L1 radiculopathy causes R L5 radiculopathy
+                       C. No causal relationship exists
+    Gold Answer    C
+
+    GPT-4 Prediction with Data Access
+     Step 1:           # Display the first few records to understand the data structure
+    Code Interpreter   data.head()
+     Step 2:                 I will examine the data for the following patterns:
+                                - If patients with “R L5 radiculopathy” also frequently have “L L1 radiculopathy” and not the other
+                   way around, it may suggest that A is more likely.
+                                 - Conversely, if patients with “L L1 radiculopathy” also frequently have “R L5 radiculopathy” and not
+                          the other way around, it may suggest that B is more likely.
+                                 - If there is no clear pattern or both conditions occur independently, it may suggest that C is more likely.
+     Step 3:           # Probability of L L1 given R L5
+    Code Interpreter   P_L_L1_given_R_L5 = co_occurrence_count / R_L5_count if R_L5_count else 0
+                      # Probability of R L5 given L L1
+                      P_R_L5_given_L_L1 = co_occurrence_count / L_L1_count if L_L1_count else 0
+                      P_L_L1_given_R_L5, P_R_L5_given_L_L1
+     Step 4:           Based on these conditional probabilities, it is more likely that “L L1 radiculopathy” causes ‘R L5
+                         radiculopathy” over the other proposed causal direction. Final answer: B.
+    GPT-4 Prediction without Data Access
+     Prediction         Given both ‘R L5’ and ‘L L1’ radiculopathies are on different sides of the body and different spinal
+                             levels, it’s not common for one to cause the other according to standard medical understanding. It is
+                     more likely that they occur independently due to separate causes.
+                                  It’s likely that if both conditions are present in a patient, they arose independently or due to a systemic
+                           issue affecting the spine broadly, rather than one causing the other. Final answer: C.
+
+Table 5: An example of GPT-4 prediction on QRDATA. GPT-4 correctly predicts the answer without data access,
+but predicts wrongly when the data is provided. The outputs are abridged and the full outputs are in Appendix A.5.
+
+
+lations than to conduct causal reasoning with data.   Zhao et al., 2022) or a fusion of textual and tabular
+The strong causal reasoning abilities exhibited by    data (Chen et al., 2020; Zhu et al., 2021). Datasets
+models in previous works come from their internal    like FinQA (Chen et al., 2021) and TABMWP (Lu
+knowledge, but models can hardly use their internal    et al., 2022b) require numerical reasoning to fig-
+knowledge to analyze the data provided.             ure out the answer, but they mainly focus on basic
+  In the case of Table 5, in the absence of data    arithmetic, while our benchmark requires more ad-
+access, GPT-4 correctly predicts that there  is   vanced quantitative reasoning skills.
+no causal relationship between the two variables.                                                     Furthermore, although some benchmarks require
+However, when the data is provided, it is misled to                                                multi-hop reasoning, they can be solved in a sin-
+calculate the conditional probabilities.                                                     gle turn, whereas our benchmark needs multi-turn
+                                                  reasoning between the model and data.
+6  Related Work
+                                      Code Generation. Code generation tasks require
+6.1  Data-related Benchmarks
+                                              models to produce code to meet certain intents. Re-
+Table Question Answering. Table QA (Pasupat    cent benchmarks like DS-1000 (Lai et al., 2023)
+and Liang, 2015; Zhong et al., 2017) asks models to   and ExeDS (Huang et al., 2022) explore LLMs’
+answer questions about information from given ta-    abilities to generate data science code, like train-
+bles. It evaluates models’ abilities to parse queries,   ing models using machine learning packages and
+look up information from tables, and integrate the   making visualizations. KnowledgeMATH (Zhao
+retrieved information to reach an answer. Datasets    et al., 2023) and BizBench (Koncel-Kedziorski
+like Spider (Yu et al., 2018) and SEDE (Hazoom    et al., 2023) evaluate if models could generate code
+et al., 2021) focus more on the semantic parsing    for financial reasoning with tables. To our knowl-
+part and design complex questions that need com-   edge, none of them focus on advanced quantitative
+positional generalization over SQL queries. Some    reasoning. Only a concurrent dataset DAEval (Hu
+datasets present the challenges of retrieving infor-    et al., 2024) involves correlation analysis as a com-
+mation from hierarchical tables (Cheng et al., 2022;   ponent of question concepts, and none of them
+
+=== PDF第9页 ===
+include causal reasoning questions.               and data. We look forward to future benchmarks
+                                           on a broader domain and other languages.
+6.2  Quantitative Reasoning Abilities
+                                         Models and Reasoning Methods.  The field ofThere is a growing interest in exploring language
+                              LLM research is developing quickly. We exper-models’ abilities of quantitative reasoning. Var-
+                                               iment with representative models and reasoningious benchmarks focus on mathematical reason-
+                                              methods in this paper, but we acknowledge that thising (Hendrycks et al., 2021; Cobbe et al., 2021),
+                                              does not cover all models and frameworks. Meth-and recent works broaden the analysis to the field
+                                              ods of constructing training data and finetuningof science (Lu et al., 2022a; Chen et al., 2023a).
+                                                open-source models like Lumos (Yin et al., 2023)  Another line of work focuses on the specific as-
+                                              can also be explored to enhance the effectivenesspect of causal reasoning of LLMs. Bhagavatula
+                                                    of models.
+et al. (2019); Qin et al. (2019); Liu et al. (2023) ex-
+plore the ability of commonsense causal reasoning
+                                            Ethics Statement
+like abductive reasoning and counterfactual reason-
+ing. Willig et al. (2022); Gao et al. (2023); Kıcıman    Intellectual Property.  We follow the permission
+et al. (2023) analyze the mastery of causal knowl-   of licenses during the data collection process. And
+edge like cause-effect pairs. Jin et al. (2023a,b)    the collected data should not be used commercially.
+evaluate the utilization of causal inference skills.
+  In this work, we extend the research to quanti-   Potential Risks.  Our evaluation reveals that cur-
+tative reasoning with data, which poses new chal-    rent LLMs are imperfect in conducting quantitative
+lenges for LLMs.                                 reasoning with data. We suggest readers not trust
+                                                      solutions provided by LLMs.
+7  Conclusion
+                                      Acknowledgments
+We propose QRDATA, a benchmark of advanced
+quantitative reasoning with data, to explore LLMs’   This  work  is  supported  in  part  by NSFC
+statistical and causal reasoning abilities with real-   (62161160339) and Beijing Science and Technol-
+world data. We carefully construct the bench-   ogy Program (Z231100007423011). We thank Da
+mark with questions from teaching and research   Yin and Chen Zhang for their constructive com-
+materials, and compare natural language reason-   ments. We thank the anonymous reviewers for
+ing, program-based reasoning, and agent reason-    their helpful discussions and suggestions. For any
+ing among a wide range of models. Experimen-   correspondence, please contact Yansong Feng.
+tal results reveal that models have difficulties in
+data analysis and causal reasoning. Even though
+powerful LLMs like GPT-4 have acquired causal   References
+knowledge, they can hardly integrate them with the    Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang,
+provided data. By proposing this benchmark, we      Xiaodong Deng, Yang Fan, Wenbin Ge, Yu Han, Fei
+hope to draw attention to the data-based quantita-     Huang, et al. 2023. Qwen technical report. arXiv
+                                                             preprint arXiv:2309.16609.
+tive reasoning ability. We call for more specialized
+methods to enhance the ability, like training models                                                Chandra Bhagavatula, Ronan Le Bras, Chaitanya
+in the agent reasoning style with data as input, and      Malaviya, Keisuke Sakaguchi, Ari Holtzman, Han-
+equipping models with more quantitative reasoning      nah Rashkin, Doug Downey, Wen-tau Yih, and Yejin
+                                                        Choi. 2019. Abductive commonsense reasoning. Inknowledge.
+                                                            International Conference on Learning Representa-
+                                                                    tions.
+Limitations
+                                                  Ethan Bueno de Mesquita and Anthony Fowler. 2021.
+Scope of the Benchmark.  We collect questions                                                      Thinking clearly with data: A guide to quantitative
+related to two primary aspects of advanced quan-      reasoning and analysis. Princeton University Press.
+titative reasoning: statistical reasoning and causal
+reasoning in this benchmark. We focus on the ex-   Wenhu Chen,  Xueguang Ma,  Xinyi Wang,  and
+                                                    William W Cohen. 2022.  Program of thoughts
+plicit utilization of these reasoning abilities, more                                                        prompting: Disentangling computation from reason-
+specifically, statistical/causal reasoning with data.      ing for numerical reasoning tasks. arXiv preprint
+And our benchmark is limited to English questions      arXiv:2211.12588.
+
+=== PDF第10页 ===
+Wenhu Chen, Ming Yin, Max Ku, Pan Lu, Yixin Wan,   Moshe Hazoom, Vibhor Malik, and Ben Bogin. 2021.
+  Xueguang Ma, Jianyu Xu, Xinyi Wang, and Tony      Text-to-SQL in the wild: A naturally-occurring
+   Xia. 2023a. TheoremQA: A theorem-driven question       dataset based on stack exchange data. In Proceedings
+  answering dataset. In Proceedings of the 2023 Con-       of the 1st Workshop on Natural Language Processing
+   ference on Empirical Methods in Natural Language       for Programming (NLP4Prog 2021), pages 77–87,
+  Processing, pages 7889–7901, Singapore. Associa-      Online. Association for Computational Linguistics.
+   tion for Computational Linguistics.
+                                          Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul
+Wenhu Chen, Hanwen Zha, Zhiyu Chen, Wenhan Xiong,      Arora, Steven Basart, Eric Tang, Dawn Song, and
+  Hong Wang, and William Yang Wang. 2020. Hy-      Jacob Steinhardt. 2021.  Measuring mathematical
+  bridQA: A dataset of multi-hop question answering      problem solving with the math dataset.  In Thirty-
+   over tabular and textual data. In Findings of the Asso-        fifth Conference on Neural Information Processing
+   ciation for Computational Linguistics: EMNLP 2020,      Systems Datasets and Benchmarks Track (Round 2).
+  pages 1026–1036, Online. Association for Computa-
+   tional Linguistics.                                     Jennifer L Hill. 2011. Bayesian nonparametric model-
+                                                         ing for causal inference. Journal of Computational
+Yukang Chen, Shengju Qian, Haotian Tang, Xin Lai,     and Graphical Statistics, 20(1):217–240.
+   Zhijian Liu, Song Han, and Jiaya Jia. 2023b. Lon-
+   glora: Efficient fine-tuning of long-context large lan-   Xueyu Hu, Ziyu Zhao, Shuang Wei, Ziwei Chai, Guoyin
+  guage models. arXiv preprint arXiv:2309.12307.        Wang, Xuwu Wang, Jing Su, Jingjing Xu, Ming Zhu,
+                                              Yao Cheng, et al. 2024. Infiagent-dabench: Evalu-
+Zhiyu Chen, Wenhu Chen, Charese Smiley, Sameena       ating agents on data analysis tasks. arXiv preprint
+  Shah, Iana Borova, Dylan Langdon, Reema Moussa,      arXiv:2401.05507.
+  Matt Beane, Ting-Hao Huang, Bryan Routledge, and
+  William Yang Wang. 2021. FinQA: A dataset of nu-    Junjie Huang, Chenglong Wang, Jipeng Zhang, Cong
+   merical reasoning over financial data. In Proceedings      Yan, Haotian Cui, Jeevana Priya Inala, Colin Clement,
+   of the 2021 Conference on Empirical Methods in Nat-      and Nan Duan. 2022. Execution-based evaluation for
+   ural Language Processing, pages 3697–3711, Online       data science code generation models. In Proceedings
+  and Punta Cana, Dominican Republic. Association       of the Fourth Workshop on Data Science with Human-
+   for Computational Linguistics.                           in-the-Loop (Language Advances), pages 28–36, Abu
+                                                       Dhabi, United Arab Emirates (Hybrid). Association
+Liying Cheng, Xingxuan Li, and Lidong Bing. 2023.       for Computational Linguistics.
+   Is gpt-4 a good data analyst?    arXiv preprint
+  arXiv:2305.15038.                                   Yiyi Huang, Matthäus Kleindessner, Alexey Munishkin,
+                                                      Debvrat Varshney, Pei Guo, and Jianwu Wang. 2021.
+Zhoujun Cheng, Haoyu Dong, Zhiruo Wang, Ran Jia,      Benchmarking of data-driven causality discovery ap-
+   Jiaqi Guo, Yan Gao, Shi Han, Jian-Guang Lou, and      proaches in the interactions of arctic sea ice and at-
+  Dongmei Zhang. 2022. HiTab: A hierarchical table      mosphere. Frontiers in big Data, 4:642182.
+   dataset for question answering and natural language
+   generation. In Proceedings of the 60th Annual Meet-   Kosuke Imai. 2018.  Quantitative social science: an
+   ing of the Association for Computational Linguistics       introduction. Princeton University Press.
+  (Volume 1: Long Papers), pages 1094–1110, Dublin,
+                                                       Zhijing Jin, Yuen Chen, Felix Leeb, Luigi Gresele,   Ireland. Association for Computational Linguistics.
+                                                    Ojasv Kamal, LYU Zhiheng, Kevin Blin,  Fer-
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian,     nando Gonzalez Adauto, Max Kleiman-Weiner,
+  Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias     Mrinmaya Sachan, et al. 2023a. Cladder: A bench-
+   Plappert, Jerry Tworek, Jacob Hilton, Reiichiro     mark to assess causal reasoning capabilities of lan-
+  Nakano, et al. 2021. Training verifiers to solve math      guage models. In Thirty-seventh Conference on Neu-
+  word problems. arXiv preprint arXiv:2110.14168.         ral Information Processing Systems.
+
+David M Diez, Christopher D Barr, and Mine Cetinkaya-    Zhijing Jin, Jiarui Liu, Zhiheng Lyu, Spencer Poff, Mrin-
+  Rundel. 2012.  OpenIntro statistics.  OpenIntro     maya Sachan, Rada Mihalcea, Mona Diab, and Bern-
+  Boston, MA, USA:.                                   hard Schölkopf. 2023b. Can large language models
+                                                                infer causation from correlation?  arXiv preprint
+Jinglong Gao, Xiao Ding, Bing Qin, and Ting Liu. 2023.      arXiv:2306.05836.
+   Is ChatGPT a good causal reasoner? a comprehensive
+   evaluation. In Findings of the Association for Com-   Emre Kıcıman, Robert Ness, Amit Sharma, and Chen-
+   putational Linguistics: EMNLP 2023, pages 11111–      hao Tan. 2023. Causal reasoning and large language
+  11126, Singapore. Association for Computational      models: Opening a new frontier for causality. arXiv
+   Linguistics.                                               preprint arXiv:2305.00050.
+
+Daya Guo, Qihao Zhu, Dejian Yang, Zhenda Xie, Kai   Rik Koncel-Kedziorski, Michael Krumdick, Viet Lai,
+  Dong, Wentao Zhang, Guanting Chen, Xiao Bi,      Varshini Reddy, Charles Lovering, and Chris Tan-
+ Y Wu, YK Li, et al. 2024. Deepseek-coder: When the       ner. 2023.  Bizbench: A quantitative reasoning
+   large language model meets programming–the rise of      benchmark for business and finance. arXiv preprint
+  code intelligence. arXiv preprint arXiv:2401.14196.      arXiv:2311.06602.
+
+=== PDF第11页 ===
+Yuhang Lai, Chengxi Li, Yiming Wang, Tianyi Zhang,       protein-signaling networks derived from multiparam-
+   Ruiqi Zhong, Luke Zettlemoyer, Wen-tau Yih, Daniel       eter single-cell data. Science, 308(5721):523–529.
+   Fried, Sida Wang, and Tao Yu. 2023. Ds-1000: A
+   natural and reliable benchmark for data science code    Uri Shalit, Fredrik D Johansson, and David Sontag.
+   generation. In International Conference on Machine      2017. Estimating individual treatment effect: gen-
+  Learning, pages 18319–18345. PMLR.                     eralization bounds and algorithms. In International
+                                                        conference on machine learning, pages 3076–3085.
+Xiao Liu, Da Yin, Chen Zhang, Yansong Feng, and     PMLR.
+  Dongyan Zhao. 2023. The magic of IF: Investigating
+   causal reasoning abilities in large language models    Weijia Shi, Anirudh Ajith, Mengzhou Xia, Yangsibo
+   of code. In Findings of the Association for Compu-     Huang, Daogao Liu, Terra Blevins, Danqi Chen, and
+   tational Linguistics: ACL 2023, pages 9009–9022,     Luke Zettlemoyer. 2023. Detecting pretraining data
+   Toronto, Canada. Association for Computational Lin-     from large language models. In NeurIPS 2023 Work-
+   guistics.                                           shop on Regulatable ML.
+
+Pan Lu, Swaroop Mishra, Tanglin Xia, Liang Qiu, Kai-   Gemini Team, Rohan  Anil,  Sebastian Borgeaud,
+  Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter      Yonghui Wu,  Jean-Baptiste Alayrac,  Jiahui Yu,
+   Clark, and Ashwin Kalyan. 2022a. Learn to explain:     Radu Soricut, Johan Schalkwyk, Andrew M Dai,
+  Multimodal reasoning via thought chains for science      Anja Hauth, et al. 2023.  Gemini:  a family of
+   question answering. Advances in Neural Information      highly capable multimodal models. arXiv preprint
+  Processing Systems, 35:2507–2521.                     arXiv:2312.11805.
+
+Pan Lu, Liang Qiu, Kai-Wei Chang, Ying Nian Wu,   Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-
+  Song-Chun Zhu, Tanmay Rajpurohit, Peter Clark,       bert, Amjad Almahairi, Yasmine Babaei, Nikolay
+  and Ashwin Kalyan. 2022b. Dynamic prompt learn-      Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+   ing via policy gradient for semi-structured mathe-      Bhosale,  et  al. 2023.  Llama 2:  Open founda-
+   matical reasoning.  In The Eleventh International       tion and fine-tuned chat models.  arXiv preprint
+  Conference on Learning Representations.                arXiv:2307.09288.
+
+Haipeng Luo, Qingfeng Sun, Can Xu, Pu Zhao, Jian-   Ruibo Tu, Kun Zhang, Bo Bertilson, Hedvig Kjellstrom,
+  guang Lou, Chongyang Tao, Xiubo Geng, Qingwei      and Cheng Zhang. 2019. Neuropathic pain diagnosis
+   Lin, Shifeng Chen, and Dongmei Zhang. 2023. Wiz-      simulator for causal discovery algorithm evaluation.
+  ardmath: Empowering mathematical reasoning for      Advances in Neural Information Processing Systems,
+   large language models via reinforced evol-instruct.      32.
+  arXiv preprint arXiv:2308.09583.
+                                               Matthew J Vowels, Necati Cihan Camgoz, and Richard
+OpenAI. 2023. Gpt-4 technical report. arXiv preprint     Bowden. 2022. D’ya like dags? a survey on struc-
+  arXiv:2303.08774.                                          ture learning and causal discovery. ACM Computing
+                                                           Surveys, 55(4):1–36.
+Panupong Pasupat and Percy Liang. 2015. Composi-
+   tional semantic parsing on semi-structured tables. In    Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+  Proceedings of the 53rd Annual Meeting of the As-     Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou,
+   sociation for Computational Linguistics and the 7th        et al. 2022. Chain-of-thought prompting elicits rea-
+   International Joint Conference on Natural Language      soning in large language models. Advances in Neural
+  Processing (Volume 1: Long Papers), pages 1470–      Information Processing Systems, 35:24824–24837.
+  1480, Beijing, China. Association for Computational
+   Linguistics.                                       Moritz Willig, Matej Zeˇcevi´c, Devendra Singh Dhami,
+                                                    and Kristian Kersting. 2022. Can foundation models
+Lianhui Qin, Antoine Bosselut, Ari Holtzman, Chandra       talk causality?  In UAI 2022 Workshop on Causal
+   Bhagavatula, Elizabeth Clark, and Yejin Choi. 2019.      Representation Learning.
+   Counterfactual story reasoning and generation. In
+  Proceedings of the 2019 Conference on Empirical   Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak
+  Methods in Natural Language Processing and the       Shafran, Karthik R Narasimhan, and Yuan Cao. 2022.
+   9th International Joint Conference on Natural Lan-      React: Synergizing reasoning and acting in language
+  guage Processing (EMNLP-IJCNLP), pages 5043–      models. In The Eleventh International Conference
+  5053, Hong Kong, China. Association for Computa-     on Learning Representations.
+   tional Linguistics.
+                                        Da Yin, Faeze Brahman, Abhilasha Ravichander, Khy-
+Baptiste Roziere, Jonas Gehring, Fabian Gloeckle, Sten       athi Chandu, Kai-Wei Chang, Yejin Choi, and
+   Sootla, Itai Gat, Xiaoqing Ellen Tan, Yossi Adi,       Bill Yuchen Lin. 2023. Lumos: Learning agents
+  Jingyu Liu, Tal Remez, Jérémy Rapin, et al. 2023.      with unified data, modular design, and open-source
+  Code llama: Open foundation models for code. arXiv       llms. arXiv preprint arXiv:2311.05657.
+   preprint arXiv:2308.12950.
+                                               Tao Yu, Rui Zhang, Kai Yang, Michihiro Yasunaga,
+Karen Sachs, Omar Perez, Dana Pe’er, Douglas A     Dongxu Wang, Zifan Li, James Ma, Irene Li, Qingn-
+   Lauffenburger, and Garry P Nolan. 2005.  Causal       ing Yao, Shanelle Roman, Zilin Zhang, and Dragomir
+
+=== PDF第12页 ===
+  Radev. 2018. Spider: A large-scale human-labeled
+   dataset for complex and cross-domain semantic pars-
+   ing and text-to-SQL task. In Proceedings of the 2018
+  Conference on Empirical Methods in Natural Lan-
+  guage Processing, pages 3911–3921, Brussels, Bel-
+  gium. Association for Computational Linguistics.
+
+Xiang Yue, Xingwei Qu, Ge Zhang, Yao Fu, Wen-
+  hao Huang, Huan Sun, Yu Su, and Wenhu Chen.
+  2023. Mammoth: Building math generalist models
+  through hybrid instruction tuning.  arXiv preprint
+  arXiv:2309.05653.
+
+Aohan Zeng, Mingdao Liu, Rui Lu, Bowen Wang, Xiao
+   Liu, Yuxiao Dong, and Jie Tang. 2023. Agenttuning:
+  Enabling generalized agent abilities for llms. arXiv
+   preprint arXiv:2310.12823.
+
+Tianshu Zhang, Xiang Yue, Yifei Li, and Huan Sun.
+  2023.  Tablellama: Towards open large generalist
+  models for tables. arXiv preprint arXiv:2311.09206.
+
+Yilun Zhao, Yunxiang Li, Chenying Li, and Rui Zhang.
+  2022. MultiHiertt: Numerical reasoning over multi
+   hierarchical tabular and textual data. In Proceedings
+   of the 60th Annual Meeting of the Association for
+  Computational Linguistics (Volume 1: Long Papers),
+  pages 6588–6600, Dublin, Ireland. Association for
+  Computational Linguistics.
+
+Yilun Zhao, Hongjun Liu, Yitao Long, Rui Zhang, Chen
+  Zhao, and Arman Cohan. 2023. Knowledgemath:
+  Knowledge-intensive math word problem solving in
+   finance domains. arXiv preprint arXiv:2311.09797.
+
+Victor Zhong, Caiming Xiong, and Richard Socher.
+  2017. Seq2sql: Generating structured queries from
+   natural language using reinforcement learning. arXiv
+   preprint arXiv:1709.00103.
+
+Fengbin Zhu, Wenqiang Lei, Youcheng Huang, Chao
+  Wang, Shuo Zhang, Jiancheng Lv, Fuli Feng, and Tat-
+  Seng Chua. 2021. TAT-QA: A question answering
+  benchmark on a hybrid of tabular and textual con-
+   tent in finance. In Proceedings of the 59th Annual
+  Meeting of the Association for Computational Lin-
+   guistics and the 11th International Joint Conference
+  on Natural Language Processing (Volume 1: Long
+   Papers), pages 3277–3287, Online. Association for
+  Computational Linguistics.
+
+=== PDF第13页 ===
+A  Appendix                                         Source                              Question
+
+                                                             OpenIntro Statistics                     112
+A.1  Question Collection of QRDATA                                                                    Quantitative Social Science                35
+We provide the number of questions collected from        Causal Inference for the Brave and True     24
+                                                       Flow Cytometry                        50
+different sources in Table 6. Table 8 summarizes      IHDP                                 30
+the topics covered in QRDATA, and examples of        Jobs                                  10
+questions related to these topics.                           Neuropathic Pain Diagnosis               100
+                                                                   Arctic Sea Ice                          50
+                                                                 Overall                               411
+Causal Discovery. We collect both pairwise
+causal discovery and full graph causal discovery                                                     Table 6: Count of questions from different sources of
+questions from the Neuropathic pain diagnosis                                         QRDATA.
+dataset following Kıcıman et al. (2023).
+  We sample 50 causal relations like L1 radicu-                                                                     Failure Reason        Percentage (%)
+lopathy →IBS from the gold causal graph, and
+                                                                Data Analysis           34%
+generate pairwise causal discovery questions ask-           Knowledge Recall        44%
+ing models to predict the direction of the causal             Equation Formulation      16%
+relation. The questions are in the form of Which              Calculation            6%
+cause-and-effect relationship is more likely? A. R
+                                                     Table 7: Error analysis of GPT-4 with the code inter-
+L1 radiculopathy causes IBS B. IBS causes R L1                                                             preter assistant on QRDATA.
+radiculopathy.
+  In full graph causal discovery, there are three
+possible relations between two variables A and B:   A.2  Question Collection of QRTEXT
+A →B, B →A, and no causal relation exists. We
+                                   QRTEXT contains 290 questions in total, 140 mul-
+sample 25 variable pairs that have causal relations
+                                                              tiple choice questions and 150 numerical questions.
+in the causal graph and 25 variable pairs that do
+                                  We collect 100 statistical reasoning questions from
+not have causal relations, and form 50 questions
+                                                OpenIntro Statistics, 94 causal reasoning questions
+in the form of Which cause-and-effect relationship
+                                             from CLADDER, and 96 causal reasoning questions
+is more likely? A. headache causes groin pain B.
+                                             from CORR2CAUSE. Figure 4 exhibits an example
+groin pain causes headache C. No causal relation-
+                                                   question of QRTEXT.
+ship exists.
+                                            The OpenIntro Statistics questions are collected
+  For the Flow cytometry and Arctic sea ice
+                                            from exercises with solutions from the textbook.
+datasets, we only collect the more challenging full
+                                     CORR2CAUSE contains causal discovery questions
+graph causal discovery questions. As the causal
+                                                    of determining the causal relationship between the
+graph of Arctic sea ice contains double-sided edges,
+                                                     variables given correlational statements. We ran-
+we ask models to predict from four possible choices
+                                         domly sample CORR2CAUSE questions from the
+like Which cause-and-effect relationship is more
+                                                        original test set.
+likely?  A. Residual_cloud_cover causes Resid-
+                                    CLADDER contains causal questions where the
+ual_longwave B. Residual_longwave causes Resid-
+                                                   conditions are described in natural language.  It
+ual_cloud_cover C. The causal relation is double-
+                                                            classifies questions into three rungs: associational
+sided between Residual_cloud_cover and Resid-
+                                                   (rung 1), interventional (rung 2), and counterfactual
+ual_longwave D. No causal relationship exists.
+                                                 (rung 3). We only consider questions of rungs 2
+Causal Estimation.  We collect numerical ques-   and 3 because these are related to causal reasoning.
+tions of estimating average treatment effect (ATE),  We randomly sample causal estimation questions
+average treatment effect on the treated (ATT), and   querying Average Treatment Effect (ATE), Effect
+average treatment effect on the control (ATC) from    of the Treatment on the Treated (ETT), Natural
+the IHDP dataset. As all the outcomes and coun-   Direct Effect (NDE), and Natural Indirect Effect
+terfactual outcomes are simulated using real co-   (NIE), and transform the original yes-or-no ques-
+variates, we calculate the values of these estimates    tions into numerical questions using the provided
+as the gold answers. In the Jobs dataset, all the    metadata. This is to balance the ratio of multiple
+treatments were from randomized experiments, so    choice questions and numerical questions, control-
+we can calculate the true ATT values. We collect    ling the random performance to be close to QR-
+questions of estimating ATT from the dataset.      DATA.
+
+=== PDF第14页 ===
+   Data Description                                                               Question
+   Imagine a self-contained, hypothetical world with only the following conditions, and   What is the average treatment effect from obesity to
+   without any unmentioned factors or causal relationships: Obesity has a direct effect     lifespan?
+   on diabetes and lifespan. Smoking has a direct effect on diabetes and lifespan.          Please answer with a positive number if the effect is
+   Diabetes has a direct effect on lifespan. Smoking is unobserved.                           positive, a negative number otherwise, and round to
+   For normal weight people, the probability of long lifespan is 66%. For obese people,    the nearest hundredth.
+   the probability of long lifespan is 56%.
+
+       Correct Reasoning Steps:                                                          2. Identify confounding variables
+     1. Build a causal model based on the data description     T     S        No confounding variable for the causal relation from
+     T: Obesity                 D: Diabetes                                       Obesity to Lifespan
+      S: Smoking (unobserved)    Y: Lifespan
+                                     D     Y           4. Solve the estimand
+     3. Derive the estimand of average causal effect
+                                                                              ATE = 0.56 – 0.66 = -0.10
+
+     ATE = E[Y | do(T = 1)] - E[Y | do(T = 0)]
+         = P(Y=1|T=1) - P(Y=1|T=0)                                                    Final Answer: -0.10
+
+Figure 4: An example question of QRTEXT and correct reasoning steps. The question is converted from CLADDER.
+
+
+A.3  Prompt Design                         model GPT-4 with the code interpreter assistant
+                                          on QRDATA. We randomly sample 50 incorrectTable 9 shows an example prompt for Chain-of-
+                                                     predicted instances, and annotate their main reasonThought reasoning. In real prompts, we feed all the
+                                                       for mis-prediction. As shown in Table 7, 34% ofcontent of the data sheets until it meets the length
+                                                    the mis-predictions originate from data analysis.limit of 3500 tokens. We shuffle the data to avoid
+                                          The model may fail to retrieve the correct columnsthe bias towards values in the front. After Chain-of-
+                                                 according to the instruction of questions, or misin-Thought reasoning, we use GPT-3.5 Turbo for an-
+                                                         terpret the data values. 44% of the errors occur inswer extraction, and the prompt template is shown
+                                            knowledge recall, like choosing a wrong hypoth-in Table 10.
+                                                         esis test, or using statistical methods to address  Table 11 shows an example prompt for Program-
+                                                a causal question. Even if the model recalls theof-Thoughts reasoning. We shuffle the data and
+                                                      correct knowledge to solve the question, it formu-provide the first ten lines in the prompt. An exam-
+                                                          lates wrong equations in 16% of the cases. Andple prompt for ReAct-style reasoning is in Table 12,
+                                6% of errors occur in the calculation. This is alsoand an example prompt for code interpreter assis-
+                                                    the main reason for errors when humans conducttants is in Table 13. When the question is based on
+                                                    the task, because state-of-the-art causal methodsmultiple data sheets, we demonstrate the rows of
+                                                 cannot perfectly reach the correct answer.these data sheets respectively in the prompts.
+
+A.4  Implementation Details
+
+We conduct model inference with temperature 0
+and maximum new tokens 512. We limit the maxi-
+mum reasoning steps to 10 in ReAct-style prompt-
+ing. Experiments are conducted on NVIDIA A800
+GPUs. It takes five minutes to evaluate a 7B model
+on QRDATA with CoT/PoT prompting on a single
+GPU, and one hour to evaluate a 7B model with
+ReAct-style prompting.
+
+A.5  Case Study
+
+Table 14 demonstrates the full output of GPT-4
+on the example case from QRDATA, and Table 15
+demonstrates the full output of GPT-4 without ac-
+cess to the data.
+
+A.6  Error Analysis
+
+To have a quantitative view of model failures, we
+conduct an error analysis for the best-performed
+
+=== PDF第15页 ===
+Topic              Description                           Example
+
+Probability          Calculating the likelihood of events happening.   What is the probability a randomly selected per-
+                                                            son who was not inoculated died from small-
+                                                          pox?
+
+Distribution         Understanding how data points are spread out.    Is it reasonable to model the proportion of US
+                                                                      adults who support expanding wind turbines
+                                                                 using a normal distribution?
+
+Estimation         Approximating parameters based on samples   Use a Poisson distribution to approximate the
+                 drawn from the population, and quantifying   data. What is the event rate of the Poisson
+                     the uncertainty of estimates.                      distribution?
+
+Hypothesis  Test-  Using statistical tests to assess the validity of   Given the hypothesis that the proportion of col-
+ing                 hypotheses.                                    lege graduates who support off-shore drilling
+                                                                       in California is equal to that of non-college
+                                                                       graduates, will you accept or reject the hypoth-
+                                                                            esis with a significance level of 5%?
+
+Prediction          Using statistical models to predict future values    Fit a linear regression model using the Demo-
+                   based on existing data trends.                     cratic margin in the two-party vote share as
+                                                                       the response variable and the perceived compe-
+                                                                   tence for Democratic candidates as the predic-
+                                                                                       tor. What is the estimated slope of the model?
+
+                                             (a) Topics of statistical reasoning.
+
+
+Topic              Description                           Example
+
+Confounding       Recognizing confounders that might influence  We are estimating the causal effect of the new
+                     the observed relationship between two vari-  drug on the number of days the patient stays
+                       ables. For example, a variable that causes both   in the hospital, and we already controlled for
+                      the treatment and the outcome is a confounder.   the severity. Should we also control for the
+                                                                          ’hospital’ variable?
+
+Causal Discovery    Inferring the causal relations from the data. For  Which cause-and-effect relationship is more
+                   example, distinguishing between correlation   likely? A. R L5 radiculopathy causes L L1
+                  and causation and determining the causal di-   radiculopathy B. L L1 radiculopathy causes
+                      rection between two variables.           R L5 radiculopathy C. No causal relationship
+                                                                           exists
+
+Causal Effect Esti-   Estimating the causal effect between two vari-  What is the average treatment effect of the
+mation              ables using methods like propensity score   growth mindset on the achievement score?
+                   matching and doubly robust estimation.         Please conduct a doubly robust estimation and
+                                                               use logistic regression to estimate the propen-
+                                                                               sity score.
+
+Instrumental Vari-   Addressing confounding bias with instrumen-  What is the average additional percentage wage
+ables                    tal variables. An instrumental variable causes   increase associated with each additional year of
+                     the treatment and is only correlated with the   education based on the instrumental variable
+                  outcome through the treatment.                 of whether the individual is born in the last
+                                                                      quarter (q4)?
+
+Panel Data         Applying   methods    like   difference-in-  What is the average increase in bank deposits
+                     differences and synthetic control to estimate   per customer in Porto Alegre after the billboard
+                     the causal effect in panel data. These methods   intervention, as estimated by the difference-in-
+                       differ from those used to estimate causal   differences approach?
+                       effects in a single period.
+
+                                            (b) Topics of causal reasoning.
+
+        Table 8: Topics covered in QRDATA and examples of questions related to these topics.
+
+=== PDF第16页 ===
+ Data Description:
+  Public health has improved and evolved, but has the public’s knowledge changed with it? This data set rosling_responses.csv
+  contains sample responses for two survey questions posed by Hans Rosling during lectures to a wide array of college-educated
+  audiences.
+  rosling_responses:
+    | | question | response | prob_random_correct |
+    | 0 | children_in_2100 | correct | 0.333333 |
+    | 1 | children_in_2100 | incorrect | 0.333333 |
+    | 2 | children_in_2100 | correct | 0.333333 |
+    | 3 | children_with_1_or_more_vaccination | incorrect | 0.333333 |
+    | 4 | children_in_2100 | incorrect | 0.333333 |
+   ...
+  Task:
+ You are a data analyst and good at quantitative reasoning. You are required to respond to a quantitative question using the
+  provided data. The description and the table are listed above. Please analyze the table to answer the question. Do not write
+ any code in your answer. Ensure that your final answer is positioned at the very end of your output, adhering to the format
+ ‘Final answer: [answer]’. The final answer should be a number or a short phrase and should be written in a new line.
+  Question:
+ Can we reject the notion that the performance of college-educated adults was different than random guessing in the
+  children_with_1_or_more_vaccination question with 95% confidence? Please answer with “yes” or “no”.
+  Response:
+  Let’s think step by step.
+
+Table 9: Example prompt for Chain-of-Thought reasoning. In real prompts, we feed all the content of the data
+sheets until it meets the length limit.
+
+
+
+
+
+  Extract the final answer from the given solution as a numeric value or a short phrase for the question. If you cannot extract an
+  answer, return "None".
+ You should either return "None" or the final answer without any additional words.
+  Question: {question}
+  Solution: {answer}
+  Final Answer:
+
+
+Table 10: Prompt template for answer extraction after Chain-of-Thought reasoning. {question} is the question from
+the benchmark, and {answer} is the answer generated by models.
+
+=== PDF第17页 ===
+You are a data analyst and good at quantitative reasoning. You are required to respond to a quantitative question using the
+provided data. The description and the question can be found below. Please analyze the first 10 rows of the table and write
+python code to analyze the whole table. You can use any python library. The returned value of the program is supposed to be
+the answer. The format of the code should be
+```python
+def solution():
+  # import libraries if needed
+  # load data
+  # write code to get the answer
+  # return answer
+```
+Data Description:
+Public health has improved and evolved, but has the public’s knowledge changed with it? This data set rosling_responses.csv
+contains sample responses for two survey questions posed by Hans Rosling during lectures to a wide array of college-educated
+audiences.
+First 10 rows of the data:
+rosling_responses:
+| | question | response | prob_random_correct |
+| 0 | children_in_2100 | correct | 0.333333 |
+| 1 | children_in_2100 | incorrect | 0.333333 |
+| 2 | children_in_2100 | correct | 0.333333 |
+| 3 | children_with_1_or_more_vaccination | incorrect | 0.333333 |
+| 4 | children_in_2100 | incorrect | 0.333333 |
+| 5 | children_in_2100 | incorrect | 0.333333 |
+| 6 | children_in_2100 | correct | 0.333333 |
+| 7 | children_in_2100 | incorrect | 0.333333 |
+| 8 | children_in_2100 | incorrect | 0.333333 |
+| 9 | children_in_2100 | incorrect | 0.333333 |
+Question:
+Can we reject the notion that the performance of college-educated adults was different than random guessing in the
+children_with_1_or_more_vaccination question with 95% confidence? Please answer with “yes” or “no”.
+Response:
+```python
+
+
+                     Table 11: Example prompt for Program-of-Thoughts reasoning.
+
+=== PDF第18页 ===
+Data Description:
+Public health has improved and evolved, but has the public’s knowledge changed with it? This data set rosling_responses.csv
+contains sample responses for two survey questions posed by Hans Rosling during lectures to a wide array of college-educated
+audiences.
+You are working with a pandas dataframe in Python. The name of the dataframe is ‘df’.
+You should use the tools below to answer the question posed of you:
+python_repl_ast: A Python shell. Use this to execute python commands. Input should be a valid python command. When
+using this tool, sometimes output is abbreviated - make sure it does not look abbreviated before using it in your answer.
+
+
+Use the following format:
+
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be python_repl_ast
+Action Input: the input to the action, should be the code to execute
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question, just provide the answer WITHOUT any other words
+
+
+Note that you should import the libraries if needed.
+DO NOT create any plotting.
+For all outputs in code, THE print() function MUST be called.
+If you use Action in this step, stop after generating the Action Input and await the execution outcome from python_repl_ast.
+If you output the Final Answer in this step, do not use Action.
+
+
+Here is an example of using the python_repl_ast:
+Action: python_repl_ast
+Action Input:
+import pandas as pd
+print(df.head())
+
+
+This is the result:
+| | question | response | prob_random_correct |
+| 0 | children_with_1_or_more_vaccination | correct | 0.333333 |
+| 1 | children_with_1_or_more_vaccination | correct | 0.333333 |
+| 2 | children_with_1_or_more_vaccination | incorrect | 0.333333 |
+| 3 | children_with_1_or_more_vaccination | incorrect | 0.333333 |
+| 4 | children_with_1_or_more_vaccination | incorrect | 0.333333 |
+
+
+Begin!
+Question:
+Can we reject the notion that the performance of college-educated adults was different than random guessing in the
+children_with_1_or_more_vaccination question with 95% confidence? Please answer with “yes” or “no”.
+
+
+                          Table 12: Example prompt for ReAct-style reasoning.
+
+=== PDF第19页 ===
+Assistant Instruction  You are a data analyst and good at quantitative reasoning. You are required to respond to a
+                           quantitative question using the provided data. The description and the question can be found below.
+                         Please just start answering and don’t ask me any questions. Put your output in one message. Ensure
+                           that your final answer is positioned at the very end of your output, adhering to the format ’Final
+                       answer: [answer]
+User                 Data Description:
+                        Public health has improved and evolved, but has the public’s knowledge changed with it? This
+                         data set rosling_responses.csv contains sample responses for two survey questions posed by Hans
+                       Rosling during lectures to a wide array of college-educated audiences.
+                        Question:
+                   Can we reject the notion that the performance of college-educated adults was different than random
+                       guessing in the children_with_1_or_more_vaccination question with 95% confidence? Please
+                      answer with “yes” or “no”.
+
+
+                       Table 13: Example prompt for the code interpreter assistants.
+
+=== PDF第20页 ===
+Data Description   The neuropathic pain diagnosis mainly consists of symptom diagnosis, pattern diagnosis, and patho-
+                     physiological diagnosis. The csv file Neuropathic_11.csv contains neuropathic pain diagnosis records
+                      in the form of tables of which the row represents different patients and the column represents different
+                     diagnostic labels.
+Question         Which cause-and-effect relationship is more likely?
+                  A. R L5 radiculopathy causes L L1 radiculopathy   B. L L1 radiculopathy causes R L5 radiculopathy
+                   C. No causal relationship exists
+                    Please answer with A, B, or C.
+Gold Answer    C
+
+GPT-4 Prediction with Data Access
+Step 1:           import pandas as pd
+Code Interpreter   # Reading the dataset
+                 file_path = ‘/mnt/data/Neuropathic_11.csv’
+                 data = pd.read_csv(file_path)
+                 # Display the first few records to understand the data structure
+                 data.head()
+Step 2:              Let’s proceed with analyzing the relevant columns to identify if there are any cause-and-effect relation-
+                     ships between the “R L5 radiculopathy” and “L L1 radiculopathy” conditions.
+                          I will start by filtering these two columns from the dataset and then conducting an analysis to identify
+                      the likelihood of either of the radiculopathies causing the other. I will examine the data for the following
+                      patterns:
+                         - If patients with “R L5 radiculopathy” also frequently have “L L1 radiculopathy” and not the other
+                way around, it may suggest that A is more likely.
+                          - Conversely, if patients with “L L1 radiculopathy” also frequently have “R L5 radiculopathy” and not
+                     the other way around, it may suggest that B is more likely.
+                          - If there is no clear pattern or both conditions occur independently, it may suggest that C is more likely.
+                 To do this analysis, I will compute conditional probabilities:
+                          - P(L L1 | R L5)
+                          - P(R L5 | L L1)
+                 Then I will compare these probabilities to make an inference regarding the most likely cause-and-effect
+                       relationship.
+Step 3:           # Extract the relevant columns
+Code Interpreter   R_L5_col = ‘R L5 radiculopathy’
+                 L_L1_col = ‘L L1 radiculopathy’
+                 # Filter the dataset for these two columns
+                 radiculopathy_data = data_corrected[[R_L5_col, L_L1_col]]
+                 # Calculate the occurrence of each condition and their co-occurrence
+                 R_L5_count = radiculopathy_data[R_L5_col].sum()
+                 L_L1_count = radiculopathy_data[L_L1_col].sum()
+                 co_occurrence_count  =  radiculopathy_data[(radiculopathy_data[R_L5_col]  ==  1)  &
+                 (radiculopathy_data[L_L1_col] == 1)].shape[0]
+                 # Calculate the conditional probabilities
+                 # Probability of L L1 given R L5
+                 P_L_L1_given_R_L5 = co_occurrence_count / R_L5_count if R_L5_count else 0
+                 # Probability of R L5 given L L1
+                 P_R_L5_given_L_L1 = co_occurrence_count / L_L1_count if L_L1_count else 0
+                 P_L_L1_given_R_L5, P_R_L5_given_L_L1
+Step 4:           The conditional probabilities calculated are as follows:
+                          - P(L L1 | R L5) ≈0.0075
+                          - P(R L5 | L L1) ≈0.4122
+                  These probabilities suggest that the occurrence of “L L1 radiculopathy” does not significantly increase
+                when “R L5 radiculopathy” is present, given that P(L L1 | R L5) is quite low. On the other hand, the
+                    occurrence of “R L5 radiculopathy” is notably higher when “L L1 radiculopathy” is present, as P(R L5
+                                           | L L1) is much higher.
+                    Therefore, based on these conditional probabilities, it is more likely that “L L1 radiculopathy” causes
+                 ‘R L5 radiculopathy” over the other proposed causal direction.
+                     Final answer: B
+
+
+                   Table 14: Full outputs of GPT-4 on the example case from QRDATA.
+
+=== PDF第21页 ===
+GPT-4 Prediction without Data Access
+Prediction   To address which cause-and-effect relationship is more likely between ‘R L5 radiculopathy’ and ‘L L1
+              radiculopathy’, we would generally look for statistical relationships in the data that may imply causality.
+               Specifically, we would examine the frequency with which one condition appears before the other. If ‘R L5
+              radiculopathy’ generally appears before ‘L L1 radiculopathy’, it would lend support to the idea that A is more
+                likely. Conversely, if ‘L L1 radiculopathy’ appears before ‘R L5 radiculopathy’, we might lean towards B.
+            However, without access to the actual data, we can only reason based on general medical knowledge and
+              the understanding of how radiculopathy typically presents. Radiculopathy is a condition resulting from a
+            compressed nerve in the spine that can cause pain, numbness, or weakness in various parts of the body.
+               Typically, this condition is localized and not known to cause another radiculopathy on the opposite side and a
+               different vertebrae level of the body.
+            Given both ‘R L5’ and ‘L L1’ radiculopathies are on different sides of the body and different spinal levels, it’s
+              not common for one to cause the other according to standard medical understanding. It is more likely that they
+             occur independently due to separate causes.
+            However, unilateral radiculopathy doesn’t generally cause contralateral radiculopathy at a different spinal level.
+             This is because the nerve root compression that leads to radiculopathy is typically localized, and it would be
+             unusual for such an issue on one side of the spine to directly cause a similar issue on the opposite side at a
+               different level. Therefore, it’s likely that if both conditions are present in a patient, they arose independently or
+            due to a systemic issue affecting the spine broadly, rather than one causing the other.
+              Therefore, based on a qualitative argument and standard medical understanding, the answer is most likely that
+              there is no causal relationship between the two conditions, which corresponds to option C.
+              Final answer: C.
+
+
+ Table 15: Full outputs of GPT-4 on the example case from QRDATA when it does not have access to the data.

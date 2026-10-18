@@ -1,0 +1,151 @@
+{
+  "JOS-幻觉-静态": {
+    "url": "https://www.jos.org.cn/html/2025/3/7242.htm",
+    "length": 107591,
+    "text": "大语言模型的幻觉问题研究综述 大语言模型的幻觉问题研究综述 刘泽垣 , 王鹏江 , 宋晓斌 , 张欣 , 江奔奔 刘泽垣, 王鹏江, 宋晓斌, 等. 大语言模型的幻觉问题研究综述 [J]. 软件学报, 2025, 36(3): 1152-1185. doi: 10.13328/j.cnki.jos.007242 引用本文: 刘泽垣, 王鹏江, 宋晓斌, 等. 大语言模型的幻觉问题研究综述 [J]. 软件学报, 2025, 36(3): 1152-1185. doi: 10.13328/j.cnki.jos.007242 LIU Ze-Yuan, WANG Peng-Jiang, SONG Xiao-Bin, et al. Survey on Hallucinations in Large Language Models [J]. Journal of Software, 2025, 36(3): 1152-1185. doi: 10.13328/j.cnki.jos.007242 Citation: LIU Ze-Yuan, WANG Peng-Jiang, SONG Xiao-Bin",
+    "images": [
+      [
+        "style/images/downloadPDF.png",
+        "downloadPDF"
+      ],
+      [
+        "style/images/shu.png",
+        "shu"
+      ],
+      [
+        "style/images/shu.png",
+        "shu"
+      ],
+      [
+        "PIC/7242-1.jpg",
+        null
+      ],
+      [
+        "style/images/download.png",
+        null
+      ],
+      [
+        "PIC/7242-2.jpg",
+        null
+      ],
+      [
+        "style/images/download.png",
+        null
+      ],
+      [
+        "PIC/7242-3.jpg",
+        null
+      ],
+      [
+        "style/images/download.png",
+        null
+      ],
+      [
+        "PIC/7242-4.jpg",
+        null
+      ],
+      [
+        "style/images/download.png",
+        null
+      ],
+      [
+        "PIC/7242-5.jpg",
+        null
+      ],
+      [
+        "style/images/download.png",
+        null
+      ],
+      [
+        "PIC/7242-6.jpg",
+        null
+      ],
+      [
+        "style/images/download.png",
+        null
+      ],
+      [
+        "PIC/7242-7.jpg",
+        null
+      ],
+      [
+        "style/images/download.png",
+        null
+      ],
+      [
+        "PIC/7242-1.jpg",
+        null
+      ],
+      [
+        "style/images/download.png",
+        null
+      ],
+      [
+        "PIC/7242-2.jpg",
+        null
+      ]
+    ]
+  },
+  "JOS-幻觉-旧入口": {
+    "url": "https://www.jos.org.cn/jos/article/abstract/7242",
+    "length": 2679,
+    "text": "大语言模型的幻觉问题研究综述 微信小程序 微信服务号 微信订阅号 主页 期刊介绍 编委会 服务介绍 投稿指南 出版道德 联系我们 E-mail Alert English 首页 > 过刊浏览 > 2025年第36卷第3期 >1152-1185. DOI:10.13328/j.cnki.jos.007242 优先出版 PDF HTML阅读 XML下载 导出引用 引用提醒 大语言模型的幻觉问题研究综述 DOI: 10.13328/j.cnki.jos.007242 CSTR: 32375.14.jos.007242 作者: 作者单位: 作者简介: 通讯作者: 中图分类号: 基金项目: 国家重点研发计划(2022YFE0197600) Survey on Hallucinations in Large Language Models Author: Affiliation: Fund Project: 摘要 | 图/表 | 访问统计 | 参考文献 | 相似文献 | 引证文献 | 资源附件 | 文章评论 摘要: 随着以Transformer为代表的预训练模型等深度学习技术的发展, 大语言模型(",
+    "images": [
+      [
+        "/template/011_csa/images/wxxcx.jpg",
+        null
+      ],
+      [
+        "/template/011_csa/images/fuwuhao.jpg",
+        null
+      ],
+      [
+        "/template/011_csa/images/dingyuehao.jpg",
+        null
+      ],
+      [
+        "/template/011_csa/images/xssqzy.jpg",
+        null
+      ],
+      [
+        "uploadfile/two_dimensional_code_img/jos/2025/3/7242_wechat_qr.png?version=2026-10-13",
+        null
+      ],
+      [
+        "/jos/ch/ext_images/batb.png",
+        null
+      ]
+    ]
+  },
+  "JOS-RAG-静态": {
+    "url": "https://www.jos.org.cn/jos/article/abstract/7684",
+    "length": 2612,
+    "text": "面向大语言模型生成能力提升的检索增强生成研究进展 微信小程序 微信服务号 微信订阅号 主页 期刊介绍 编委会 服务介绍 投稿指南 出版道德 联系我们 E-mail Alert English 首页 > 过刊浏览 > 年第卷第期 >1-30. DOI:10.13328/j.cnki.jos.007684 优先出版 PDF HTML阅读 XML下载 导出引用 引用提醒 面向大语言模型生成能力提升的检索增强生成研究进展 DOI: 10.13328/j.cnki.jos.007684 CSTR: 作者: 作者单位: 作者简介: 通讯作者: 中图分类号: TP18 基金项目: 国家自然科学基金(62376178, 62372318, 62506255); 江苏省基础研究计划(BK20250982); 苏州市水利水务科技项目(2025004) Research Progress on Retrieval-augmented Generation for Enhancing Generative Capabilities of Large Language Models Author: Affili",
+    "images": [
+      [
+        "/template/011_csa/images/wxxcx.jpg",
+        null
+      ],
+      [
+        "/template/011_csa/images/fuwuhao.jpg",
+        null
+      ],
+      [
+        "/template/011_csa/images/dingyuehao.jpg",
+        null
+      ],
+      [
+        "/template/011_csa/images/xssqzy.jpg",
+        null
+      ],
+      [
+        "uploadfile/two_dimensional_code_img/jos///7684_qr.png?version=2026-10-13",
+        null
+      ],
+      [
+        "/jos/ch/ext_images/batb.png",
+        null
+      ]
+    ]
+  }
+}

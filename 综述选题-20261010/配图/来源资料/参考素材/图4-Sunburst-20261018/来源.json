@@ -1,0 +1,20 @@
+{
+  "source": "../../模型原图/图4-重绘-gpt-image-2.5-sunburst-20261018.png",
+  "source_sha256": "81dfb50fd1905382abca9b865700fcfa83641d1a7425176e70c21e4a7a4a7a4e",
+  "requested_model": "gpt-image-2.5-sunburst",
+  "gear_crop": [
+    789,
+    261,
+    906,
+    373
+  ],
+  "evidence_crop": [
+    844,
+    749,
+    933,
+    823
+  ],
+  "cleanup": "仅去除边缘相连白底，清除关系证据图标上方的5px连接线残留；保留图标内容",
+  "editable_parts": "全部文字、文献页、主张、图形节点和关系线为原生元素",
+  "source_at_generation": "C:\\Users\\ROG\\Downloads\\LLM-hallucination\\output\\imagegen\\图4-重绘-gpt-image-2.5-sunburst-20261018.png"
+}
