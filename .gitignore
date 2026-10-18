@@ -1,5 +1,4 @@
 # 本机归档和构建中间文件
-experiments/.local/
 **/.venv/
 **/__pycache__/
 **/.ruff_cache/
